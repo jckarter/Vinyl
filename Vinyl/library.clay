@@ -32,13 +32,17 @@ createLibraryDatabase(db: SqliteDB) {
         sort_name text not null,
         album_artist_id integer references artists (artist_id),
         sides_count integer,
-        tracks_count integer,
         compilation_p integer not null default 0
+    )");
+    runStatement(db, "create table album_sides (
+        album_id integer not null references albums (album_id),
+        side_number integer not null,
+        tracks_count integer,
+        primary key (album_id, side_number)
     )");
     runStatement(db, "create table genres (
         genre_id integer primary key,
-        display_name text not null,
-        sort_name text not null
+        name text not null
     )");
     runStatement(db, "create table composers (
         composer_id integer primary key,
@@ -47,8 +51,7 @@ createLibraryDatabase(db: SqliteDB) {
     )");
     runStatement(db, "create table groupings (
         grouping_id integer primary key,
-        display_name text not null,
-        sort_name text not null
+        name text not null
     )");
     runStatement(db, "create table tracks (
         track_id integer primary key,
@@ -65,7 +68,7 @@ createLibraryDatabase(db: SqliteDB) {
         year text,
         comments text
     )");
-
+    
     runStatement(db, "create table playlist_folders (
         playlist_folder_id integer primary key,
         name text not null,
@@ -81,10 +84,11 @@ createLibraryDatabase(db: SqliteDB) {
     runStatement(db, "create table playlist_tracks (
         playlist_id integer references playlists (playlist_id) not null,
         track_id integer references tracks (track_id) not null,
-        position integer unique not null,
-        primary key (playlist_id, track_id, position)
+        position integer not null,
+        primary key (playlist_id, track_id, position),
+        unique (playlist_id, position)
     )");
-
+    
     runStatement(db, "create table album_options (
         album_id integer primary key references albums (album_id),
         rating integer
@@ -257,4 +261,3 @@ refreshLibraryDataSource(self: LibraryDataSource) {
 }
 
 itemIsFolder?(item) = item.isKindOfClass(NSDictionary) and not nil?(item["playlists"]);
-
