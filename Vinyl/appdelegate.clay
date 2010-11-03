@@ -1,0 +1,10 @@
+import cocoa.*;
+import cocoa.appkit.*;
+
+record AppDelegate = newClass(#"VinylAppDelegate", NSObject,
+    InstanceVars(
+        (#mainWindow, IBOutlet(NSWindow)),
+    ),
+    ClassMethods(),
+    InstanceMethods(),
+);

@@ -1,0 +1,260 @@
+import cocoa.*;
+import sqlite.*;
+
+alias LIBRARY_DB_FILE = "Vinyl Library.sqlite";
+
+supportDir() {
+    var applicationSupportDirs = NSSearchPathForDirectoriesInDomains(
+        NSUInteger(NSApplicationSupportDirectory),
+        NSUInteger(NSUserDomainMask),
+        true
+    );
+    var applicationSupportDir = NSString(applicationSupportDirs[0]);
+
+    return applicationSupportDir.stringByAppendingPathComponent("Durian Software/Vinyl");
+}
+
+libraryFile(dir) = dir.stringByAppendingPathComponent(LIBRARY_DB_FILE);
+
+record Library (db: SqliteDB);
+
+createLibraryDatabase(db: SqliteDB) {
+    runStatement(db, "begin");
+
+    runStatement(db, "create table artists (
+        artist_id integer primary key,
+        display_name text not null,
+        sort_name text not null
+    )");
+    runStatement(db, "create table albums (
+        album_id integer primary key,
+        display_name text not null,
+        sort_name text not null,
+        album_artist_id integer references artists (artist_id),
+        sides_count integer,
+        tracks_count integer,
+        compilation_p integer not null default 0
+    )");
+    runStatement(db, "create table genres (
+        genre_id integer primary key,
+        display_name text not null,
+        sort_name text not null
+    )");
+    runStatement(db, "create table composers (
+        composer_id integer primary key,
+        display_name text not null,
+        sort_name text not null
+    )");
+    runStatement(db, "create table groupings (
+        grouping_id integer primary key,
+        display_name text not null,
+        sort_name text not null
+    )");
+    runStatement(db, "create table tracks (
+        track_id integer primary key,
+        filename text not null unique,
+        display_name text not null,
+        sort_name text not null,
+        album_id integer references albums (album_id),
+        track_artist_id integer references artist (artist_id),
+        genre_id integer references genres (genre_id),
+        composer_id integer references composers (composer_id),
+        grouping_id integer references groupings (grouping_id),
+        side_number integer,
+        track_number integer,
+        year text,
+        comments text
+    )");
+
+    runStatement(db, "create table playlist_folders (
+        playlist_folder_id integer primary key,
+        name text not null,
+        position integer unique not null
+    )");
+    runStatement(db, "create table playlists (
+        playlist_id integer primary key,
+        name text not null,
+        playlist_folder_id integer references playlist_folders (playlist_folder_id),
+        position integer not null,
+        unique (playlist_folder_id, position)
+    )");
+    runStatement(db, "create table playlist_tracks (
+        playlist_id integer references playlists (playlist_id) not null,
+        track_id integer references tracks (track_id) not null,
+        position integer unique not null,
+        primary key (playlist_id, track_id, position)
+    )");
+
+    runStatement(db, "create table album_options (
+        album_id integer primary key references albums (album_id),
+        rating integer
+    )");
+    runStatement(db, "create table track_options (
+        track_id integer primary key references tracks (track_id),
+        enabled_p integer not null default 0,
+        rating integer,
+        start_time real,
+        end_time real
+    )");
+
+    runStatement(db, "commit");
+}
+
+createLibrary(file) {
+    var db = SqliteDB(file);
+    createLibraryDatabase(db);
+    return Library(move(db));
+}
+
+overload Library() {
+    var dir = supportDir();
+    var file = libraryFile(dir);
+    var fm = Retained(NSFileManager.alloc().init());
+    if (fm.fileExistsAtPath(file)) {
+        return Library(SqliteDB(String(file)));
+    } else {
+        fm.createDirectoryAtPath_withIntermediateDirectories_attributes_error(
+            dir, true, nil(NSDictionary), null(NSError)
+        );
+        return createLibrary(String(file));
+    }
+}
+
+updateLibraryFolderName(library: Library, folderId, name) {
+    runStatement(library.db, "update playlist_folders set name = ? where playlist_folder_id = ?",
+        name, folderId
+    );
+}
+
+updateLibraryPlaylistName(library: Library, playlistId, name) {
+    runStatement(library.db, "update playlists set name = ? where playlist_id = ?",
+        name, playlistId
+    );
+}
+
+
+
+//
+// data source for library outline view
+//
+
+overload selector(static #"initWithLibrary:") = Id, Pointer[Library];
+
+record LibraryDataSource = newClass(NSObject,
+    InstanceVars(
+        (#library, Pointer[Library]),
+        (#folders, Retained[NSMutableArray]),
+        (#playlists, Retained[NSMutableArray]),
+    ),
+    ClassMethods(
+    ),
+    InstanceMethods(
+        (#"initWithLibrary:", (self, library) => initObjectWith(self, #"init", self => {
+            self^.library = library;
+            self^.folders = NSMutableArray.array();
+            self^.playlists = NSMutableArray.array();
+            refreshLibraryDataSource(self);
+            return self;
+        })),
+        DeallocInstanceMethod(),
+        (#"outlineView:numberOfChildrenOfItem:", (self, outlineView, item) =>
+            if (nil?(item))
+                NSInteger(
+                    1 // Library
+                    + self^.folders.count() // folders
+                    + self^.playlists.count() // toplevel playlists
+                )
+            else if (itemIsFolder?(item))
+                NSInteger(item["playlists"].count()) // playlist folder
+            else
+                NSInteger(0) // library or playlist, no children
+        ),
+        (#"outlineView:isItemExpandable:", (self, outlineView, item) => itemIsFolder?(item)),
+        (#"outlineView:child:ofItem:", (self, outlineView, index, item) => {
+            if (nil?(item)) {
+                if (index == 0)
+                    return Id(NSString(#"Library"));
+                else {
+                    var numFolders = self^.folders.count();
+                    if (index - 1 < numFolders)
+                        return self^.folders[index - 1];
+                    else
+                        return self^.playlists[index - numFolders - 1];
+                }
+            } else
+                return item["playlists"][index];
+        }),
+        (#"outlineView:objectValueForTableColumn:byItem:", (self, outlineView, column, item) => {
+            if (item.isKindOfClass(NSString))
+                return item;
+            else
+                return item["name"];
+        }),
+        (#"outlineView:persistentObjectForItem:", (self, outlineView, item) => {
+            if (itemIsFolder?(item))
+                return item["id"];
+            else
+                return nil(Id);
+        }),
+        (#"outlineView:itemForPersistentObject:", (self, outlineView, object) => {
+            println(object);
+            if (object.isKindOfClass(NSNumber)) {
+                for (folder in self^.folders)
+                    if (folder["id"] == object)
+                        return folder;
+            }
+            return nil(Id);
+        }),
+        (#"outlineView:setObjectValue:forTableColumn:byItem:", (self, outlineView, value, column, item) => {
+            if (item.isKindOfClass(NSString))
+                return;
+            else {
+                item.setObject_forKey(value.description(), "name");
+                if (itemIsFolder?(item))
+                    updateLibraryFolderName(self^.library^, Int(item["id"]), String(value));
+                else
+                    updateLibraryPlaylistName(self^.library^, Int(item["id"]), String(value));
+            }
+        }),
+    ),
+);
+
+refreshLibraryDataSource(self: LibraryDataSource) {
+    self^.folders.removeAllObjects();
+    self^.playlists.removeAllObjects();
+
+    var folderPositions = HashMap[NSUInteger, NSUInteger]();
+
+    for (row in SqliteStatement(self^.library^.db,
+        "select playlist_folder_id, name from playlist_folders order by position"
+    )) {
+        folderPositions[row[0, NSUInteger]] = size(self^.folders);
+        self^.folders.addObject(makeNSMutableDictionary(
+            "id", row[0, Int],
+            "name", row[1],
+            "playlists", NSMutableArray.array()
+        ));
+    }
+
+    for (row in SqliteStatement(self^.library^.db,
+        "select playlist_id, name, playlist_folder_id from playlists
+            order by playlist_folder_id, position"
+    )) {
+        var folder = nil(NSMutableArray);
+
+        if (nullColumn?(row, 2)) {
+            folder = self^.playlists;
+        } else {
+            var folderPosition = folderPositions[row[2, NSUInteger]];
+            folder = self^.folders[folderPosition]["playlists"];
+        }
+
+        folder.addObject(makeNSMutableDictionary(
+            "id", row[0, Int],
+            "name", row[1]
+        ));
+    }
+}
+
+itemIsFolder?(item) = item.isKindOfClass(NSDictionary) and not nil?(item["playlists"]);
+

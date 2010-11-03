@@ -1,0 +1,88 @@
+import cocoa.*;
+import cocoa.appkit.*;
+import Vinyl.appdelegate.*;
+import Vinyl.library.*;
+
+alias PlayControlsBackTag = 0;
+alias PlayControlsPlayTag = 1;
+alias PlayControlsForwardTag = 2;
+
+alias PlaylistControlsAddTag = 0;
+alias PlaylistControlsRandomTag = 1;
+alias PlaylistControlsRepeatTag = 2;
+
+overload selector(static #"performPlayControl:") = Void, NSSegmentedControl;
+overload selector(static #"performVolumeUpdate:") = Void, Id;
+overload selector(static #"performSearch:") = Void, Id;
+overload selector(static #"performPlaylistControl:") = Void, NSSegmentedControl;
+
+setStatusField(self, ...contents) {
+    self^.statusField.setStringValue(printString(...contents));
+}
+
+record MainController = newClass(#VinylMainController, NSObject,
+    InstanceVars(
+        ...IBOutlets(
+            (#mainWindow, NSWindow),
+            (#appDelegate, AppDelegate),
+            // content
+            (#libraryView, NSOutlineView),
+            (#playlistView, NSTableView),
+            // toolbar
+            (#playControls, NSSegmentedControl),
+            (#volumeControl, NSControl),
+            (#playInfoView, NSView),
+            (#searchField, NSTextField),
+            // status bar controls
+            (#playlistControls, NSSegmentedControl),
+            (#statusField, NSTextField),
+        ),
+        (#libraryDataSource, Retained[LibraryDataSource]),
+        (#library, Library),
+    ),
+    ClassMethods(
+    ),
+    InstanceMethods(
+        ...IBActions(
+            (#"performPlayControl:", (self, sender) => {
+                switch(sender.selectedSegment()) {
+                case PlayControlsBackTag:
+                    setStatusField(self, "back");
+                    break;
+                case PlayControlsPlayTag:
+                    setStatusField(self, "play");
+                    break;
+                case PlayControlsForwardTag:
+                    setStatusField(self, "forward");
+                    break;
+                }
+            }),
+            (#"performVolumeUpdate:", (self, sender) => {
+                setStatusField(self, "volume ", sender.intValue());
+            }),
+            (#"performSearch:", (self, sender) => {
+                setStatusField(self, "search ", sender.stringValue());
+            }),
+            (#"performPlaylistControl:", (self, sender) => {
+                switch(sender.selectedSegment()) {
+                case PlaylistControlsAddTag:
+                    setStatusField(self, "add");
+                    break;
+                case PlaylistControlsRandomTag:
+                    setStatusField(self, "random");
+                    break;
+                case PlaylistControlsRepeatTag:
+                    setStatusField(self, "repeat");
+                    break;
+                }
+            }),
+        ),
+        (#"awakeFromNib", self => {
+            self^.library = Library();
+            self^.libraryDataSource
+                = Retained(LibraryDataSource.alloc().initWithLibrary(&self^.library));
+            self^.libraryView.setDataSource(self^.libraryDataSource);
+        }),
+        DeallocInstanceMethod(),
+    ),
+);

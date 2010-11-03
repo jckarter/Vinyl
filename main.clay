@@ -1,0 +1,5 @@
+import cocoa.*;
+import Vinyl.appdelegate.*;
+import Vinyl.controllers.main.*;
+
+main() = appKitMain(AppDelegate, MainController);
