@@ -44,6 +44,7 @@ create table tracks (
     grouping_id integer references groupings (grouping_id),
     side_number integer,
     track_number integer,
+    duration_time real not null,
     year text,
     comments text
 );
@@ -77,7 +78,11 @@ create table track_options (
     enabled_p integer not null default 0,
     rating integer,
     start_time real,
-    end_time real
+    end_time real,
+    play_count integer not null default 0,
+    added_date integer,
+    modified_date integer,
+    played_date integer
 );
 
 commit;

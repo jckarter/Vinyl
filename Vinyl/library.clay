@@ -20,89 +20,92 @@ libraryFile(dir) = dir.stringByAppendingPathComponent(LIBRARY_DB_FILE);
 record Library (db: SqliteDB);
 
 createLibraryDatabase(db: SqliteDB) {
-    runStatement(db, "begin");
-
-    runStatement(db, "create table artists (
-        artist_id integer primary key,
-        display_name text not null,
-        sort_name text not null
-    )");
-    runStatement(db, "create table albums (
-        album_id integer primary key,
-        display_name text not null,
-        sort_name text not null,
-        album_artist_id integer references artists (artist_id),
-        sides_count integer,
-        compilation_p integer not null default 0
-    )");
-    runStatement(db, "create table album_sides (
-        album_id integer not null references albums (album_id),
-        side_number integer not null,
-        tracks_count integer,
-        primary key (album_id, side_number)
-    )");
-    runStatement(db, "create table genres (
-        genre_id integer primary key,
-        name text not null
-    )");
-    runStatement(db, "create table composers (
-        composer_id integer primary key,
-        display_name text not null,
-        sort_name text not null
-    )");
-    runStatement(db, "create table groupings (
-        grouping_id integer primary key,
-        name text not null
-    )");
-    runStatement(db, "create table tracks (
-        track_id integer primary key,
-        filename text not null unique,
-        display_name text not null,
-        sort_name text not null,
-        album_id integer references albums (album_id),
-        track_artist_id integer references artist (artist_id),
-        genre_id integer references genres (genre_id),
-        composer_id integer references composers (composer_id),
-        grouping_id integer references groupings (grouping_id),
-        side_number integer,
-        track_number integer,
-        year text,
-        comments text
-    )");
-    
-    runStatement(db, "create table playlist_folders (
-        playlist_folder_id integer primary key,
-        name text not null,
-        position integer unique not null
-    )");
-    runStatement(db, "create table playlists (
-        playlist_id integer primary key,
-        name text not null,
-        playlist_folder_id integer references playlist_folders (playlist_folder_id),
-        position integer not null,
-        unique (playlist_folder_id, position)
-    )");
-    runStatement(db, "create table playlist_tracks (
-        playlist_id integer references playlists (playlist_id) not null,
-        track_id integer references tracks (track_id) not null,
-        position integer not null,
-        primary key (playlist_id, track_id, position),
-        unique (playlist_id, position)
-    )");
-    
-    runStatement(db, "create table album_options (
-        album_id integer primary key references albums (album_id),
-        rating integer
-    )");
-    runStatement(db, "create table track_options (
-        track_id integer primary key references tracks (track_id),
-        enabled_p integer not null default 0,
-        rating integer,
-        start_time real,
-        end_time real
-    )");
-
-    runStatement(db, "commit");
+    withTransaction(db, () ref=> {
+        runStatement(db, "create table artists (
+            artist_id integer primary key,
+            display_name text not null,
+            sort_name text not null
+        )");
+        runStatement(db, "create table albums (
+            album_id integer primary key,
+            display_name text not null,
+            sort_name text not null,
+            album_artist_id integer references artists (artist_id),
+            sides_count integer,
+            compilation_p integer not null default 0
+        )");
+        runStatement(db, "create table album_sides (
+            album_id integer not null references albums (album_id),
+            side_number integer not null,
+            tracks_count integer,
+            primary key (album_id, side_number)
+        )");
+        runStatement(db, "create table genres (
+            genre_id integer primary key,
+            name text not null
+        )");
+        runStatement(db, "create table composers (
+            composer_id integer primary key,
+            display_name text not null,
+            sort_name text not null
+        )");
+        runStatement(db, "create table groupings (
+            grouping_id integer primary key,
+            name text not null
+        )");
+        runStatement(db, "create table tracks (
+            track_id integer primary key,
+            filename text not null unique,
+            display_name text not null,
+            sort_name text not null,
+            album_id integer references albums (album_id),
+            track_artist_id integer references artist (artist_id),
+            genre_id integer references genres (genre_id),
+            composer_id integer references composers (composer_id),
+            grouping_id integer references groupings (grouping_id),
+            side_number integer,
+            track_number integer,
+            duration_time real not null,
+            year text,
+            comments text
+        )");
+        
+        runStatement(db, "create table playlist_folders (
+            playlist_folder_id integer primary key,
+            name text not null,
+            position integer unique not null
+        )");
+        runStatement(db, "create table playlists (
+            playlist_id integer primary key,
+            name text not null,
+            playlist_folder_id integer references playlist_folders (playlist_folder_id),
+            position integer not null,
+            unique (playlist_folder_id, position)
+        )");
+        runStatement(db, "create table playlist_tracks (
+            playlist_id integer references playlists (playlist_id) not null,
+            track_id integer references tracks (track_id) not null,
+            position integer not null,
+            primary key (playlist_id, track_id, position),
+            unique (playlist_id, position)
+        )");
+        
+        runStatement(db, "create table album_options (
+            album_id integer primary key references albums (album_id),
+            rating integer
+        )");
+        runStatement(db, "create table track_options (
+            track_id integer primary key references tracks (track_id),
+            enabled_p integer not null default 0,
+            rating integer,
+            start_time real,
+            end_time real,
+            play_count integer not null default 0,
+            added_date integer,
+            modified_date integer,
+            played_date integer
+        )");
+    });
 }
 
 createLibrary(file) {
@@ -292,8 +295,14 @@ record PlaylistTrack (
     sides_count: Int,
     track_number: Int,
     tracks_count: Int,
+    duration_time: Double,
     year: String,
-    comments: String
+    comments: String,
+    enabled_p: Int,
+    play_count: Int,
+    added_date: Int,
+    modified_date: Int,
+    played_date: Int
 );
 
 record NoFieldForString (type: StringConstant, string: String);
@@ -352,9 +361,14 @@ alias playlistQuery = "
         coalesce(albums.sides_count, 0) as sides_count,
         coalesce(tracks.track_number, 0) as track_number,
         coalesce(album_sides.tracks_count, 0) as tracks_count,
+        tracks.duration_time as duration_time,
         coalesce(tracks.year, '') as year,
         coalesce(tracks.comments, '') as comments,
-        coalesce(track_options.enabled_p, 1) as enabled_p
+        coalesce(track_options.enabled_p, 1) as enabled_p,
+        coalesce(track_options.play_count, 0) as play_count,
+        coalesce(track_options.added_date, 0) as added_date,
+        coalesce(track_options.modified_date, 0) as modified_date,
+        coalesce(track_options.played_date, 0) as played_date
     from
         tracks
         left join albums on tracks.album_id = albums.album_id

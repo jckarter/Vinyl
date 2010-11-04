@@ -84,6 +84,7 @@ insert into tracks (
     grouping_id,
     side_number,
     track_number,
+    duration_time,
     year,
     comments
 ) values (
@@ -98,6 +99,7 @@ insert into tracks (
     22001,
     1,
     7,
+    285.0,
     1968,
     'Clapton is God'
 );
@@ -113,6 +115,7 @@ insert into tracks (
     grouping_id,
     side_number,
     track_number,
+    duration_time,
     year,
     comments
 ) values (
@@ -127,6 +130,7 @@ insert into tracks (
     22001,
     3,
     2,
+    241,
     1968,
     null
 );
@@ -143,6 +147,7 @@ insert into tracks (
     grouping_id,
     side_number,
     track_number,
+    duration_time,
     year,
     comments
 ) values (
@@ -157,6 +162,7 @@ insert into tracks (
     22001,
     1,
     1,
+    261,
     1969,
     null
 );
@@ -172,6 +178,7 @@ insert into tracks (
     grouping_id,
     side_number,
     track_number,
+    duration_time,
     year,
     comments
 ) values (
@@ -186,6 +193,7 @@ insert into tracks (
     22001,
     2,
     10,
+    140,
     1969,
     null
 );
@@ -202,6 +210,7 @@ insert into tracks (
     grouping_id,
     side_number,
     track_number,
+    duration_time,
     year,
     comments
 ) values (
@@ -216,6 +225,7 @@ insert into tracks (
     22001,
     1,
     5,
+    359,
     1965,
     null
 );
@@ -232,6 +242,7 @@ insert into tracks (
     grouping_id,
     side_number,
     track_number,
+    duration_time,
     year,
     comments
 ) values (
@@ -246,6 +257,7 @@ insert into tracks (
     null,
     1,
     4,
+    141,
     1963,
     null
 );
@@ -261,6 +273,7 @@ insert into tracks (
     grouping_id,
     side_number,
     track_number,
+    duration_time,
     year,
     comments
 ) values (
@@ -275,6 +288,7 @@ insert into tracks (
     null,
     1,
     7,
+    168,
     1964,
     null
 );
@@ -290,6 +304,7 @@ insert into tracks (
     grouping_id,
     side_number,
     track_number,
+    duration_time,
     year,
     comments
 ) values (
@@ -304,6 +319,7 @@ insert into tracks (
     null,
     1,
     17,
+    181,
     1968,
     null
 );
@@ -320,6 +336,7 @@ insert into tracks (
     grouping_id,
     side_number,
     track_number,
+    duration_time,
     year,
     comments
 ) values (
@@ -334,6 +351,7 @@ insert into tracks (
     null,
     1,
     3,
+    331,
     1998,
     null
 );
