@@ -15,6 +15,7 @@ overload selector(static #"performPlayControl:") = Void, NSSegmentedControl;
 overload selector(static #"performVolumeUpdate:") = Void, Id;
 overload selector(static #"performSearch:") = Void, Id;
 overload selector(static #"performPlaylistControl:") = Void, NSSegmentedControl;
+overload selector(static #"performSelectPlaylist:") = Void, NSOutlineView;
 
 setStatusField(self, ...contents) {
     self^.statusField.setStringValue(printString(...contents));
@@ -38,6 +39,7 @@ record MainController = newClass(#VinylMainController, NSObject,
             (#statusField, NSTextField),
         ),
         (#libraryDataSource, Retained[LibraryDataSource]),
+        (#playlistDataSource, Retained[PlaylistDataSource]),
         (#library, Library),
     ),
     ClassMethods(
@@ -76,12 +78,30 @@ record MainController = newClass(#VinylMainController, NSObject,
                     break;
                 }
             }),
+            (#"performSelectPlaylist:", (self, sender) => {
+                var item = sender.itemAtRow(sender.selectedRow());
+                if (itemIsFolder?(item))
+                    self^.playlistDataSource.setLibraryFilter(
+                        LibraryFilter(PlaylistFolderFilter(Int(item["id"])))
+                    );
+                else if (itemIsPlaylist?(item))
+                    self^.playlistDataSource.setLibraryFilter(
+                        LibraryFilter(PlaylistFilter(Int(item["id"])))
+                    );
+                else
+                    self^.playlistDataSource.setLibraryFilter(LibraryFilter(NoFilter()));
+                self^.playlistView.reloadData();
+            }),
         ),
         (#"awakeFromNib", self => {
             self^.library = Library();
             self^.libraryDataSource
                 = Retained(LibraryDataSource.alloc().initWithLibrary(&self^.library));
             self^.libraryView.setDataSource(self^.libraryDataSource);
+
+            self^.playlistDataSource
+                = Retained(PlaylistDataSource.alloc().initWithLibrary(&self^.library));
+            self^.playlistView.setDataSource(self^.playlistDataSource);
         }),
         DeallocInstanceMethod(),
     ),

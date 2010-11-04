@@ -1,5 +1,6 @@
 import cocoa.*;
 import sqlite.*;
+import maybe.*;
 
 alias LIBRARY_DB_FILE = "Vinyl Library.sqlite";
 
@@ -124,6 +125,7 @@ overload Library() {
     }
 }
 
+// XXX include data source update here 
 updateLibraryFolderName(library: Library, folderId, name) {
     runStatement(library.db, "update playlist_folders set name = ? where playlist_folder_id = ?",
         name, folderId
@@ -260,4 +262,135 @@ refreshLibraryDataSource(self: LibraryDataSource) {
     }
 }
 
+itemIsPlaylist?(item) = item.isKindOfClass(NSDictionary) and nil?(item["playlists"]);
 itemIsFolder?(item) = item.isKindOfClass(NSDictionary) and not nil?(item["playlists"]);
+
+
+
+//
+// data source for library
+//
+
+record PlaylistFolderFilter (id: Int);
+record PlaylistFilter (id: Int);
+record NoFilter ();
+variant LibraryFilter = PlaylistFolderFilter | PlaylistFilter | NoFilter;
+
+overload LibraryFilter() = LibraryFilter(NoFilter());
+
+record PlaylistTrack (
+    track_id: Int,
+    filename: String,
+    name: String,
+    album_name: String,
+    album_artist_name: String,
+    track_artist_name: String,
+    genre_name: String,
+    composer_name: String,
+    grouping_name: String,
+    side_number: Int,
+    sides_count: Int,
+    track_number: Int,
+    tracks_count: Int,
+    year: String,
+    comments: String
+);
+
+record NoFieldForString (type: StringConstant, string: String);
+instance Exception = NoFieldForString;
+
+[R | Record?(R)]
+fieldByName(forward r: R, fn, str) {
+    static for (fieldName in ...mapValues(x => x.0, ...RecordFields(R))) {
+        if (str == StaticName(fieldName))
+            return forward fn(fieldRef(r, fieldName));
+    }
+    throw NoFieldForString(StaticName(R), String(str));
+}
+
+overload selector(static #"setLibraryFilter:") = Void, LibraryFilter;
+
+record PlaylistDataSource = newClass(NSObject,
+    InstanceVars(
+        (#library, Pointer[Library]),
+        (#tracks, Vector[PlaylistTrack]),
+        (#libraryFilter, LibraryFilter),
+    ),
+    ClassMethods(),
+    InstanceMethods(
+        (#"initWithLibrary:", (self, library) => initObjectWith(self, #"init", self => {
+            self^.library = library;
+            self^.tracks <-- Vector[PlaylistTrack]();
+            self^.libraryFilter <-- LibraryFilter();
+            refreshPlaylistDataSource(self);
+            return self;
+        })),
+        DeallocInstanceMethod(),
+        (#"numberOfRowsInTableView:", (self, tableView) => NSInteger(size(self^.tracks))),
+        (#"tableView:objectValueForTableColumn:row:", (self, tableView, tableColumn, rowIndex) =>
+            fieldByName(self^.tracks[rowIndex], objectHandle, tableColumn.identifier())
+        ),
+        (#"setLibraryFilter:", (self, filter) => {
+            self^.libraryFilter = filter;
+            refreshPlaylistDataSource(self);
+        }),
+    ),
+);
+
+alias playlistQuery = "
+    select
+        tracks.track_id,
+        tracks.filename,
+        tracks.display_name as name,
+        coalesce(albums.display_name, '') as album_name,
+        coalesce(album_artists.display_name, '') as album_artist_name,
+        coalesce(track_artists.display_name, '') as track_artist_name,
+        coalesce(genres.name, '') as genre_name,
+        coalesce(composers.display_name, '') as composer_name,
+        coalesce(groupings.name, '') as grouping_name,
+        coalesce(tracks.side_number, 0) as side_number,
+        coalesce(albums.sides_count, 0) as sides_count,
+        coalesce(tracks.track_number, 0) as track_number,
+        coalesce(album_sides.tracks_count, 0) as tracks_count,
+        coalesce(tracks.year, '') as year,
+        coalesce(tracks.comments, '') as comments,
+        coalesce(track_options.enabled_p, 1) as enabled_p
+    from
+        tracks
+        left join albums on tracks.album_id = albums.album_id
+        left join album_sides
+            on tracks.album_id = album_sides.album_id
+            and tracks.side_number = album_sides.side_number
+        left join artists as album_artists on albums.album_artist_id = album_artists.artist_id
+        left join artists as track_artists on tracks.track_artist_id = track_artists.artist_id
+        left join genres on tracks.genre_id = genres.genre_id
+        left join composers on tracks.composer_id = composers.composer_id
+        left join groupings on tracks.grouping_id = groupings.grouping_id
+        left join track_options on tracks.track_id = track_options.track_id
+";
+
+filteredPlaylistStatement(db: SqliteDB, filter: NoFilter) = SqliteStatement(db, playlistQuery);
+overload filteredPlaylistStatement(db: SqliteDB, filter: PlaylistFilter)
+    = SqliteStatement(db, playlistQuery + "
+        inner join playlist_tracks on tracks.track_id = playlist_tracks.track_id
+    where
+        playlist_tracks.playlist_id = ?
+    order by
+        playlist_tracks.position
+    ", filter.id);
+overload filteredPlaylistStatement(db: SqliteDB, filter: PlaylistFolderFilter)
+    = SqliteStatement(db, playlistQuery + "
+        inner join playlist_tracks on tracks.track_id = playlist_tracks.track_id
+        inner join playlists on playlist_tracks.playlist_id = playlists.playlist_id
+    where
+        playlists.playlist_folder_id = ?
+    order by
+        playlists.position, playlist_tracks.position
+    ", filter.id);
+
+refreshPlaylistDataSource(self: PlaylistDataSource) {
+    clear(self^.tracks);
+
+    for (row in filteredPlaylistStatement(self^.library^.db, *self^.libraryFilter))
+        push(self^.tracks, rowRecord(row, PlaylistTrack));
+}
