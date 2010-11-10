@@ -1,0 +1,96 @@
+import cocoa.*;
+import cocoa.qtkit.*;
+
+enum PlayerState { Stopped, Paused, Playing }
+
+overload selector(static #"state") = PlayerState;
+overload selector(static #"setState:") = Void, PlayerState;
+overload selector(static #"handleMovieDidEndNotification:") = Void, NSNotification;
+overload selector(static #"enqueueFilesNamed:") = Void, NSArray;
+overload selector(static #"play") = Void;
+overload selector(static #"playFilesNamed:") = Void, NSArray;
+overload selector(static #"stop") = Void;
+
+record Player = newClass(NSObject,
+    InstanceVars(
+        queue: Retained[NSMutableArray],
+        state: PlayerState,
+        movie: Retained[QTMovie],
+    ),
+    ClassMethods(
+    ),
+    InstanceMethods(
+        (#"init", self => initObjectWith(self, #"init", self => {
+            self^.queue <-- Retained(NSMutableArray.alloc().init());
+            self^.state <-- Stopped;
+            NSNotificationCenter.defaultCenter().addObserver_selector_name_object(
+                self,
+                selectorHandle(#"handleMovieDidEndNotification:"),
+                QTMovieDidEndNotification,
+                nil()
+            );
+            return self;
+        })),
+        DeallocInstanceMethod(),
+        ...PropertyInstanceMethods(#state, PlayerState),
+
+        (#"handleMovieDidEndNotification:", (self, notification) => {
+            if (is?(notification.object(), self^.movie)) {
+                self^.queue.removeObjectAtIndex(NSUInteger(0));
+                self^.movie = nil();
+                self.play();
+            } else {
+                NSLog(NSString(#"rogue notification %@"), notification);
+            }
+        }),
+
+        (#"enqueueFilesNamed:", (self, names) => {
+            for (name in names)
+                self^.queue.addObject(name);
+        }),
+
+        (#"play", self => {
+            if (self^.queue.count() > 0) {
+                self^.movie = movieForName(self^.queue[0]);
+                println(self^.movie, " play");
+                self^.movie.autoplay();
+                self^.state = Playing;
+            } else {
+                self^.state = Stopped;
+            }
+        }),
+
+        (#"playFilesNamed:", (self, names) => {
+            self.stop();
+            self.enqueueFilesNamed(names);
+            self.play();
+        }),
+
+        (#"stop", self => {
+            if (self^.queue.count() > 0) {
+                println(self^.movie, " stop");
+                self^.movie.stop();
+                self^.movie = nil();
+                self^.queue.removeAllObjects();
+                self^.state = Stopped;
+            }
+        }),
+    ),
+);
+
+record QTMovieError (error: NSError);
+instance Exception = QTMovieError;
+
+movieForName(name) {
+    var error = nil(NSError);
+    
+    var movie = QTMovie.movieWithAttributes_error(makeNSDictionary(
+        QTMovieOpenForPlaybackAttribute, true,
+        QTMovieFileNameAttribute, name,
+    ), &error);
+
+    if (nil?(movie))
+        throw QTMovieError(error);
+
+    return movie;
+}
