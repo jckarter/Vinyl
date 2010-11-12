@@ -274,12 +274,16 @@ itemIsFolder?(item) = item.isKindOfClass(NSDictionary) and not nil?(item["playli
 // data source for library
 //
 
-record PlaylistFolderFilter (id: Int);
-record PlaylistFilter (id: Int);
-record NoFilter ();
-variant LibraryFilter = PlaylistFolderFilter | PlaylistFilter | NoFilter;
+record PlaylistFolderView (id: Int);
+record PlaylistView (id: Int);
+record SortedView (sort: String);
+variant LibraryView = PlaylistFolderView | PlaylistView | SortedView;
 
-overload LibraryFilter() = LibraryFilter(NoFilter());
+[S | String?(S) and S != String]
+overload SortedView(sort: S) = SortedView(String(sort));
+overload SortedView() = SortedView("tracks.sort_name");
+
+overload LibraryView() = LibraryView(SortedView());
 
 record PlaylistTrack (
     track_id: Int,
@@ -317,20 +321,21 @@ fieldByName(forward r: R, fn, str) {
     throw NoFieldForString(StaticName(R), String(str));
 }
 
-overload selector(static #"setLibraryFilter:") = Void, LibraryFilter;
+overload selector(static #"setLibraryView:") = Void, LibraryView;
+overload selector(static #"libraryView") = Pointer[LibraryView];
 
 record PlaylistDataSource = newClass(NSObject,
     InstanceVars(
-        (#library, Pointer[Library]),
-        (#tracks, Vector[PlaylistTrack]),
-        (#libraryFilter, LibraryFilter),
+        library: Pointer[Library],
+        tracks: Vector[PlaylistTrack],
+        libraryView: LibraryView,
     ),
     ClassMethods(),
     InstanceMethods(
         (#"initWithLibrary:", (self, library) => initObjectWith(self, #"init", self => {
             self^.library = library;
             self^.tracks <-- Vector[PlaylistTrack]();
-            self^.libraryFilter <-- LibraryFilter();
+            self^.libraryView <-- LibraryView();
             refreshPlaylistDataSource(self);
             return self;
         })),
@@ -339,8 +344,9 @@ record PlaylistDataSource = newClass(NSObject,
         (#"tableView:objectValueForTableColumn:row:", (self, tableView, tableColumn, rowIndex) =>
             fieldByName(self^.tracks[rowIndex], objectHandle, tableColumn.identifier())
         ),
-        (#"setLibraryFilter:", (self, filter) => {
-            self^.libraryFilter = filter;
+        (#"libraryView", self => &self^.libraryView),
+        (#"setLibraryView:", (self, view) => {
+            self^.libraryView = view;
             refreshPlaylistDataSource(self);
         }),
         (#"tracks", self => &self^.tracks, Pointer[Vector[PlaylistTrack]]),
@@ -384,16 +390,22 @@ alias playlistQuery = "
             left join track_options on tracks.track_id = track_options.track_id
     ";
 
-filteredPlaylistStatement(db: SqliteDB, filter: NoFilter) = SqliteStatement(db, playlistQuery);
-overload filteredPlaylistStatement(db: SqliteDB, filter: PlaylistFilter)
+filteredPlaylistStatement(db: SqliteDB, view: SortedView)
+    = SqliteStatement(db,
+        if (empty?(view.sort))
+            String(playlistQuery)
+        else
+            printString(playlistQuery, " order by ", view.sort)
+    );
+overload filteredPlaylistStatement(db: SqliteDB, view: PlaylistView)
     = SqliteStatement(db, playlistQuery + "
             inner join playlist_tracks on tracks.track_id = playlist_tracks.track_id
         where
             playlist_tracks.playlist_id = ?
         order by
             playlist_tracks.position
-    ", filter.id);
-overload filteredPlaylistStatement(db: SqliteDB, filter: PlaylistFolderFilter)
+    ", view.id);
+overload filteredPlaylistStatement(db: SqliteDB, view: PlaylistFolderView)
     = SqliteStatement(db, playlistQuery + "
             inner join playlist_tracks on tracks.track_id = playlist_tracks.track_id
             inner join playlists on playlist_tracks.playlist_id = playlists.playlist_id
@@ -401,12 +413,12 @@ overload filteredPlaylistStatement(db: SqliteDB, filter: PlaylistFolderFilter)
             playlists.playlist_folder_id = ?
         order by
             playlists.position, playlist_tracks.position
-    ", filter.id);
+    ", view.id);
 
 refreshPlaylistDataSource(self: PlaylistDataSource) {
     clear(self^.tracks);
 
-    for (row in filteredPlaylistStatement(self^.library^.db, *self^.libraryFilter))
+    for (row in filteredPlaylistStatement(self^.library^.db, *self^.libraryView))
         push(self^.tracks, rowRecord(row, PlaylistTrack));
 }
 

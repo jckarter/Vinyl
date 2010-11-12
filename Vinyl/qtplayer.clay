@@ -1,28 +1,59 @@
 import cocoa.*;
 import cocoa.qtkit.*;
+import sqlite.*;
+import Vinyl.library.*;
 
-enum PlayerState { Stopped, Paused, Playing }
+record StoppedState ();
+
+enum PlaylistMode { Playing, Paused }
+
+record PlaylistState (
+    mode: PlaylistMode,
+    track: SizeT,
+    libraryView: LibraryView,
+    movie: Retained[QTMovie],
+    tracks: Vector[PlaylistTrack],
+);
+
+[I | Integer?(I)]
+overload PlaylistState(mode: PlaylistMode, track: I, library: Pointer[Library], view: LibraryView)
+{
+    var returned = PlaylistState(
+        mode,
+        SizeT(track),
+        view,
+        Retained[QTMovie](),
+        Vector[PlaylistTrack]()
+    );
+
+    for (row in filteredPlaylistStatement(library^.db, *view))
+        push(returned.tracks, rowRecord(row, PlaylistTrack));
+
+    return move(returned);
+}
+
+variant PlayerState = StoppedState | PlaylistState;
 
 overload selector(static #"state") = PlayerState;
 overload selector(static #"setState:") = Void, PlayerState;
 overload selector(static #"handleMovieDidEndNotification:") = Void, NSNotification;
-overload selector(static #"enqueueFilesNamed:") = Void, NSArray;
-overload selector(static #"play") = Void;
-overload selector(static #"playFilesNamed:") = Void, NSArray;
+overload selector(static #"playLibrary:view:trackNumber:") = Void, Pointer[Library], LibraryView, SizeT;
+overload selector(static #"resume") = Void;
+overload selector(static #"pause") = Void;
 overload selector(static #"stop") = Void;
+overload selector(static #"previousTrack") = Void;
+overload selector(static #"nextTrack") = Void;
 
 record Player = newClass(NSObject,
     InstanceVars(
-        queue: Retained[NSMutableArray],
         state: PlayerState,
-        movie: Retained[QTMovie],
     ),
     ClassMethods(
     ),
     InstanceMethods(
         (#"init", self => initObjectWith(self, #"init", self => {
-            self^.queue <-- Retained(NSMutableArray.alloc().init());
-            self^.state <-- Stopped;
+            self^.state <-- PlayerState(StoppedState());
+
             NSNotificationCenter.defaultCenter().addObserver_selector_name_object(
                 self,
                 selectorHandle(#"handleMovieDidEndNotification:"),
@@ -35,45 +66,72 @@ record Player = newClass(NSObject,
         ...PropertyInstanceMethods(#state, PlayerState),
 
         (#"handleMovieDidEndNotification:", (self, notification) => {
-            if (is?(notification.object(), self^.movie)) {
-                self^.queue.removeObjectAtIndex(NSUInteger(0));
-                self^.movie = nil();
-                self.play();
-            } else {
-                NSLog(NSString(#"rogue notification %@"), notification);
-            }
+            match(self^.state,
+                StoppedState,  stopped => { },
+                PlaylistState, playlistState => {
+                    if (is?(playlistState.movie, notification.object())) {
+                        self.nextTrack();
+                    }
+                }
+            );
         }),
 
-        (#"enqueueFilesNamed:", (self, names) => {
-            for (name in names)
-                self^.queue.addObject(name);
-        }),
-
-        (#"play", self => {
-            if (self^.queue.count() > 0) {
-                self^.movie = movieForName(self^.queue[0]);
-                println(self^.movie, " play");
-                self^.movie.autoplay();
-                self^.state = Playing;
-            } else {
-                self^.state = Stopped;
-            }
-        }),
-
-        (#"playFilesNamed:", (self, names) => {
+        (#"playLibrary:view:trackNumber:", (self, library, libraryView, trackNumber) => {
             self.stop();
-            self.enqueueFilesNamed(names);
-            self.play();
+            self^.state = PlayerState(PlaylistState(Paused, trackNumber, library, libraryView));
+            self.resume();
+        }),
+
+        (#"resume", self => {
+            match(self^.state,
+                StoppedState,  stopped => { },
+                PlaylistState, playlistState => {
+                    if (nil?(playlistState.movie))
+                        playlistState.movie = movieForFileName(playlistState.tracks[playlistState.track].filename);
+                    playlistState.movie.autoplay();
+                    playlistState.mode = Playing;
+                }
+            );
         }),
 
         (#"stop", self => {
-            if (self^.queue.count() > 0) {
-                println(self^.movie, " stop");
-                self^.movie.stop();
-                self^.movie = nil();
-                self^.queue.removeAllObjects();
-                self^.state = Stopped;
-            }
+            match(self^.state,
+                StoppedState,  stopped => { },
+                PlaylistState, playlistState => {
+                    playlistState.movie.stop();
+                    self^.state = PlayerState(StoppedState());
+                }
+            );
+        }),
+
+        (#"previousTrack", self => {
+            match(self^.state,
+                StoppedState,  stopped => { },
+                PlaylistState, playlistState => {
+                    // XXX start from beginning/previous track behavior
+                    playlistState.movie.stop();
+                    playlistState.movie = nil();
+                    if (playlistState.track > 0)
+                        playlistState.track -= 1;
+                    self.resume();
+                }
+            );
+        }),
+
+        (#"nextTrack", self => {
+            match(self^.state,
+                StoppedState,  stopped => { },
+                PlaylistState, playlistState => {
+                    playlistState.movie.stop();
+                    playlistState.movie = nil();
+                    if (playlistState.track < size(playlistState.tracks) - 1) {
+                        playlistState.track += 1;
+                        self.resume();
+                    } else {
+                        self^.state = PlayerState(StoppedState());
+                    }
+                }
+            );
         }),
     ),
 );
@@ -81,7 +139,7 @@ record Player = newClass(NSObject,
 record QTMovieError (error: NSError);
 instance Exception = QTMovieError;
 
-movieForName(name) {
+movieForFileName(name) {
     var error = nil(NSError);
     
     var movie = QTMovie.movieWithAttributes_error(makeNSDictionary(
