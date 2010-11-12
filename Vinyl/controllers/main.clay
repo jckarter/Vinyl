@@ -2,6 +2,7 @@ import cocoa.*;
 import cocoa.appkit.*;
 import Vinyl.appdelegate.*;
 import Vinyl.library.*;
+import Vinyl.qtplayer.*;
 
 alias PlayControlsBackTag = 0;
 alias PlayControlsPlayTag = 1;
@@ -24,23 +25,24 @@ setStatusField(self, ...contents) {
 record MainController = newClass(#VinylMainController, NSObject,
     InstanceVars(
         ...IBOutlets(
-            (#mainWindow, NSWindow),
-            (#appDelegate, AppDelegate),
+            mainWindow: NSWindow,
+            appDelegate: AppDelegate,
             // content
-            (#libraryView, NSOutlineView),
-            (#playlistView, NSTableView),
+            libraryView: NSOutlineView,
+            playlistView: NSTableView,
             // toolbar
-            (#playControls, NSSegmentedControl),
-            (#volumeControl, NSControl),
-            (#playInfoView, NSView),
-            (#searchField, NSTextField),
+            playControls: NSSegmentedControl,
+            volumeControl: NSControl,
+            playInfoView: NSView,
+            searchField: NSTextField,
             // status bar controls
-            (#playlistControls, NSSegmentedControl),
-            (#statusField, NSTextField),
+            playlistControls: NSSegmentedControl,
+            statusField: NSTextField,
         ),
-        (#libraryDataSource, Retained[LibraryDataSource]),
-        (#playlistDataSource, Retained[PlaylistDataSource]),
-        (#library, Library),
+        libraryDataSource: Retained[LibraryDataSource],
+        playlistDataSource: Retained[PlaylistDataSource],
+        library: Library,
+        player: Retained[Player],
     ),
     ClassMethods(
     ),
@@ -51,9 +53,21 @@ record MainController = newClass(#VinylMainController, NSObject,
                 case PlayControlsBackTag:
                     setStatusField(self, "back");
                     break;
-                case PlayControlsPlayTag:
-                    setStatusField(self, "play");
-                    break;
+                case PlayControlsPlayTag: {
+                        var selection = self^.playlistView.selectedRow();
+                        if (selection < 0) selection = 0;
+                        println("selected row ", selection);
+
+                        var tracks = NSMutableArray.array();
+                        
+                        for (x in slicedFrom(self^.playlistDataSource.tracks()^, selection)) {
+                            tracks.addObject(x.filename);
+                        }
+                        self^.player.playFilesNamed(tracks);
+
+                        setStatusField(self, "play");
+                        break;
+                    }
                 case PlayControlsForwardTag:
                     setStatusField(self, "forward");
                     break;
@@ -94,7 +108,7 @@ record MainController = newClass(#VinylMainController, NSObject,
             }),
         ),
         (#"awakeFromNib", self => {
-            self^.library = Library();
+            self^.library <-- Library();
             self^.libraryDataSource
                 = Retained(LibraryDataSource.alloc().initWithLibrary(&self^.library));
             self^.libraryView.setDataSource(self^.libraryDataSource);
@@ -102,6 +116,8 @@ record MainController = newClass(#VinylMainController, NSObject,
             self^.playlistDataSource
                 = Retained(PlaylistDataSource.alloc().initWithLibrary(&self^.library));
             self^.playlistView.setDataSource(self^.playlistDataSource);
+
+            self^.player = Retained(Player.alloc().init());
         }),
         DeallocInstanceMethod(),
     ),

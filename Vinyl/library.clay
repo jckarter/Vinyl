@@ -343,63 +343,64 @@ record PlaylistDataSource = newClass(NSObject,
             self^.libraryFilter = filter;
             refreshPlaylistDataSource(self);
         }),
+        (#"tracks", self => &self^.tracks, Pointer[Vector[PlaylistTrack]]),
     ),
 );
 
 alias playlistQuery = "
-    select
-        tracks.track_id,
-        tracks.filename,
-        tracks.display_name as name,
-        coalesce(albums.display_name, '') as album_name,
-        coalesce(album_artists.display_name, '') as album_artist_name,
-        coalesce(track_artists.display_name, '') as track_artist_name,
-        coalesce(genres.name, '') as genre_name,
-        coalesce(composers.display_name, '') as composer_name,
-        coalesce(groupings.name, '') as grouping_name,
-        coalesce(tracks.side_number, 0) as side_number,
-        coalesce(albums.sides_count, 0) as sides_count,
-        coalesce(tracks.track_number, 0) as track_number,
-        coalesce(album_sides.tracks_count, 0) as tracks_count,
-        tracks.duration_time as duration_time,
-        coalesce(tracks.year, '') as year,
-        coalesce(tracks.comments, '') as comments,
-        coalesce(track_options.enabled_p, 1) as enabled_p,
-        coalesce(track_options.play_count, 0) as play_count,
-        coalesce(track_options.added_date, 0) as added_date,
-        coalesce(track_options.modified_date, 0) as modified_date,
-        coalesce(track_options.played_date, 0) as played_date
-    from
-        tracks
-        left join albums on tracks.album_id = albums.album_id
-        left join album_sides
-            on tracks.album_id = album_sides.album_id
-            and tracks.side_number = album_sides.side_number
-        left join artists as album_artists on albums.album_artist_id = album_artists.artist_id
-        left join artists as track_artists on tracks.track_artist_id = track_artists.artist_id
-        left join genres on tracks.genre_id = genres.genre_id
-        left join composers on tracks.composer_id = composers.composer_id
-        left join groupings on tracks.grouping_id = groupings.grouping_id
-        left join track_options on tracks.track_id = track_options.track_id
-";
+        select
+            tracks.track_id,
+            tracks.filename,
+            tracks.display_name as name,
+            coalesce(albums.display_name, '') as album_name,
+            coalesce(album_artists.display_name, '') as album_artist_name,
+            coalesce(track_artists.display_name, '') as track_artist_name,
+            coalesce(genres.name, '') as genre_name,
+            coalesce(composers.display_name, '') as composer_name,
+            coalesce(groupings.name, '') as grouping_name,
+            coalesce(tracks.side_number, 0) as side_number,
+            coalesce(albums.sides_count, 0) as sides_count,
+            coalesce(tracks.track_number, 0) as track_number,
+            coalesce(album_sides.tracks_count, 0) as tracks_count,
+            tracks.duration_time as duration_time,
+            coalesce(tracks.year, '') as year,
+            coalesce(tracks.comments, '') as comments,
+            coalesce(track_options.enabled_p, 1) as enabled_p,
+            coalesce(track_options.play_count, 0) as play_count,
+            coalesce(track_options.added_date, 0) as added_date,
+            coalesce(track_options.modified_date, 0) as modified_date,
+            coalesce(track_options.played_date, 0) as played_date
+        from
+            tracks
+            left join albums on tracks.album_id = albums.album_id
+            left join album_sides
+                on tracks.album_id = album_sides.album_id
+                and tracks.side_number = album_sides.side_number
+            left join artists as album_artists on albums.album_artist_id = album_artists.artist_id
+            left join artists as track_artists on tracks.track_artist_id = track_artists.artist_id
+            left join genres on tracks.genre_id = genres.genre_id
+            left join composers on tracks.composer_id = composers.composer_id
+            left join groupings on tracks.grouping_id = groupings.grouping_id
+            left join track_options on tracks.track_id = track_options.track_id
+    ";
 
 filteredPlaylistStatement(db: SqliteDB, filter: NoFilter) = SqliteStatement(db, playlistQuery);
 overload filteredPlaylistStatement(db: SqliteDB, filter: PlaylistFilter)
     = SqliteStatement(db, playlistQuery + "
-        inner join playlist_tracks on tracks.track_id = playlist_tracks.track_id
-    where
-        playlist_tracks.playlist_id = ?
-    order by
-        playlist_tracks.position
+            inner join playlist_tracks on tracks.track_id = playlist_tracks.track_id
+        where
+            playlist_tracks.playlist_id = ?
+        order by
+            playlist_tracks.position
     ", filter.id);
 overload filteredPlaylistStatement(db: SqliteDB, filter: PlaylistFolderFilter)
     = SqliteStatement(db, playlistQuery + "
-        inner join playlist_tracks on tracks.track_id = playlist_tracks.track_id
-        inner join playlists on playlist_tracks.playlist_id = playlists.playlist_id
-    where
-        playlists.playlist_folder_id = ?
-    order by
-        playlists.position, playlist_tracks.position
+            inner join playlist_tracks on tracks.track_id = playlist_tracks.track_id
+            inner join playlists on playlist_tracks.playlist_id = playlists.playlist_id
+        where
+            playlists.playlist_folder_id = ?
+        order by
+            playlists.position, playlist_tracks.position
     ", filter.id);
 
 refreshPlaylistDataSource(self: PlaylistDataSource) {
@@ -408,3 +409,4 @@ refreshPlaylistDataSource(self: PlaylistDataSource) {
     for (row in filteredPlaylistStatement(self^.library^.db, *self^.libraryFilter))
         push(self^.tracks, rowRecord(row, PlaylistTrack));
 }
+

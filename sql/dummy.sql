@@ -89,7 +89,7 @@ insert into tracks (
     comments
 ) values (
     23001,
-    '23001.mp3',
+    '/Users/joe/Music/iTunes/iTunes Music/The Beatles/The Beatles/1-07 While My Guitar Gently Weeps.mp3',
     'While My Guitar Gently Weeps',
     'While My Guitar Gently Weeps',
     18001,
@@ -120,7 +120,7 @@ insert into tracks (
     comments
 ) values (
     23002,
-    '23002.mp3',
+    '/Users/joe/Music/iTunes/iTunes Music/The Beatles/The Beatles/2-02 Yer Blues.mp3',
     'Yer Blues',
     'Yer Blues',
     18001,
@@ -152,7 +152,7 @@ insert into tracks (
     comments
 ) values (
     23003,
-    '23003.mp3',
+    '/Users/joe/Music/iTunes/iTunes Music/The Beatles/Abbey Road/01 Come Together.mp3',
     'Come Together',
     'Come Together',
     18002,
@@ -183,7 +183,7 @@ insert into tracks (
     comments
 ) values (
     23004,
-    '23004.mp3',
+    '/Users/joe/Music/iTunes/iTunes Music/The Beatles/Abbey Road/16 The End.mp3',
     'The End',
     'End, The',
     18002,
@@ -215,7 +215,7 @@ insert into tracks (
     comments
 ) values (
     23005,
-    '23005.mp3',
+    '/Users/joe/Music/iTunes/iTunes Music/Bob Dylan/Highway 61 Revisited/05 Ballad of a Thin Man.m4a',
     'Ballad of a Thin Man',
     'Ballad of a Thin Man',
     18003,
@@ -247,7 +247,7 @@ insert into tracks (
     comments
 ) values (
     23006,
-    '23006.mp3',
+    '/Users/joe/Music/iTunes/iTunes Music/The Beatles/Past Masters Vol 1/04 She Loves You.mp3',
     'She Loves You',
     'She Loves You',
     18004,
@@ -278,7 +278,7 @@ insert into tracks (
     comments
 ) values (
     23007,
-    '23007.mp3',
+    '/Users/joe/Music/iTunes/iTunes Music/Bob Dylan/The Freewheelin'' Bob Dylan/01 Blowin'' in the Wind.mp3',
     'Blowin'' in the Wind',
     'Blowin'' in the Wind',
     18004,
@@ -341,7 +341,7 @@ insert into tracks (
     comments
 ) values (
     23009,
-    '23009.mp3',
+    '/Users/joe/Music/iTunes/iTunes Music/Massive Attack/Mezzanine/03 Teardrop.mp3',
     'Teardrop',
     'Teardrop',
     18005,

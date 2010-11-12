@@ -10,7 +10,9 @@
 		1DDD58160DA1D0A300B32029 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = 1DDD58140DA1D0A300B32029 /* MainMenu.xib */; };
 		8D11072B0486CEB800E47090 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 089C165CFE840E0CC02AAC07 /* InfoPlist.strings */; };
 		8D11072F0486CEB800E47090 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1058C7A1FEA54F0111CA2CBB /* Cocoa.framework */; };
-		D8444258127FD84700ACB9D5 /* libsqlite3.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = D8444257127FD84700ACB9D5 /* libsqlite3.dylib */; };
+		D8444395128AC32400ACB9D5 /* QTKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D8444394128AC32400ACB9D5 /* QTKit.framework */; };
+		D84443CF128C513800ACB9D5 /* CoreData.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 13E42FB307B3F0F600E4EEF1 /* CoreData.framework */; };
+		D84443D5128C518A00ACB9D5 /* Vinyl.xcdatamodel in Sources */ = {isa = PBXBuildFile; fileRef = D84443D4128C518A00ACB9D5 /* Vinyl.xcdatamodel */; };
 		D851B2E0127AA5C800C08AC9 /* main.clay in Sources */ = {isa = PBXBuildFile; fileRef = D851B2DC127AA5C800C08AC9 /* main.clay */; };
 /* End PBXBuildFile section */
 
@@ -38,6 +40,8 @@
 		8D1107310486CEB800E47090 /* Vinyl-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "Vinyl-Info.plist"; sourceTree = "<group>"; };
 		8D1107320486CEB800E47090 /* Vinyl.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Vinyl.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D8444257127FD84700ACB9D5 /* libsqlite3.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libsqlite3.dylib; path = usr/lib/libsqlite3.dylib; sourceTree = SDKROOT; };
+		D8444394128AC32400ACB9D5 /* QTKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QTKit.framework; path = System/Library/Frameworks/QTKit.framework; sourceTree = SDKROOT; };
+		D84443D4128C518A00ACB9D5 /* Vinyl.xcdatamodel */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = wrapper.xcdatamodel; path = Vinyl.xcdatamodel; sourceTree = "<group>"; };
 		D851B2DC127AA5C800C08AC9 /* main.clay */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = main.clay; sourceTree = "<group>"; };
 		D851B2DD127AA5C800C08AC9 /* Vinyl */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Vinyl; sourceTree = "<group>"; };
 		D851B2E2127AA66C00C08AC9 /* NibInterfaces.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = NibInterfaces.h; sourceTree = "<group>"; };
@@ -49,7 +53,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				8D11072F0486CEB800E47090 /* Cocoa.framework in Frameworks */,
-				D8444258127FD84700ACB9D5 /* libsqlite3.dylib in Frameworks */,
+				D8444395128AC32400ACB9D5 /* QTKit.framework in Frameworks */,
+				D84443CF128C513800ACB9D5 /* CoreData.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -59,8 +64,9 @@
 		1058C7A0FEA54F0111CA2CBB /* Linked Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				13E42FB307B3F0F600E4EEF1 /* CoreData.framework */,
 				1058C7A1FEA54F0111CA2CBB /* Cocoa.framework */,
-				D8444257127FD84700ACB9D5 /* libsqlite3.dylib */,
+				D8444394128AC32400ACB9D5 /* QTKit.framework */,
 			);
 			name = "Linked Frameworks";
 			sourceTree = "<group>";
@@ -68,8 +74,8 @@
 		1058C7A2FEA54F0111CA2CBB /* Other Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				D8444257127FD84700ACB9D5 /* libsqlite3.dylib */,
 				29B97324FDCFA39411CA2CEA /* AppKit.framework */,
-				13E42FB307B3F0F600E4EEF1 /* CoreData.framework */,
 				29B97325FDCFA39411CA2CEA /* Foundation.framework */,
 			);
 			name = "Other Frameworks";
@@ -101,6 +107,7 @@
 				8D1107310486CEB800E47090 /* Vinyl-Info.plist */,
 				089C165CFE840E0CC02AAC07 /* InfoPlist.strings */,
 				1DDD58140DA1D0A300B32029 /* MainMenu.xib */,
+				D84443D4128C518A00ACB9D5 /* Vinyl.xcdatamodel */,
 			);
 			name = Resources;
 			sourceTree = "<group>";
@@ -195,6 +202,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				D851B2E0127AA5C800C08AC9 /* main.clay in Sources */,
+				D84443D5128C518A00ACB9D5 /* Vinyl.xcdatamodel in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
