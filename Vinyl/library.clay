@@ -21,12 +21,12 @@ record Library (db: SqliteDB);
 
 createLibraryDatabase(db: SqliteDB) {
     withTransaction(db, () ref=> {
-        runStatement(db, "create table artists (
+        runStatement(db, "create table if not exists artists (
             artist_id integer primary key,
             display_name text not null,
             sort_name text not null
         )");
-        runStatement(db, "create table albums (
+        runStatement(db, "create table if not exists albums (
             album_id integer primary key,
             display_name text not null,
             sort_name text not null,
@@ -34,26 +34,26 @@ createLibraryDatabase(db: SqliteDB) {
             sides_count integer,
             compilation_p integer not null default 0
         )");
-        runStatement(db, "create table album_sides (
+        runStatement(db, "create table if not exists album_sides (
             album_id integer not null references albums (album_id),
             side_number integer not null,
             tracks_count integer,
             primary key (album_id, side_number)
         )");
-        runStatement(db, "create table genres (
+        runStatement(db, "create table if not exists genres (
             genre_id integer primary key,
             name text not null
         )");
-        runStatement(db, "create table composers (
+        runStatement(db, "create table if not exists composers (
             composer_id integer primary key,
             display_name text not null,
             sort_name text not null
         )");
-        runStatement(db, "create table groupings (
+        runStatement(db, "create table if not exists groupings (
             grouping_id integer primary key,
             name text not null
         )");
-        runStatement(db, "create table tracks (
+        runStatement(db, "create table if not exists tracks (
             track_id integer primary key,
             filename text not null unique,
             display_name text not null,
@@ -70,19 +70,19 @@ createLibraryDatabase(db: SqliteDB) {
             comments text
         )");
         
-        runStatement(db, "create table playlist_folders (
+        runStatement(db, "create table if not exists playlist_folders (
             playlist_folder_id integer primary key,
             name text not null,
             position integer unique not null
         )");
-        runStatement(db, "create table playlists (
+        runStatement(db, "create table if not exists playlists (
             playlist_id integer primary key,
             name text not null,
             playlist_folder_id integer references playlist_folders (playlist_folder_id),
             position integer not null,
             unique (playlist_folder_id, position)
         )");
-        runStatement(db, "create table playlist_tracks (
+        runStatement(db, "create table if not exists playlist_tracks (
             playlist_id integer references playlists (playlist_id) not null,
             track_id integer references tracks (track_id) not null,
             position integer not null,
@@ -90,11 +90,11 @@ createLibraryDatabase(db: SqliteDB) {
             unique (playlist_id, position)
         )");
         
-        runStatement(db, "create table album_options (
+        runStatement(db, "create table if not exists album_options (
             album_id integer primary key references albums (album_id),
             rating integer
         )");
-        runStatement(db, "create table track_options (
+        runStatement(db, "create table if not exists track_options (
             track_id integer primary key references tracks (track_id),
             enabled_p integer not null default 0,
             rating integer,
@@ -285,28 +285,63 @@ overload SortedView() = SortedView("tracks.sort_name");
 
 overload LibraryView() = LibraryView(SortedView());
 
+// XXX store sort names too
 record PlaylistTrack (
     track_id: Int,
     filename: String,
     name: String,
-    album_name: String,
-    album_artist_name: String,
-    track_artist_name: String,
-    genre_name: String,
-    composer_name: String,
-    grouping_name: String,
-    side_number: Int,
-    sides_count: Int,
-    track_number: Int,
-    tracks_count: Int,
+    sort_name: Maybe[String],
+    album_name: Maybe[String],
+    album_sort_name: Maybe[String],
+    album_artist_name: Maybe[String],
+    album_artist_sort_name: Maybe[String],
+    track_artist_name: Maybe[String],
+    track_artist_sort_name: Maybe[String],
+    genre_name: Maybe[String],
+    composer_name: Maybe[String],
+    composer_sort_name: Maybe[String],
+    grouping_name: Maybe[String],
+    side_number: Maybe[Int],
+    sides_count: Maybe[Int],
+    track_number: Maybe[Int],
+    tracks_count: Maybe[Int],
     duration_time: Double,
-    year: String,
-    comments: String,
-    enabled_p: Int,
-    play_count: Int,
-    added_date: Int,
-    modified_date: Int,
-    played_date: Int
+    year: Maybe[String],
+    comments: Maybe[String],
+    enabled_p: Bool,
+    play_count: Maybe[Int],
+    added_date: Maybe[Int],
+    modified_date: Maybe[Int],
+    played_date: Maybe[Int]
+);
+
+overload PlaylistTrack() = PlaylistTrack(
+    0,
+    String(),
+    String(),
+    Maybe[String](),
+    Maybe[String](),
+    Maybe[String](),
+    Maybe[String](),
+    Maybe[String](),
+    Maybe[String](),
+    Maybe[String](),
+    Maybe[String](),
+    Maybe[String](),
+    Maybe[String](),
+    Maybe[String](),
+    Maybe[Int](),
+    Maybe[Int](),
+    Maybe[Int](),
+    Maybe[Int](),
+    0.0,
+    Maybe[String](),
+    Maybe[String](),
+    true,
+    Maybe[Int](),
+    Maybe[Int](),
+    Maybe[Int](),
+    Maybe[Int](),
 );
 
 record NoFieldForString (type: StringConstant, string: String);
@@ -323,6 +358,10 @@ fieldByName(forward r: R, fn, str) {
 
 overload selector(static #"setLibraryView:") = Void, LibraryView;
 overload selector(static #"libraryView") = Pointer[LibraryView];
+
+maybeObject(x) = Id(x);
+overload maybeObject(x: Nothing) = nil();
+[T] overload maybeObject(x: Maybe[T]) = maybeObject(*x);
 
 record PlaylistDataSource = newClass(NSObject,
     InstanceVars(
@@ -342,7 +381,7 @@ record PlaylistDataSource = newClass(NSObject,
         DeallocInstanceMethod(),
         (#"numberOfRowsInTableView:", (self, tableView) => NSInteger(size(self^.tracks))),
         (#"tableView:objectValueForTableColumn:row:", (self, tableView, tableColumn, rowIndex) =>
-            fieldByName(self^.tracks[rowIndex], objectHandle, tableColumn.identifier())
+            fieldByName(self^.tracks[rowIndex], maybeObject, tableColumn.identifier())
         ),
         (#"libraryView", self => &self^.libraryView),
         (#"setLibraryView:", (self, view) => {
@@ -358,24 +397,29 @@ alias playlistQuery = "
             tracks.track_id,
             tracks.filename,
             tracks.display_name as name,
-            coalesce(albums.display_name, '') as album_name,
-            coalesce(album_artists.display_name, '') as album_artist_name,
-            coalesce(track_artists.display_name, '') as track_artist_name,
-            coalesce(genres.name, '') as genre_name,
-            coalesce(composers.display_name, '') as composer_name,
-            coalesce(groupings.name, '') as grouping_name,
-            coalesce(tracks.side_number, 0) as side_number,
-            coalesce(albums.sides_count, 0) as sides_count,
-            coalesce(tracks.track_number, 0) as track_number,
-            coalesce(album_sides.tracks_count, 0) as tracks_count,
+            tracks.sort_name as sort_name,
+            albums.display_name as album_name,
+            albums.sort_name as album_sort_name,
+            album_artists.display_name as album_artist_name,
+            album_artists.sort_name as album_artist_sort_name,
+            track_artists.display_name as track_artist_name,
+            track_artists.sort_name as track_artist_sort_name,
+            genres.name as genre_name,
+            composers.display_name as composer_name,
+            composers.sort_name as composer_sort_name,
+            groupings.name as grouping_name,
+            tracks.side_number as side_number,
+            albums.sides_count as sides_count,
+            tracks.track_number as track_number,
+            album_sides.tracks_count as tracks_count,
             tracks.duration_time as duration_time,
-            coalesce(tracks.year, '') as year,
-            coalesce(tracks.comments, '') as comments,
+            tracks.year as year,
+            tracks.comments as comments,
             coalesce(track_options.enabled_p, 1) as enabled_p,
-            coalesce(track_options.play_count, 0) as play_count,
-            coalesce(track_options.added_date, 0) as added_date,
-            coalesce(track_options.modified_date, 0) as modified_date,
-            coalesce(track_options.played_date, 0) as played_date
+            track_options.play_count as play_count,
+            track_options.added_date as added_date,
+            track_options.modified_date as modified_date,
+            track_options.played_date as played_date
         from
             tracks
             left join albums on tracks.album_id = albums.album_id

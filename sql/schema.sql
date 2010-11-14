@@ -1,11 +1,11 @@
 begin;
 
-create table artists (
+create table if not exists artists (
     artist_id integer primary key,
     display_name text not null,
     sort_name text not null
 );
-create table albums (
+create table if not exists albums (
     album_id integer primary key,
     display_name text not null,
     sort_name text not null,
@@ -13,26 +13,26 @@ create table albums (
     sides_count integer,
     compilation_p integer not null default 0
 );
-create table album_sides (
+create table if not exists album_sides (
     album_id integer not null references albums (album_id),
     side_number integer not null,
     tracks_count integer,
     primary key (album_id, side_number)
 );
-create table genres (
+create table if not exists genres (
     genre_id integer primary key,
     name text not null
 );
-create table composers (
+create table if not exists composers (
     composer_id integer primary key,
     display_name text not null,
     sort_name text not null
 );
-create table groupings (
+create table if not exists groupings (
     grouping_id integer primary key,
     name text not null
 );
-create table tracks (
+create table if not exists tracks (
     track_id integer primary key,
     filename text not null unique,
     display_name text not null,
@@ -49,19 +49,19 @@ create table tracks (
     comments text
 );
 
-create table playlist_folders (
+create table if not exists playlist_folders (
     playlist_folder_id integer primary key,
     name text not null,
     position integer unique not null
 );
-create table playlists (
+create table if not exists playlists (
     playlist_id integer primary key,
     name text not null,
     playlist_folder_id integer references playlist_folders (playlist_folder_id),
     position integer not null,
     unique (playlist_folder_id, position)
 );
-create table playlist_tracks (
+create table if not exists playlist_tracks (
     playlist_id integer references playlists (playlist_id) not null,
     track_id integer references tracks (track_id) not null,
     position integer not null,
@@ -69,11 +69,11 @@ create table playlist_tracks (
     unique (playlist_id, position)
 );
 
-create table album_options (
+create table if not exists album_options (
     album_id integer primary key references albums (album_id),
     rating integer
 );
-create table track_options (
+create table if not exists track_options (
     track_id integer primary key references tracks (track_id),
     enabled_p integer not null default 0,
     rating integer,
