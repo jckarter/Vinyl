@@ -1,0 +1,15 @@
+import sqlite.*;
+import Vinyl.library.*;
+import Vinyl.importers.itunes.*;
+
+progressCallback(pos, size) {
+    println("==> progress: ", pos * 100 / size, "%");
+}
+
+main(args) {
+    if (size(args) < 3)
+        error("usage: ", args[0], " in-itunes-library out-vinyl-library");
+
+    var library = createLibrary(args[2]);
+    importItunes(library, args[1], progressCallback);
+}

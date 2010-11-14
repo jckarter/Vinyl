@@ -1,0 +1,233 @@
+import Vinyl.library.*;
+import expat.*;
+import sqlite.*;
+import io.files.raw.*;
+import maybe.*;
+
+parseXMLFrom(parser: XML_Parser, stream, size, progressCallback) {
+    alias BUFFER_SIZE = 4096;
+    var readBuffer = XML_GetBuffer(parser, BUFFER_SIZE);
+    var readSize = read(stream, readBuffer, BUFFER_SIZE);
+    var totalRead = SizeT(0);
+
+    while (readSize > 0) {
+        XML_ParseBuffer(parser, Int(readSize), Int(XML_FALSE));
+        totalRead += readSize;
+        progressCallback(totalRead, size);
+        readBuffer = XML_GetBuffer(parser, BUFFER_SIZE);
+        readSize = read(stream, readBuffer, BUFFER_SIZE);
+    }
+    XML_ParseBuffer(parser, Int(0), Int(XML_TRUE));
+}
+
+variant ItunesItem = Nothing | PlaylistTrack; // XXX Playlist, PlaylistFolder
+
+record ItunesParseState (
+    library: Pointer[Library],
+    keyPath: Vector[String],
+    tagPath: Vector[String],
+    tagContents: String,
+    item: ItunesItem,
+);
+
+itunesAddToValue(item: Nothing, state: ItunesParseState, type: String, value: String) {}
+
+itunesFinishValue(item: Nothing, state: ItunesParseState) { }
+
+overload itunesAddToValue(item: PlaylistTrack, state: ItunesParseState, type: String, value: String) {
+    assert(size(state.keyPath) == 3);
+    assert(state.keyPath[0] == "Tracks");
+    ref key = state.keyPath[2];
+
+    switch (key) {
+    case "Name":
+        item.name = value;
+        break;
+    case "Artist":
+        item.track_artist_name = Maybe(value);
+        if (nothing?(item.album_artist_name))
+            item.album_artist_name = Maybe(value);
+        break;
+    case "Composer":
+        item.composer_name = Maybe(value);
+        break;
+    case "Grouping":
+        item.grouping_name = Maybe(value);
+        break;
+    case "Album":
+        item.album_name = Maybe(value);
+        break;
+    case "Album Artist":
+        item.album_artist_name = Maybe(value);
+        break;
+    case "Genre":
+        item.genre_name = Maybe(value);
+        break;
+    case "Total Time":
+        item.duration_time = Double(value)/1000.0;
+        break;
+    case "Track Number":
+        item.track_number = Maybe(Int(value));
+        break;
+    case "Track Count":
+        item.tracks_count = Maybe(Int(value));
+        break;
+    case "Disc Number":
+        item.side_number = Maybe(Int(value));
+        break;
+    case "Disc Count":
+        item.sides_count = Maybe(Int(value));
+        break;
+    case "Year":
+        item.year = Maybe(value);
+        break;
+    // XXX parse date
+    // case "Date Modified":
+    // case "Date Added":
+    // case "Play Date UTC":
+    case "Play Count":
+        item.play_count = Maybe(Int(value));
+        break;
+    case "Comments":
+        item.comments = Maybe(value);
+        break;
+    // case "Rating":
+    //    item.rating = Int(value)/20;
+    //    break;
+    // case "Album Rating":
+    //    item.album_rating = Int(value)/20;
+    //    break;
+    // XXX parse url
+    //case "Location":
+    //    item.filename = filenameFromURL(value);
+    //    break;
+    // XXX sort names
+    case "Sort Name":
+        item.sort_name = Maybe(value);
+        break;
+    case "Sort Album":
+        item.album_sort_name = Maybe(value);
+        break;
+    case "Sort Artist":
+        item.track_artist_sort_name = Maybe(value);
+        if (nothing?(item.album_artist_sort_name))
+            item.album_artist_sort_name = Maybe(value);
+        break;
+    case "Sort Album Artist":
+        item.album_artist_sort_name = Maybe(value);
+        break;
+    case "Sort Composer":
+        item.composer_sort_name = Maybe(value);
+        break;
+    default:
+        break;
+    }
+}
+
+overload itunesFinishValue(item: PlaylistTrack, state: ItunesParseState) {
+    println(item);
+}
+
+itunesStartElementHandler(
+    stateP: RawPointer,
+    nameC: Pointer[XML_Char],
+    attrs: Pointer[Pointer[XML_Char]]
+) {
+    ref state = Pointer[ItunesParseState](stateP)^;
+    var name = CStringRef(nameC);
+
+    push(state.tagPath, String(name));
+    clear(state.tagContents);
+
+    switch (name) {
+    case "dict":
+        push(state.keyPath, String(""));
+        if (size(state.keyPath) == 3 and state.keyPath[0] == "Tracks")
+            state.item = ItunesItem(PlaylistTrack());
+        break;
+
+    default:
+        break;
+    }
+}
+
+itunesEndElementHandler(stateP: RawPointer, nameC: Pointer[XML_Char]) {
+    ref state = Pointer[ItunesParseState](stateP)^;
+    var name = CStringRef(nameC);
+    var closedName = pop(state.tagPath);
+
+    if (name != closedName)
+        error("unmatched ", closedName, " with ", name);
+
+    switch (name) {
+    case "key":
+        state.keyPath[size(state.keyPath) - 1] = state.tagContents;
+        break; 
+        
+    case "dict":
+        itunesFinishValue(*state.item, state);
+        state.item = ItunesItem(Nothing());
+        pop(state.keyPath);
+        break;
+
+    case "array":
+    case "plist":
+        break;
+
+    case "integer":
+    case "real":
+    case "string":
+    case "date":
+    case "data":
+        itunesAddToValue(*state.item, state, String(name), state.tagContents);
+        break;
+
+    case "true":
+    case "false":
+        itunesAddToValue(*state.item, state, String("bool"), String(name));
+        break;
+
+    default:
+        printlnTo(stderr, "unknown tag ", name);
+        break;
+    }
+}
+
+itunesCharacterDataHandler(stateP: RawPointer, s: Pointer[XML_Char], len: Int) {
+    ref state = Pointer[ItunesParseState](stateP)^;
+    if (not empty?(state.tagContents))
+        push(state.tagContents, '\n');
+    push(state.tagContents, mapped(Char, coordinateRange(s, s + len)));
+}
+
+importItunes(library: Library, itunesLibraryFilename: String, progressCallback) {
+    var state = ItunesParseState(
+        &library,
+        Vector[String](),
+        Vector[String](),
+        String(),
+        ItunesItem(Nothing()),
+    );
+    var parser = XML_ParserCreate(null(CChar));
+
+    XML_SetElementHandler(
+        parser,
+        XML_StartElementHandler(itunesStartElementHandler), 
+        XML_EndElementHandler(itunesEndElementHandler),
+    );
+    XML_SetCharacterDataHandler(
+        parser,
+        XML_CharacterDataHandler(itunesCharacterDataHandler),
+    );
+    XML_SetUserData(parser, RawPointer(&state));
+
+    var file = RawFile(itunesLibraryFilename);
+
+    parseXMLFrom(parser, file, fileSize(file), progressCallback);
+
+    XML_ParserFree(parser);
+}
+
+overload importItunes(library: Library, itunesLibraryFilename: String) {
+    importItunes(library, itunesLibraryFilename, (pos, size) => {});
+}
