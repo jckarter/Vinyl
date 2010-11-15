@@ -295,6 +295,7 @@ record PlaylistTrack (
     album_sort_name: Maybe[String],
     album_artist_name: Maybe[String],
     album_artist_sort_name: Maybe[String],
+    album_compilation_p: Bool,
     track_artist_name: Maybe[String],
     track_artist_sort_name: Maybe[String],
     genre_name: Maybe[String],
@@ -324,6 +325,7 @@ overload PlaylistTrack() = PlaylistTrack(
     Maybe[String](),
     Maybe[String](),
     Maybe[String](),
+    false,
     Maybe[String](),
     Maybe[String](),
     Maybe[String](),
@@ -393,46 +395,47 @@ record PlaylistDataSource = newClass(NSObject,
 );
 
 alias playlistQuery = "
-        select
-            tracks.track_id,
-            tracks.filename,
-            tracks.display_name as name,
-            tracks.sort_name as sort_name,
-            albums.display_name as album_name,
-            albums.sort_name as album_sort_name,
-            album_artists.display_name as album_artist_name,
-            album_artists.sort_name as album_artist_sort_name,
-            track_artists.display_name as track_artist_name,
-            track_artists.sort_name as track_artist_sort_name,
-            genres.name as genre_name,
-            composers.display_name as composer_name,
-            composers.sort_name as composer_sort_name,
-            groupings.name as grouping_name,
-            tracks.side_number as side_number,
-            albums.sides_count as sides_count,
-            tracks.track_number as track_number,
-            album_sides.tracks_count as tracks_count,
-            tracks.duration_time as duration_time,
-            tracks.year as year,
-            tracks.comments as comments,
-            coalesce(track_options.enabled_p, 1) as enabled_p,
-            track_options.play_count as play_count,
-            track_options.added_date as added_date,
-            track_options.modified_date as modified_date,
-            track_options.played_date as played_date
-        from
-            tracks
-            left join albums on tracks.album_id = albums.album_id
-            left join album_sides
-                on tracks.album_id = album_sides.album_id
-                and tracks.side_number = album_sides.side_number
-            left join artists as album_artists on albums.album_artist_id = album_artists.artist_id
-            left join artists as track_artists on tracks.track_artist_id = track_artists.artist_id
-            left join genres on tracks.genre_id = genres.genre_id
-            left join composers on tracks.composer_id = composers.composer_id
-            left join groupings on tracks.grouping_id = groupings.grouping_id
-            left join track_options on tracks.track_id = track_options.track_id
-    ";
+    select
+        tracks.track_id,
+        tracks.filename,
+        tracks.display_name as name,
+        tracks.sort_name as sort_name,
+        albums.display_name as album_name,
+        albums.sort_name as album_sort_name,
+        album_artists.display_name as album_artist_name,
+        album_artists.sort_name as album_artist_sort_name,
+        albums.compilation_p as album_compilation_p,
+        track_artists.display_name as track_artist_name,
+        track_artists.sort_name as track_artist_sort_name,
+        genres.name as genre_name,
+        composers.display_name as composer_name,
+        composers.sort_name as composer_sort_name,
+        groupings.name as grouping_name,
+        tracks.side_number as side_number,
+        albums.sides_count as sides_count,
+        tracks.track_number as track_number,
+        album_sides.tracks_count as tracks_count,
+        tracks.duration_time as duration_time,
+        tracks.year as year,
+        tracks.comments as comments,
+        coalesce(track_options.enabled_p, 1) as enabled_p,
+        track_options.play_count as play_count,
+        track_options.added_date as added_date,
+        track_options.modified_date as modified_date,
+        track_options.played_date as played_date
+    from
+        tracks
+        left join albums on tracks.album_id = albums.album_id
+        left join album_sides
+            on tracks.album_id = album_sides.album_id
+            and tracks.side_number = album_sides.side_number
+        left join artists as album_artists on albums.album_artist_id = album_artists.artist_id
+        left join artists as track_artists on tracks.track_artist_id = track_artists.artist_id
+        left join genres on tracks.genre_id = genres.genre_id
+        left join composers on tracks.composer_id = composers.composer_id
+        left join groupings on tracks.grouping_id = groupings.grouping_id
+        left join track_options on tracks.track_id = track_options.track_id
+";
 
 filteredPlaylistStatement(db: SqliteDB, view: SortedView)
     = SqliteStatement(db,

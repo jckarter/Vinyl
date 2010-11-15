@@ -3,6 +3,7 @@ import expat.*;
 import sqlite.*;
 import io.files.raw.*;
 import maybe.*;
+import cocoa.*;
 
 parseXMLFrom(parser: XML_Parser, stream, size, progressCallback) {
     alias BUFFER_SIZE = 4096;
@@ -20,10 +21,14 @@ parseXMLFrom(parser: XML_Parser, stream, size, progressCallback) {
     XML_ParseBuffer(parser, Int(0), Int(XML_TRUE));
 }
 
+filenameFromURL(urlString)
+    = String(NSURL.URLWithString(urlString).path());
+
 variant ItunesItem = Nothing | PlaylistTrack; // XXX Playlist, PlaylistFolder
 
 record ItunesParseState (
     library: Pointer[Library],
+    trackInsertStmt: SqliteStatement,
     keyPath: Vector[String],
     tagPath: Vector[String],
     tagContents: String,
@@ -40,6 +45,9 @@ overload itunesAddToValue(item: PlaylistTrack, state: ItunesParseState, type: St
     ref key = state.keyPath[2];
 
     switch (key) {
+    case "Track ID":
+        item.track_id = Int(value);
+        break;
     case "Name":
         item.name = value;
         break;
@@ -91,6 +99,9 @@ overload itunesAddToValue(item: PlaylistTrack, state: ItunesParseState, type: St
     case "Comments":
         item.comments = Maybe(value);
         break;
+    case "Compilation":
+        item.album_compilation_p = value != "false";
+        break;
     // case "Rating":
     //    item.rating = Int(value)/20;
     //    break;
@@ -98,10 +109,9 @@ overload itunesAddToValue(item: PlaylistTrack, state: ItunesParseState, type: St
     //    item.album_rating = Int(value)/20;
     //    break;
     // XXX parse url
-    //case "Location":
-    //    item.filename = filenameFromURL(value);
-    //    break;
-    // XXX sort names
+    case "Location":
+        item.filename = filenameFromURL(value);
+        break;
     case "Sort Name":
         item.sort_name = Maybe(value);
         break;
@@ -125,7 +135,8 @@ overload itunesAddToValue(item: PlaylistTrack, state: ItunesParseState, type: St
 }
 
 overload itunesFinishValue(item: PlaylistTrack, state: ItunesParseState) {
-    println(item);
+    bindStatementRecord(state.trackInsertStmt, item);
+    runStatement(state.trackInsertStmt);
 }
 
 itunesStartElementHandler(
@@ -195,37 +206,261 @@ itunesEndElementHandler(stateP: RawPointer, nameC: Pointer[XML_Char]) {
 
 itunesCharacterDataHandler(stateP: RawPointer, s: Pointer[XML_Char], len: Int) {
     ref state = Pointer[ItunesParseState](stateP)^;
-    if (not empty?(state.tagContents))
-        push(state.tagContents, '\n');
     push(state.tagContents, mapped(Char, coordinateRange(s, s + len)));
 }
 
+importFromItunesTable(db: SqliteDB) {
+    runStatement(db, "insert into artists (
+            display_name, sort_name
+        ) select
+            i.album_artist_name as display_name,
+            coalesce(max(i.album_artist_sort_name), i.album_artist_name) as sort_name
+        from
+            itunes_imported_tracks i
+            left join artists
+                on i.album_artist_name = artists.display_name
+        where
+            i.album_artist_name is not null
+            and artists.display_name is null
+        group by
+            i.album_artist_name
+    ");
+
+    runStatement(db, "insert into artists (
+            display_name, sort_name
+        ) select
+            i.track_artist_name as display_name,
+            coalesce(max(i.track_artist_sort_name), i.track_artist_name) as sort_name
+        from
+            itunes_imported_tracks i
+            left join artists
+                on i.track_artist_name = artists.display_name
+        where
+            i.track_artist_name is not null
+            and artists.display_name is null
+        group by
+            i.track_artist_name
+    ");
+
+    runStatement(db, "insert into albums (
+            display_name, sort_name, album_artist_id, sides_count, compilation_p
+        ) select
+            i.album_name as display_name,
+            coalesce(max(i.album_sort_name), i.album_name) as sort_name,
+            album_artists.artist_id as album_artist_id,
+            max(coalesce(i.sides_count, 1)) as sides_count,
+            max(i.album_compilation_p) as compilation_p
+        from
+            itunes_imported_tracks i
+            left join artists album_artists
+                on i.album_artist_name = album_artists.display_name
+            left join albums
+                on i.album_name = albums.display_name
+        where
+            i.album_name is not null
+            and albums.display_name is null
+        group by
+            i.album_name,
+            album_artists.artist_id,
+            i.album_compilation_p
+    ");
+
+    runStatement(db, "insert into album_sides (
+            album_id, side_number, tracks_count
+        ) select
+            albums.album_id as album_id,
+            coalesce(i.side_number, 1) as side_number,
+            max(i.tracks_count) as tracks_count
+        from
+            itunes_imported_tracks i
+            inner join albums
+                on i.album_name = albums.display_name
+            left join album_sides
+                on albums.album_id = album_sides.album_id
+                and coalesce(i.side_number, 1) = album_sides.side_number
+        where
+            album_sides.album_id is null
+        group by
+            albums.album_id,
+            coalesce(i.side_number, 1)
+    ");
+
+    runStatement(db, "insert into genres (name)
+        select
+            i.genre_name as name
+        from
+            itunes_imported_tracks i
+            left join genres
+                on i.genre_name = genres.name
+        where
+            i.genre_name is not null
+            and genres.name is null
+        group by
+            i.genre_name
+    ");
+
+    runStatement(db, "insert into composers (
+            display_name, sort_name
+        ) select
+            i.composer_name as display_name,
+            coalesce(max(i.composer_sort_name), i.composer_name) as sort_name
+        from
+            itunes_imported_tracks i
+            left join composers
+                on i.composer_name = composers.display_name
+        where
+            i.composer_name is not null
+            and composers.display_name is null
+        group by
+            i.composer_name
+    ");
+
+    runStatement(db, "insert into groupings (name)
+        select
+            i.grouping_name as name
+        from
+            itunes_imported_tracks i
+            left join groupings
+                on i.grouping_name = groupings.name
+        where
+            i.grouping_name is not null
+            and groupings.name is null
+        group by
+            i.grouping_name
+    ");
+
+    runStatement(db, "insert into tracks (
+            filename, display_name, sort_name,
+            album_id, track_artist_id, genre_id, composer_id, grouping_id,
+            side_number, track_number,
+            duration_time,
+            year, comments
+        ) select
+            i.filename as filename,
+            coalesce(max(i.name), max(i.sort_name), i.filename) as display_name,
+            coalesce(max(i.sort_name), max(i.name), i.filename) as sort_name,
+            max(albums.album_id) as album_id,
+            max(track_artists.artist_id) as track_artist_id,
+            max(genres.genre_id) as genre_id,
+            max(composers.composer_id) as composer_id,
+            max(groupings.grouping_id) as grouping_id,
+            max(i.side_number) as side_number,
+            max(i.track_number) as track_number,
+            max(i.duration_time) as duration_time,
+            max(i.year) as year,
+            max(i.comments) as comments
+        from
+            itunes_imported_tracks i
+            left join albums
+                on i.album_name = albums.display_name
+            left join artists track_artists
+                on i.track_artist_name = track_artists.display_name 
+            left join genres
+                on i.genre_name = genres.name
+            left join composers
+                on i.composer_name = composers.display_name
+            left join groupings
+                on i.grouping_name = groupings.name
+            left join tracks
+                on i.filename = tracks.filename
+        where
+            i.filename is not null
+            and tracks.filename is null
+        group by
+            i.filename
+    ");
+}
+
 importItunes(library: Library, itunesLibraryFilename: String, progressCallback) {
-    var state = ItunesParseState(
-        &library,
-        Vector[String](),
-        Vector[String](),
-        String(),
-        ItunesItem(Nothing()),
-    );
-    var parser = XML_ParserCreate(null(CChar));
+    withTransaction(library.db, () ref=> {
+        runStatement(library.db, "create temporary table itunes_imported_tracks (
+            itunes_track_id integer primary key,
+            filename text not null,
+            name text not null,
+            sort_name text,
+            album_name text,
+            album_sort_name text,
+            album_artist_name text,
+            album_artist_sort_name text,
+            album_compilation_p integer,
+            track_artist_name text,
+            track_artist_sort_name text,
+            genre_name text,
+            composer_name text,
+            composer_sort_name text,
+            grouping_name text,
+            side_number integer,
+            sides_count integer,
+            track_number integer,
+            tracks_count integer,
+            duration_time real not null,
+            year text,
+            comments text,
+            enabled_p integer,
+            play_count integer,
+            added_date integer,
+            modified_date integer,
+            played_date integer
+        )");
 
-    XML_SetElementHandler(
-        parser,
-        XML_StartElementHandler(itunesStartElementHandler), 
-        XML_EndElementHandler(itunesEndElementHandler),
-    );
-    XML_SetCharacterDataHandler(
-        parser,
-        XML_CharacterDataHandler(itunesCharacterDataHandler),
-    );
-    XML_SetUserData(parser, RawPointer(&state));
+        var state = ItunesParseState(
+            &library,
+            SqliteStatement(library.db, "insert into itunes_imported_tracks values (
+                ?,
+                ?,
+                ?,
+                ?,
+                ?,
+                ?,
+                ?,
+                ?,
+                ?,
+                ?,
+                ?,
+                ?,
+                ?,
+                ?,
+                ?,
+                ?,
+                ?,
+                ?,
+                ?,
+                ?,
+                ?,
+                ?,
+                ?,
+                ?,
+                ?,
+                ?,
+                ?
+            )"),
+            Vector[String](),
+            Vector[String](),
+            String(),
+            ItunesItem(Nothing()),
+        );
+        var parser = XML_ParserCreate(null(CChar));
 
-    var file = RawFile(itunesLibraryFilename);
+        XML_SetElementHandler(
+            parser,
+            XML_StartElementHandler(itunesStartElementHandler), 
+            XML_EndElementHandler(itunesEndElementHandler),
+        );
+        XML_SetCharacterDataHandler(
+            parser,
+            XML_CharacterDataHandler(itunesCharacterDataHandler),
+        );
+        XML_SetUserData(parser, RawPointer(&state));
 
-    parseXMLFrom(parser, file, fileSize(file), progressCallback);
+        var file = RawFile(itunesLibraryFilename);
 
-    XML_ParserFree(parser);
+        parseXMLFrom(parser, file, fileSize(file), progressCallback);
+        importFromItunesTable(library.db);
+
+        runStatement(library.db, "drop table itunes_imported_tracks");
+
+        XML_ParserFree(parser);
+    });
 }
 
 overload importItunes(library: Library, itunesLibraryFilename: String) {

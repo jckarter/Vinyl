@@ -1,15 +1,19 @@
 import sqlite.*;
 import Vinyl.library.*;
 import Vinyl.importers.itunes.*;
+import cocoa.*;
 
 progressCallback(pos, size) {
-    println("==> progress: ", pos * 100 / size, "%");
+    print("Reading iTunes library... ", pos * 100 / size, "%\r");
+    flush(stdout);
 }
 
 main(args) {
-    if (size(args) < 3)
-        error("usage: ", args[0], " in-itunes-library out-vinyl-library");
+    withAutoreleasePool(() => {
+        if (size(args) < 3)
+            error("usage: ", args[0], " in-itunes-library out-vinyl-library");
 
-    var library = createLibrary(args[2]);
-    importItunes(library, args[1], progressCallback);
+        var library = createLibrary(args[2]);
+        importItunes(library, args[1], progressCallback);
+    });
 }
