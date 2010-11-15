@@ -2,9 +2,19 @@ import sqlite.*;
 import Vinyl.library.*;
 import Vinyl.importers.itunes.*;
 import cocoa.*;
+import printer.formatter.*;
 
-progressCallback(pos, size) {
-    print("Reading iTunes library... ", pos * 100 / size, "%\r");
+progressCallback(mode, pos, size) {
+    switch (mode) {
+    case ReadItunesLibrary:
+        print("Reading iTunes library... ");
+        break;
+    case MergeVinylLibrary:
+        print("Merging Vinyl library...  ");
+        break;
+    }
+
+    print(rightAligned(3, pos * 100 / size), "%\r");
     flush(stdout);
 }
 
