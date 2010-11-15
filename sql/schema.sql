@@ -2,7 +2,7 @@ begin;
 
 create table if not exists artists (
     artist_id integer primary key,
-    display_name text not null,
+    display_name text not null unique,
     sort_name text not null
 );
 create table if not exists albums (
@@ -11,7 +11,8 @@ create table if not exists albums (
     sort_name text not null,
     album_artist_id integer references artists (artist_id),
     sides_count integer,
-    compilation_p integer not null default 0
+    compilation_p integer not null default 0,
+    unique (display_name, album_artist_id, compilation_p)
 );
 create table if not exists album_sides (
     album_id integer not null references albums (album_id),
@@ -21,16 +22,16 @@ create table if not exists album_sides (
 );
 create table if not exists genres (
     genre_id integer primary key,
-    name text not null
+    name text not null unique
 );
 create table if not exists composers (
     composer_id integer primary key,
-    display_name text not null,
+    display_name text not null unique,
     sort_name text not null
 );
 create table if not exists groupings (
     grouping_id integer primary key,
-    name text not null
+    name text not null unique
 );
 create table if not exists tracks (
     track_id integer primary key,

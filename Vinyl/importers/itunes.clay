@@ -254,7 +254,7 @@ importFromItunesTable(db: SqliteDB, progressCallback) {
             coalesce(max(i.album_sort_name), i.album_name) as sort_name,
             album_artists.artist_id as album_artist_id,
             max(coalesce(i.sides_count, 1)) as sides_count,
-            max(i.album_compilation_p) as compilation_p
+            coalesce(i.album_compilation_p, 0) as compilation_p
         from
             itunes_imported_tracks i
             left join artists album_artists
@@ -267,7 +267,7 @@ importFromItunesTable(db: SqliteDB, progressCallback) {
         group by
             i.album_name,
             album_artists.artist_id,
-            i.album_compilation_p
+            coalesce(i.album_compilation_p, 0)
     ");
 
     progressCallback(MergeVinylLibrary, 3, 8);
