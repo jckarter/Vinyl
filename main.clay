@@ -1,5 +1,6 @@
 import cocoa.*;
 import Vinyl.appdelegate.*;
 import Vinyl.controllers.main.*;
+import Vinyl.controllers.itunesimport.*;
 
-main() = appKitMain(AppDelegate, MainController);
+main() = appKitMain(AppDelegate, MainController, ItunesImportController);

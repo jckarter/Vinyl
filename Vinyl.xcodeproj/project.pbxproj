@@ -10,6 +10,8 @@
 		1DDD58160DA1D0A300B32029 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = 1DDD58140DA1D0A300B32029 /* MainMenu.xib */; };
 		8D11072B0486CEB800E47090 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 089C165CFE840E0CC02AAC07 /* InfoPlist.strings */; };
 		8D11072F0486CEB800E47090 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1058C7A1FEA54F0111CA2CBB /* Cocoa.framework */; };
+		D828F8AA12913795005CE8ED /* ItunesImportController.xib in Resources */ = {isa = PBXBuildFile; fileRef = D828F8A912913795005CE8ED /* ItunesImportController.xib */; };
+		D828F8CB12918BCF005CE8ED /* libexpat.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = D828F8CA12918BCF005CE8ED /* libexpat.dylib */; };
 		D8444395128AC32400ACB9D5 /* QTKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D8444394128AC32400ACB9D5 /* QTKit.framework */; };
 		D844442B128D5B0200ACB9D5 /* libsqlite3.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = D8444257127FD84700ACB9D5 /* libsqlite3.dylib */; };
 		D851B2E0127AA5C800C08AC9 /* main.clay in Sources */ = {isa = PBXBuildFile; fileRef = D851B2DC127AA5C800C08AC9 /* main.clay */; };
@@ -38,6 +40,8 @@
 		29B97325FDCFA39411CA2CEA /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = /System/Library/Frameworks/Foundation.framework; sourceTree = "<absolute>"; };
 		8D1107310486CEB800E47090 /* Vinyl-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "Vinyl-Info.plist"; sourceTree = "<group>"; };
 		8D1107320486CEB800E47090 /* Vinyl.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Vinyl.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D828F8A912913795005CE8ED /* ItunesImportController.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = ItunesImportController.xib; sourceTree = "<group>"; };
+		D828F8CA12918BCF005CE8ED /* libexpat.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libexpat.dylib; path = usr/lib/libexpat.dylib; sourceTree = SDKROOT; };
 		D8444257127FD84700ACB9D5 /* libsqlite3.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libsqlite3.dylib; path = usr/lib/libsqlite3.dylib; sourceTree = SDKROOT; };
 		D8444394128AC32400ACB9D5 /* QTKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QTKit.framework; path = System/Library/Frameworks/QTKit.framework; sourceTree = SDKROOT; };
 		D851B2DC127AA5C800C08AC9 /* main.clay */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = main.clay; sourceTree = "<group>"; };
@@ -53,6 +57,7 @@
 				8D11072F0486CEB800E47090 /* Cocoa.framework in Frameworks */,
 				D8444395128AC32400ACB9D5 /* QTKit.framework in Frameworks */,
 				D844442B128D5B0200ACB9D5 /* libsqlite3.dylib in Frameworks */,
+				D828F8CB12918BCF005CE8ED /* libexpat.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -65,6 +70,7 @@
 				D8444257127FD84700ACB9D5 /* libsqlite3.dylib */,
 				1058C7A1FEA54F0111CA2CBB /* Cocoa.framework */,
 				D8444394128AC32400ACB9D5 /* QTKit.framework */,
+				D828F8CA12918BCF005CE8ED /* libexpat.dylib */,
 			);
 			name = "Linked Frameworks";
 			sourceTree = "<group>";
@@ -105,6 +111,7 @@
 				8D1107310486CEB800E47090 /* Vinyl-Info.plist */,
 				089C165CFE840E0CC02AAC07 /* InfoPlist.strings */,
 				1DDD58140DA1D0A300B32029 /* MainMenu.xib */,
+				D828F8A912913795005CE8ED /* ItunesImportController.xib */,
 			);
 			name = Resources;
 			sourceTree = "<group>";
@@ -188,6 +195,7 @@
 			files = (
 				8D11072B0486CEB800E47090 /* InfoPlist.strings in Resources */,
 				1DDD58160DA1D0A300B32029 /* MainMenu.xib in Resources */,
+				D828F8AA12913795005CE8ED /* ItunesImportController.xib in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

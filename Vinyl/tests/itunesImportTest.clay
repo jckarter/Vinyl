@@ -16,6 +16,8 @@ progressCallback(mode, pos, size) {
 
     print(rightAligned(3, pos * 100 / size), "%\r");
     flush(stdout);
+
+    return true;
 }
 
 main(args) {

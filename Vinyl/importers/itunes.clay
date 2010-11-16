@@ -4,6 +4,13 @@ import sqlite.*;
 import io.files.raw.*;
 import maybe.*;
 import cocoa.*;
+import destructors.*;
+
+record ItunesImportCancelled ();
+instance Exception = ItunesImportCancelled;
+
+record ItunesXMLParserError (code: Int, message: CStringRef);
+instance Exception = ItunesXMLParserError;
 
 enum ItunesParseStage { ReadItunesLibrary, MergeVinylLibrary }
 
@@ -14,9 +21,13 @@ parseXMLFrom(parser: XML_Parser, stream, size, progressCallback) {
     var totalRead = SizeT(0);
 
     while (readSize > 0) {
-        XML_ParseBuffer(parser, Int(readSize), Int(XML_FALSE));
+        if (XML_ParseBuffer(parser, Int(readSize), Int(XML_FALSE)) == 0) {
+            var code = XML_GetErrorCode(parser);
+            throw ItunesXMLParserError(code, CStringRef(XML_ErrorString(code)));
+        }
         totalRead += readSize;
-        progressCallback(ReadItunesLibrary, totalRead, size);
+        if (not progressCallback(ReadItunesLibrary, totalRead, size))
+            throw ItunesImportCancelled();
         readBuffer = XML_GetBuffer(parser, BUFFER_SIZE);
         readSize = read(stream, readBuffer, BUFFER_SIZE);
     }
@@ -212,7 +223,7 @@ itunesCharacterDataHandler(stateP: RawPointer, s: Pointer[XML_Char], len: Int) {
 }
 
 importFromItunesTable(db: SqliteDB, progressCallback) {
-    progressCallback(MergeVinylLibrary, 0, 8);
+    if (not progressCallback(MergeVinylLibrary, 0, 8)) throw ItunesImportCancelled();
     runStatement(db, "insert into artists (
             display_name, sort_name
         ) select
@@ -229,7 +240,7 @@ importFromItunesTable(db: SqliteDB, progressCallback) {
             i.album_artist_name
     ");
 
-    progressCallback(MergeVinylLibrary, 1, 8);
+    if (not progressCallback(MergeVinylLibrary, 1, 8)) throw ItunesImportCancelled();
     runStatement(db, "insert into artists (
             display_name, sort_name
         ) select
@@ -246,7 +257,7 @@ importFromItunesTable(db: SqliteDB, progressCallback) {
             i.track_artist_name
     ");
 
-    progressCallback(MergeVinylLibrary, 2, 8);
+    if (not progressCallback(MergeVinylLibrary, 2, 8)) throw ItunesImportCancelled();
     runStatement(db, "insert into albums (
             display_name, sort_name, album_artist_id, sides_count, compilation_p
         ) select
@@ -270,7 +281,7 @@ importFromItunesTable(db: SqliteDB, progressCallback) {
             coalesce(i.album_compilation_p, 0)
     ");
 
-    progressCallback(MergeVinylLibrary, 3, 8);
+    if (not progressCallback(MergeVinylLibrary, 3, 8)) throw ItunesImportCancelled();
     runStatement(db, "insert into album_sides (
             album_id, side_number, tracks_count
         ) select
@@ -291,7 +302,7 @@ importFromItunesTable(db: SqliteDB, progressCallback) {
             coalesce(i.side_number, 1)
     ");
 
-    progressCallback(MergeVinylLibrary, 4, 8);
+    if (not progressCallback(MergeVinylLibrary, 4, 8)) throw ItunesImportCancelled();
     runStatement(db, "insert into genres (name)
         select
             i.genre_name as name
@@ -306,7 +317,7 @@ importFromItunesTable(db: SqliteDB, progressCallback) {
             i.genre_name
     ");
 
-    progressCallback(MergeVinylLibrary, 5, 8);
+    if (not progressCallback(MergeVinylLibrary, 5, 8)) throw ItunesImportCancelled();
     runStatement(db, "insert into composers (
             display_name, sort_name
         ) select
@@ -323,7 +334,7 @@ importFromItunesTable(db: SqliteDB, progressCallback) {
             i.composer_name
     ");
 
-    progressCallback(MergeVinylLibrary, 6, 8);
+    if (not progressCallback(MergeVinylLibrary, 6, 8)) throw ItunesImportCancelled();
     runStatement(db, "insert into groupings (name)
         select
             i.grouping_name as name
@@ -338,7 +349,7 @@ importFromItunesTable(db: SqliteDB, progressCallback) {
             i.grouping_name
     ");
 
-    progressCallback(MergeVinylLibrary, 7, 8);
+    if (not progressCallback(MergeVinylLibrary, 7, 8)) throw ItunesImportCancelled();
     runStatement(db, "insert into tracks (
             filename, display_name, sort_name,
             album_id, track_artist_id, genre_id, composer_id, grouping_id,
@@ -380,7 +391,7 @@ importFromItunesTable(db: SqliteDB, progressCallback) {
             i.filename
     ");
 
-    progressCallback(MergeVinylLibrary, 8, 8);
+    if (not progressCallback(MergeVinylLibrary, 8, 8)) throw ItunesImportCancelled();
 }
 
 importItunes(library: Library, itunesLibraryFilename: String, progressCallback) {
@@ -451,30 +462,28 @@ importItunes(library: Library, itunesLibraryFilename: String, progressCallback) 
             String(),
             ItunesItem(Nothing()),
         );
-        var parser = XML_ParserCreate(null(CChar));
+        var parser = DestroyedBy(XML_ParserCreate(null(CChar)), XML_ParserFree);
 
         XML_SetElementHandler(
-            parser,
+            parser^,
             XML_StartElementHandler(itunesStartElementHandler), 
             XML_EndElementHandler(itunesEndElementHandler),
         );
         XML_SetCharacterDataHandler(
-            parser,
+            parser^,
             XML_CharacterDataHandler(itunesCharacterDataHandler),
         );
-        XML_SetUserData(parser, RawPointer(&state));
+        XML_SetUserData(parser^, RawPointer(&state));
 
         var file = RawFile(itunesLibraryFilename);
 
-        parseXMLFrom(parser, file, fileSize(file), progressCallback);
+        parseXMLFrom(parser^, file, fileSize(file), progressCallback);
         importFromItunesTable(library.db, progressCallback);
 
         runStatement(library.db, "drop table itunes_imported_tracks");
-
-        XML_ParserFree(parser);
     });
 }
 
 overload importItunes(library: Library, itunesLibraryFilename: String) {
-    importItunes(library, itunesLibraryFilename, (pos, size) => {});
+    importItunes(library, itunesLibraryFilename, (pos, size) => true);
 }

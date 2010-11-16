@@ -3,6 +3,7 @@ import cocoa.appkit.*;
 import Vinyl.appdelegate.*;
 import Vinyl.library.*;
 import Vinyl.qtplayer.*;
+import Vinyl.controllers.itunesimport.*;
 
 alias PlayControlsBackTag = 0;
 alias PlayControlsPlayTag = 1;
@@ -16,11 +17,49 @@ overload selector(static #"performPlayControl:") = Void, NSSegmentedControl;
 overload selector(static #"performVolumeUpdate:") = Void, Id;
 overload selector(static #"performSearch:") = Void, Id;
 overload selector(static #"performPlaylistControl:") = Void, NSSegmentedControl;
-overload selector(static #"performSelectPlaylist:") = Void, NSOutlineView;
+overload selector(static #"performSelectPlaylist:") = Void, NSTableView;
+overload selector(static #"performSelectTrack:") = Void, NSTableView;
+overload selector(static #"performImportItunesLibrary:") = Void, Id;
+overload selector(static #"performDoubleClickPlaylist:") = Void, NSTableView;
+overload selector(static #"performDoubleClickTrack:") = Void, NSTableView;
+overload selector(static #"performImportItunesLibrary:") = Void, Id;
 overload selector(static #"player") = Player;
+overload selector(static #"library") = Pointer[Library];
+overload selector(static #"_itunesSheetDidEnd:returnCode:contextInfo:")
+    = Void, NSWindow, NSInteger, RawPointer;
 
 setStatusField(self, ...contents) {
     self^.statusField.setStringValue(printString(...contents));
+}
+
+performImportItunesLibrary(self: MainController, itunesLibrary: NSString) {
+    if (nil?(itunesLibrary)) {
+        // XXX error reporting
+        NSLog(NSString(#"itunes library not found"));
+    } else {
+        NSLog(NSString(#"itunes library found at %@"), NSString(itunesLibrary));
+
+        var importController = ItunesImportController.alloc().init();
+
+        if (nil?(importController))
+            NSLog(NSString(#"couldn't create controller"));
+        else
+            importController.importItunesLibrary_modalForWindow_modalDelegate_didEndSelector_contextInfo(
+                itunesLibrary,
+                self^.mainWindow,
+                self,
+                selectorHandle(#"_itunesSheetDidEnd:returnCode:contextInfo:"),
+                RawPointer(importController)
+            );
+    }
+}
+
+playTrackNumber(self: MainController, trackNumber: NSInteger) {
+    self^.player.playLibrary_view_trackNumber(
+        &self^.library,
+        self^.playlistDataSource.libraryView()^,
+        SizeT(trackNumber)
+    );
 }
 
 record MainController = newClass(#VinylMainController, NSObject,
@@ -57,19 +96,23 @@ record MainController = newClass(#VinylMainController, NSObject,
                 case PlayControlsPlayTag: {
                         var selection = self^.playlistView.selectedRow();
                         if (selection < 0) selection = 0;
-
-                        self^.player.playLibrary_view_trackNumber(
-                            &self^.library,
-                            self^.playlistDataSource.libraryView()^,
-                            SizeT(selection)
-                        );
-
+                        playTrackNumber(self, selection);
                         break;
                     }
                 case PlayControlsForwardTag:
                     self^.player.nextTrack();
                     break;
                 }
+            }),
+            (#"performDoubleClickPlaylist:", (self, sender) => {
+                NSLog(NSString(#"double clicked playlist"));
+            }),
+            (#"performDoubleClickTrack:", (self, sender) => {
+                var rowNumber = sender.clickedRow();
+                NSLog(NSString(#"double clicked track %d"), rowNumber);
+                if (rowNumber < 0)
+                    return;
+                playTrackNumber(self, rowNumber);
             }),
             (#"performVolumeUpdate:", (self, sender) => {
                 setStatusField(self, "volume ", sender.intValue());
@@ -106,6 +149,11 @@ record MainController = newClass(#VinylMainController, NSObject,
                     );
                 self^.playlistView.reloadData();
             }),
+            (#"performSelectTrack:", (self, sender) => {
+            }),
+            (#"performImportItunesLibrary:", (self, sender) => {
+                performImportItunesLibrary(self, findItunesLibrary());
+            }),
         ),
         (#"awakeFromNib", self => {
             self^.library <-- Library();
@@ -113,13 +161,27 @@ record MainController = newClass(#VinylMainController, NSObject,
                 = Retained(LibraryDataSource.alloc().initWithLibrary(&self^.library));
             self^.libraryView.setDataSource(self^.libraryDataSource);
 
+            self^.libraryView.setDoubleAction(selectorHandle(#"performDoubleClickPlaylist:"));
+            self^.playlistView.setDoubleAction(selectorHandle(#"performDoubleClickTrack:"));
+
             self^.playlistDataSource
                 = Retained(PlaylistDataSource.alloc().initWithLibrary(&self^.library));
             self^.playlistView.setDataSource(self^.playlistDataSource);
 
             self^.player = Retained(Player.alloc().init());
         }),
+        (#"library", self => &self^.library),
         ReaderInstanceMethod(#player, Player),
         DeallocInstanceMethod(),
+
+        (#"_itunesSheetDidEnd:returnCode:contextInfo:", (self, sheet, returnCode, context) => {
+            var importController = ItunesImportController(context);
+            refreshPlaylistDataSource(weak(self^.playlistDataSource));
+            refreshLibraryDataSource(weak(self^.libraryDataSource));
+            self^.libraryView.reloadData();
+            self^.playlistView.reloadData();
+            sheet.orderOut(self);
+            importController.release();
+        }),
     ),
 );
