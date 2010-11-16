@@ -37,11 +37,10 @@ performImportItunesLibrary(self: MainController, itunesLibrary: NSString) {
         // XXX error reporting
         NSLog(NSString(#"itunes library not found"));
     } else {
-        NSLog(NSString(#"itunes library found at %@"), NSString(itunesLibrary));
-
         var importController = ItunesImportController.alloc().init();
 
         if (nil?(importController))
+            // XXX
             NSLog(NSString(#"couldn't create controller"));
         else
             importController.importItunesLibrary_modalForWindow_modalDelegate_didEndSelector_contextInfo(
@@ -105,11 +104,9 @@ record MainController = newClass(#VinylMainController, NSObject,
                 }
             }),
             (#"performDoubleClickPlaylist:", (self, sender) => {
-                NSLog(NSString(#"double clicked playlist"));
             }),
             (#"performDoubleClickTrack:", (self, sender) => {
                 var rowNumber = sender.clickedRow();
-                NSLog(NSString(#"double clicked track %d"), rowNumber);
                 if (rowNumber < 0)
                     return;
                 playTrackNumber(self, rowNumber);
