@@ -1,0 +1,138 @@
+import cocoa.*;
+import cocoa.appkit.*;
+import Vinyl.library.*;
+import Vinyl.controllers.main.*;
+import Vinyl.importers.itunes.*;
+
+overload selector(static #"importItunesLibrary:modalForWindow:modalDelegate:didEndSelector:contextInfo:")
+    = Void, NSString, NSWindow, Id, SelectorHandle, RawPointer;
+overload selector(static #"cancel:") = Void, Id;
+overload selector(static #"setProgressIndicatorValue:") = Void, NSNumber;
+overload selector(static #"_importThread:") = Void, Id;
+
+findItunesLibrary() {
+    var fm = NSFileManager.defaultManager();
+    var itunesLibrary = NSString(#"~/Music/iTunes/iTunes Music Library.xml")
+        .stringByExpandingTildeInPath();
+
+    if (fm.isReadableFileAtPath(itunesLibrary))
+        return itunesLibrary;
+    else
+        return nil(NSString);
+}
+
+// XXX must send messages to main thread!
+private updateProgressCallback(self, stage, distance, goal) {
+    alias READ_STAGE_LENGTH = 80.0;
+    alias MERGE_STAGE_LENGTH = 20.0;
+
+    if (stage != self^.stage) {
+        var message = StringConstant();
+        switch (stage) {
+        case ReadItunesLibrary:
+            message = "Reading iTunes library...";
+            break;
+        case MergeVinylLibrary:
+            message = "Merging with Vinyl library...";
+            break;
+        }
+        self^.statusField.performSelectorOnMainThread_withObject_waitUntilDone(
+            selectorHandle(#"setStringValue:"),
+            NSString(message),
+            false
+        );
+        self^.stage = stage;
+    }
+            
+    var progress = 0.0;
+    switch (stage) {
+    case ReadItunesLibrary:
+        progress = READ_STAGE_LENGTH * (Double(distance)/Double(goal));
+        break;
+    case MergeVinylLibrary:
+        progress = READ_STAGE_LENGTH + MERGE_STAGE_LENGTH * (Double(distance)/Double(goal));
+        break;
+    }
+
+    self.performSelectorOnMainThread_withObject_waitUntilDone(
+        selectorHandle(#"setProgressIndicatorValue:"),
+        progress,
+        false,
+    );
+
+    return not self^.cancelled;
+}
+
+record ItunesImportController = newClass(#VinylItunesImportController, NSObject,
+    InstanceVars(
+        ...IBOutlets(
+            sheet: Retained[NSPanel],
+            statusField: NSTextField,
+            progressIndicator: NSProgressIndicator,
+        ),
+        stage: ItunesParseStage,
+        cancelled: Bool,
+    ),
+    ClassMethods(),
+    InstanceMethods(
+        (#"init", (self) => initObjectWith(self, #"init", self => {
+            self^.stage = MergeVinylLibrary;
+            self^.cancelled = false;
+
+            if (not NSBundle.loadNibNamed_owner(#"ItunesImportController", self)) {
+                self.release();
+                return nil(ItunesImportController);
+            } else
+                return self;
+        })),
+
+        ...IBActions(
+            (#"cancel:", (self, sender) => {
+                self^.cancelled = true;
+                // XXX cancel
+            }),
+        ),
+
+        (#"importItunesLibrary:modalForWindow:modalDelegate:didEndSelector:contextInfo:",
+            (self, filename, window, delegate, selector, context) => {
+                NSApp.beginSheet_modalForWindow_modalDelegate_didEndSelector_contextInfo(
+                    self^.sheet, window, delegate, selector, context
+                );
+
+                NSThread.detachNewThreadSelector_toTarget_withObject(
+                    selectorHandle(#"_importThread:"), self, filename
+                );
+            }
+        ),
+
+        (#"_importThread:", (self, filename) => {
+            withAutoreleasePool(() => {
+                var library = Library();
+
+                try {
+                    importItunes(library, String(filename),
+                        (stage, distance, goal) =>
+                            updateProgressCallback(self, stage, distance, goal)
+                    );
+                } catch (ex) {
+                    // XXX error reporting
+                    NSLog(NSString(#"error importing: %@"), NSString(printString(ex)));
+                }
+
+                NSLog(NSString(#"done"));
+
+                NSApp.performSelectorOnMainThread_withObject_waitUntilDone(
+                    selectorHandle(#"endSheet:"),
+                    self^.sheet,
+                    false
+                );
+            });
+        }),
+
+        (#"setProgressIndicatorValue:", (self, value) => {
+            self^.progressIndicator.setDoubleValue(value.doubleValue());
+        }),
+
+        DeallocInstanceMethod(),
+    ),
+);
