@@ -2,6 +2,7 @@ import cocoa.*;
 import cocoa.qtkit.*;
 import sqlite.*;
 import Vinyl.library.*;
+import Vinyl.library.datasources.*;
 
 record StoppedState ();
 

@@ -1,4 +1,5 @@
 import Vinyl.library.*;
+import Vinyl.library.datasources.*;
 import expat.*;
 import sqlite.*;
 import io.files.raw.*;

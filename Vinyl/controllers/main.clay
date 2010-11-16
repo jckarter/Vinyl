@@ -2,6 +2,7 @@ import cocoa.*;
 import cocoa.appkit.*;
 import Vinyl.appdelegate.*;
 import Vinyl.library.*;
+import Vinyl.library.datasources.*;
 import Vinyl.qtplayer.*;
 import Vinyl.controllers.itunesimport.*;
 
