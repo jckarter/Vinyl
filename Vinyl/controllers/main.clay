@@ -24,6 +24,7 @@ overload selector(static #"performImportItunesLibrary:") = Void, Id;
 overload selector(static #"performDoubleClickPlaylist:") = Void, NSTableView;
 overload selector(static #"performDoubleClickTrack:") = Void, NSTableView;
 overload selector(static #"performImportItunesLibrary:") = Void, Id;
+overload selector(static #"performOpenLibraryWindow:") = Void, Id;
 overload selector(static #"player") = Player;
 overload selector(static #"library") = Pointer[Library];
 overload selector(static #"_itunesSheetDidEnd:returnCode:contextInfo:")
@@ -151,6 +152,9 @@ record MainController = newClass(#VinylMainController, NSObject,
             }),
             (#"performImportItunesLibrary:", (self, sender) => {
                 performImportItunesLibrary(self, findItunesLibrary());
+            }),
+            (#"performOpenLibraryWindow:", (self, sender) => {
+                self^.mainWindow.makeKeyAndOrderFront(self);
             }),
         ),
         (#"awakeFromNib", self => {

@@ -12,8 +12,8 @@
 		</object>
 		<object class="NSMutableArray" key="IBDocument.EditedObjectIDs">
 			<bool key="EncodedWithXMLCoder">YES</bool>
-			<integer value="693"/>
-			<integer value="574"/>
+			<integer value="24"/>
+			<integer value="371"/>
 		</object>
 		<object class="NSArray" key="IBDocument.PluginDependencies">
 			<bool key="EncodedWithXMLCoder">YES</bool>
@@ -197,7 +197,7 @@
 									<reference key="NSOnImage" ref="35465992"/>
 									<reference key="NSMixedImage" ref="502551668"/>
 								</object>
-								<object class="NSMenuItem" id="152856662">
+								<object class="NSMenuItem" id="494673490">
 									<reference key="NSMenu" ref="720053764"/>
 									<string key="NSTitle">New Playlist from Selection</string>
 									<string key="NSKeyEquiv">N</string>
@@ -226,7 +226,7 @@
 									<reference key="NSOnImage" ref="35465992"/>
 									<reference key="NSMixedImage" ref="502551668"/>
 								</object>
-								<object class="NSMenuItem" id="229943043">
+								<object class="NSMenuItem" id="1016043355">
 									<reference key="NSMenu" ref="720053764"/>
 									<string key="NSTitle">Library</string>
 									<string key="NSKeyEquiv"/>
@@ -234,12 +234,12 @@
 									<reference key="NSOnImage" ref="35465992"/>
 									<reference key="NSMixedImage" ref="502551668"/>
 									<string key="NSAction">submenuAction:</string>
-									<object class="NSMenu" key="NSSubmenu" id="107654437">
+									<object class="NSMenu" key="NSSubmenu" id="908617031">
 										<string key="NSTitle">Library</string>
 										<object class="NSMutableArray" key="NSMenuItems">
 											<bool key="EncodedWithXMLCoder">YES</bool>
-											<object class="NSMenuItem" id="363062090">
-												<reference key="NSMenu" ref="107654437"/>
+											<object class="NSMenuItem" id="258309924">
+												<reference key="NSMenu" ref="908617031"/>
 												<string key="NSTitle">Import iTunes Library</string>
 												<string key="NSKeyEquiv"/>
 												<int key="NSMnemonicLoc">2147483647</int>
@@ -428,6 +428,15 @@
 									<reference key="NSOnImage" ref="35465992"/>
 									<reference key="NSMixedImage" ref="502551668"/>
 								</object>
+								<object class="NSMenuItem" id="544728626">
+									<reference key="NSMenu" ref="835318025"/>
+									<string key="NSTitle">Close</string>
+									<string key="NSKeyEquiv">w</string>
+									<int key="NSKeyEquivModMask">1048576</int>
+									<int key="NSMnemonicLoc">2147483647</int>
+									<reference key="NSOnImage" ref="35465992"/>
+									<reference key="NSMixedImage" ref="502551668"/>
+								</object>
 								<object class="NSMenuItem" id="575023229">
 									<reference key="NSMenu" ref="835318025"/>
 									<string key="NSTitle">Zoom</string>
@@ -437,10 +446,20 @@
 									<reference key="NSOnImage" ref="35465992"/>
 									<reference key="NSMixedImage" ref="502551668"/>
 								</object>
-								<object class="NSMenuItem" id="917431855">
+								<object class="NSMenuItem" id="609103207">
 									<reference key="NSMenu" ref="835318025"/>
-									<string key="NSTitle">Close</string>
-									<string key="NSKeyEquiv">w</string>
+									<bool key="NSIsDisabled">YES</bool>
+									<bool key="NSIsSeparator">YES</bool>
+									<string key="NSTitle"/>
+									<string key="NSKeyEquiv"/>
+									<int key="NSMnemonicLoc">2147483647</int>
+									<reference key="NSOnImage" ref="35465992"/>
+									<reference key="NSMixedImage" ref="502551668"/>
+								</object>
+								<object class="NSMenuItem" id="403424953">
+									<reference key="NSMenu" ref="835318025"/>
+									<string key="NSTitle">Library</string>
+									<string key="NSKeyEquiv">1</string>
 									<int key="NSKeyEquivModMask">1048576</int>
 									<int key="NSMnemonicLoc">2147483647</int>
 									<reference key="NSOnImage" ref="35465992"/>
@@ -502,7 +521,7 @@
 				<int key="NSWindowStyleMask">271</int>
 				<int key="NSWindowBacking">2</int>
 				<string key="NSWindowRect">{{335, 362}, {658, 388}}</string>
-				<int key="NSWTFlags">1954021376</int>
+				<int key="NSWTFlags">1685585920</int>
 				<string key="NSWindowTitle">Vinyl</string>
 				<string key="NSWindowClass">NSWindow</string>
 				<object class="NSToolbar" key="NSViewClass" id="7108754">
@@ -1840,14 +1859,6 @@
 				</object>
 				<object class="IBConnectionRecord">
 					<object class="IBOutletConnection" key="connection">
-						<string key="label">initialFirstResponder</string>
-						<reference key="source" ref="972006081"/>
-						<reference key="destination" ref="741056778"/>
-					</object>
-					<int key="connectionID">600</int>
-				</object>
-				<object class="IBConnectionRecord">
-					<object class="IBOutletConnection" key="connection">
 						<string key="label">mainWindow</string>
 						<reference key="source" ref="976324537"/>
 						<reference key="destination" ref="972006081"/>
@@ -1978,7 +1989,7 @@
 					<object class="IBActionConnection" key="connection">
 						<string key="label">performClose:</string>
 						<reference key="source" ref="1014"/>
-						<reference key="destination" ref="917431855"/>
+						<reference key="destination" ref="544728626"/>
 					</object>
 					<int key="connectionID">681</int>
 				</object>
@@ -1986,7 +1997,7 @@
 					<object class="IBActionConnection" key="connection">
 						<string key="label">newDocument:</string>
 						<reference key="source" ref="1014"/>
-						<reference key="destination" ref="152856662"/>
+						<reference key="destination" ref="494673490"/>
 					</object>
 					<int key="connectionID">683</int>
 				</object>
@@ -1994,7 +2005,7 @@
 					<object class="IBActionConnection" key="connection">
 						<string key="label">performImportItunesLibrary:</string>
 						<reference key="source" ref="45671344"/>
-						<reference key="destination" ref="363062090"/>
+						<reference key="destination" ref="258309924"/>
 					</object>
 					<int key="connectionID">696</int>
 				</object>
@@ -2005,6 +2016,22 @@
 						<reference key="destination" ref="612707953"/>
 					</object>
 					<int key="connectionID">697</int>
+				</object>
+				<object class="IBConnectionRecord">
+					<object class="IBOutletConnection" key="connection">
+						<string key="label">initialFirstResponder</string>
+						<reference key="source" ref="972006081"/>
+						<reference key="destination" ref="612707953"/>
+					</object>
+					<int key="connectionID">701</int>
+				</object>
+				<object class="IBConnectionRecord">
+					<object class="IBActionConnection" key="connection">
+						<string key="label">performOpenLibraryWindow:</string>
+						<reference key="source" ref="45671344"/>
+						<reference key="destination" ref="403424953"/>
+					</object>
+					<int key="connectionID">704</int>
 				</object>
 			</object>
 			<object class="IBMutableOrderedSet" key="objectRecords">
@@ -2096,9 +2123,9 @@
 							<reference ref="705341025"/>
 							<reference ref="294629803"/>
 							<reference ref="1010469920"/>
-							<reference ref="152856662"/>
+							<reference ref="494673490"/>
 							<reference ref="425164168"/>
-							<reference ref="229943043"/>
+							<reference ref="1016043355"/>
 						</object>
 						<reference key="parent" ref="379814623"/>
 					</object>
@@ -2275,7 +2302,9 @@
 							<reference ref="625202149"/>
 							<reference ref="575023229"/>
 							<reference ref="1011231497"/>
-							<reference ref="917431855"/>
+							<reference ref="544728626"/>
+							<reference ref="403424953"/>
+							<reference ref="609103207"/>
 						</object>
 						<reference key="parent" ref="713487014"/>
 					</object>
@@ -2874,12 +2903,12 @@
 					</object>
 					<object class="IBObjectRecord">
 						<int key="objectID">680</int>
-						<reference key="object" ref="917431855"/>
+						<reference key="object" ref="544728626"/>
 						<reference key="parent" ref="835318025"/>
 					</object>
 					<object class="IBObjectRecord">
 						<int key="objectID">682</int>
-						<reference key="object" ref="152856662"/>
+						<reference key="object" ref="494673490"/>
 						<reference key="parent" ref="720053764"/>
 					</object>
 					<object class="IBObjectRecord">
@@ -2889,26 +2918,36 @@
 					</object>
 					<object class="IBObjectRecord">
 						<int key="objectID">692</int>
-						<reference key="object" ref="229943043"/>
+						<reference key="object" ref="1016043355"/>
 						<object class="NSMutableArray" key="children">
 							<bool key="EncodedWithXMLCoder">YES</bool>
-							<reference ref="107654437"/>
+							<reference ref="908617031"/>
 						</object>
 						<reference key="parent" ref="720053764"/>
 					</object>
 					<object class="IBObjectRecord">
 						<int key="objectID">693</int>
-						<reference key="object" ref="107654437"/>
+						<reference key="object" ref="908617031"/>
 						<object class="NSMutableArray" key="children">
 							<bool key="EncodedWithXMLCoder">YES</bool>
-							<reference ref="363062090"/>
+							<reference ref="258309924"/>
 						</object>
-						<reference key="parent" ref="229943043"/>
+						<reference key="parent" ref="1016043355"/>
 					</object>
 					<object class="IBObjectRecord">
 						<int key="objectID">695</int>
-						<reference key="object" ref="363062090"/>
-						<reference key="parent" ref="107654437"/>
+						<reference key="object" ref="258309924"/>
+						<reference key="parent" ref="908617031"/>
+					</object>
+					<object class="IBObjectRecord">
+						<int key="objectID">702</int>
+						<reference key="object" ref="403424953"/>
+						<reference key="parent" ref="835318025"/>
+					</object>
+					<object class="IBObjectRecord">
+						<int key="objectID">703</int>
+						<reference key="object" ref="609103207"/>
+						<reference key="parent" ref="835318025"/>
 					</object>
 				</object>
 			</object>
@@ -3056,6 +3095,8 @@
 					<string>693.IBPluginDependency</string>
 					<string>695.IBPluginDependency</string>
 					<string>695.ImportedFromIB2</string>
+					<string>702.IBPluginDependency</string>
+					<string>703.IBPluginDependency</string>
 					<string>72.IBPluginDependency</string>
 					<string>72.ImportedFromIB2</string>
 					<string>74.IBPluginDependency</string>
@@ -3130,7 +3171,7 @@
 					<integer value="1"/>
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
 					<integer value="1"/>
-					<string>{{378, 626}, {194, 93}}</string>
+					<string>{{378, 596}, {194, 123}}</string>
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
 					<integer value="1"/>
 					<string>{{525, 802}, {197, 73}}</string>
@@ -3228,6 +3269,8 @@
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
 					<integer value="1"/>
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
+					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
+					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
 					<integer value="1"/>
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
 					<integer value="1"/>
@@ -3263,7 +3306,7 @@
 				</object>
 			</object>
 			<nil key="sourceID"/>
-			<int key="maxID">697</int>
+			<int key="maxID">704</int>
 		</object>
 		<object class="IBClassDescriber" key="IBDocument.Classes">
 			<object class="NSMutableArray" key="referencedPartialClassDescriptions">
@@ -3305,6 +3348,7 @@
 							<string>performDoubleClickPlaylist:</string>
 							<string>performDoubleClickTrack:</string>
 							<string>performImportItunesLibrary:</string>
+							<string>performOpenLibraryWindow:</string>
 							<string>performPlayControl:</string>
 							<string>performPlaylistControl:</string>
 							<string>performSearch:</string>
@@ -3316,6 +3360,7 @@
 							<bool key="EncodedWithXMLCoder">YES</bool>
 							<string>NSTableView</string>
 							<string>NSTableView</string>
+							<string>id</string>
 							<string>id</string>
 							<string>NSSegmentedControl</string>
 							<string>NSSegmentedControl</string>
@@ -3332,6 +3377,7 @@
 							<string>performDoubleClickPlaylist:</string>
 							<string>performDoubleClickTrack:</string>
 							<string>performImportItunesLibrary:</string>
+							<string>performOpenLibraryWindow:</string>
 							<string>performPlayControl:</string>
 							<string>performPlaylistControl:</string>
 							<string>performSearch:</string>
@@ -3351,6 +3397,10 @@
 							</object>
 							<object class="IBActionInfo">
 								<string key="name">performImportItunesLibrary:</string>
+								<string key="candidateClassName">id</string>
+							</object>
+							<object class="IBActionInfo">
+								<string key="name">performOpenLibraryWindow:</string>
 								<string key="candidateClassName">id</string>
 							</object>
 							<object class="IBActionInfo">
@@ -4017,7 +4067,7 @@
 				</object>
 				<object class="IBPartialClassDescription">
 					<string key="className">NSObject</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier" id="132219638">
+					<object class="IBClassDescriptionSource" key="sourceIdentifier" id="1002607103">
 						<string key="majorKey">IBFrameworkSource</string>
 						<string key="minorKey">QTKit.framework/Headers/QTMovieView.h</string>
 					</object>
@@ -4371,7 +4421,7 @@
 							</object>
 						</object>
 					</object>
-					<reference key="sourceIdentifier" ref="132219638"/>
+					<reference key="sourceIdentifier" ref="1002607103"/>
 				</object>
 			</object>
 		</object>
