@@ -378,9 +378,21 @@ private alias basePlaylistFromClause = "
         left join track_options on tracks.track_id = track_options.track_id
     ";
 
-private alias searchFromClauseAddition = "
+private alias searchPlaylistFromClause = "
+    from
+        tracks
         inner join tracks_fts
             on tracks_fts.docid = tracks.track_id
+        left join albums on tracks.album_id = albums.album_id
+        left join album_sides
+            on tracks.album_id = album_sides.album_id
+            and tracks.side_number = album_sides.side_number
+        left join artists as album_artists on albums.album_artist_id = album_artists.artist_id
+        left join artists as track_artists on tracks.track_artist_id = track_artists.artist_id
+        left join genres on tracks.genre_id = genres.genre_id
+        left join composers on tracks.composer_id = composers.composer_id
+        left join groupings on tracks.grouping_id = groupings.grouping_id
+        left join track_options on tracks.track_id = track_options.track_id
     ";
 
 private  viewFromClauseAddition(view: SortedView) = "";
@@ -422,9 +434,11 @@ overload bindViewParameters(stmt: SqliteStatement, view: PlaylistFolderView) {
 
 libraryViewStatement(db: SqliteDB, search: String, view: LibraryView) {
     var searching? = not empty?(search);
-    var stmtString = String(basePlaylistSelectClause + basePlaylistFromClause);
+    var stmtString = String(basePlaylistSelectClause);
     if (searching?)
-        stmtString += searchFromClauseAddition;
+        stmtString += searchPlaylistFromClause;
+    else
+        stmtString += basePlaylistFromClause;
     stmtString += viewFromClauseAddition(*view);
     stmtString += " where ";
     if (searching?)
@@ -433,7 +447,7 @@ libraryViewStatement(db: SqliteDB, search: String, view: LibraryView) {
     stmtString += " order by ";
     stmtString += viewOrderByClause(*view);
 
-    var stmt = SqliteStatement(db, observe(stmtString));
+    var stmt = SqliteStatement(db, stmtString);
     if (searching?)
         bindStatement(stmt, ":search", search);
     bindViewParameters(stmt, *view);
