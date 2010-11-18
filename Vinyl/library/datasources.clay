@@ -332,7 +332,7 @@ record PlaylistDataSource = newClass(NSObject,
     ),
 );
 
-alias basePlaylistQuery = "
+private alias basePlaylistSelectClause = "
     select
         tracks.track_id as track_id,
         tracks.filename as filename,
@@ -361,6 +361,9 @@ alias basePlaylistQuery = "
         track_options.added_date as added_date,
         track_options.modified_date as modified_date,
         track_options.played_date as played_date
+    ";
+
+private alias basePlaylistFromClause = "
     from
         tracks
         left join albums on tracks.album_id = albums.album_id
@@ -373,60 +376,79 @@ alias basePlaylistQuery = "
         left join composers on tracks.composer_id = composers.composer_id
         left join groupings on tracks.grouping_id = groupings.grouping_id
         left join track_options on tracks.track_id = track_options.track_id
-";
-
-alias searchJoinQuery = "
-        inner join (
-            select docid from tracks_fts where tracks_fts match :search
-        ) fts on fts.docid = tracks.track_id
     ";
 
-libraryViewStatement(db: SqliteDB, playlistQuery: String, view: SortedView) {
-    var stmt = SqliteStatement(db,
-        if (empty?(view.sort))
-            String(playlistQuery)
-        else
-            printString(playlistQuery, " order by ", view.sort)
-    );
-    return move(stmt);
-}
-overload libraryViewStatement(db: SqliteDB, playlistQuery: String, view: PlaylistView) {
-    var stmt = SqliteStatement(db, playlistQuery + "
-            inner join playlist_tracks on tracks.track_id = playlist_tracks.track_id
-        where
-            playlist_tracks.playlist_id = :playlist_id
-        order by
-            playlist_tracks.position
-    ");
+private alias searchFromClauseAddition = "
+        inner join tracks_fts
+            on tracks_fts.docid = tracks.track_id
+    ";
+
+private  viewFromClauseAddition(view: SortedView) = "";
+overload viewFromClauseAddition(view: PlaylistView) = "
+        inner join playlist_tracks
+            on tracks.track_id = playlist_tracks.track_id
+    ";
+overload viewFromClauseAddition(view: PlaylistFolderView) = "
+        inner join playlist_tracks
+            on tracks.track_id = playlist_tracks.track_id
+        inner join playlists
+            on playlist_tracks.playlist_id = playlists.playlist_id
+    ";
+
+private alias sortWhereClause = "
+        tracks_fts.tracks_fts match :search
+    ";
+
+private  viewWhereClause(view: SortedView) = "1";
+overload viewWhereClause(view: PlaylistView) = "
+        playlist_tracks.playlist_id = :playlist_id
+    ";
+overload viewWhereClause(view: PlaylistFolderView) = "
+        playlists.playlist_folder_id = :playlist_folder_id
+    ";
+
+private  viewOrderByClause(view: SortedView) = view.sort;
+overload viewOrderByClause(view: PlaylistView) = String("playlist_tracks.position");
+overload viewOrderByClause(view: PlaylistFolderView)
+    = String("playlists.position, playlist_tracks.position");
+
+private  bindViewParameters(stmt: SqliteStatement, view: SortedView) { }
+overload bindViewParameters(stmt: SqliteStatement, view: PlaylistView) {
     bindStatement(stmt, ":playlist_id", view.id);
-    return move(stmt);
 }
-overload libraryViewStatement(db: SqliteDB, playlistQuery: String, view: PlaylistFolderView) {
-    var stmt = SqliteStatement(db, playlistQuery + "
-            inner join playlist_tracks on tracks.track_id = playlist_tracks.track_id
-            inner join playlists on playlist_tracks.playlist_id = playlists.playlist_id
-        where
-            playlists.playlist_folder_id = :playlist_folder_id
-        order by
-            playlists.position, playlist_tracks.position
-    ");
+overload bindViewParameters(stmt: SqliteStatement, view: PlaylistFolderView) {
     bindStatement(stmt, ":playlist_folder_id", view.id);
+}
+
+libraryViewStatement(db: SqliteDB, search: String, view: LibraryView) {
+    var searching? = not empty?(search);
+    var stmtString = String(basePlaylistSelectClause + basePlaylistFromClause);
+    if (searching?)
+        stmtString += searchFromClauseAddition;
+    stmtString += viewFromClauseAddition(*view);
+    stmtString += " where ";
+    if (searching?)
+        stmtString += sortWhereClause + " and ";
+    stmtString += viewWhereClause(*view);
+    stmtString += " order by ";
+    stmtString += viewOrderByClause(*view);
+
+    var stmt = SqliteStatement(db, observe(stmtString));
+    if (searching?)
+        bindStatement(stmt, ":search", search);
+    bindViewParameters(stmt, *view);
     return move(stmt);
 }
 
 refreshPlaylistDataSource(self: PlaylistDataSource) {
     clear(self^.tracks);
 
-    var playlistQuery = String();
+    var search = if (nil?(self^.searchString))
+            String()
+        else
+            String(self^.searchString) + "*";
 
-    if (nil?(self^.searchString))
-        playlistQuery = String(basePlaylistQuery);
-    else
-        playlistQuery = basePlaylistQuery + searchJoinQuery;
-
-    var stmt = libraryViewStatement(self^.library^.db, playlistQuery, *self^.libraryView);
-    if (not nil?(self^.searchString))
-        bindStatement(stmt, ":search", String(self^.searchString) + "*");
+    var stmt = libraryViewStatement(self^.library^.db, search, self^.libraryView);
 
     for (row in stmt)
         push(self^.tracks, rowRecord(row, PlaylistTrack));
