@@ -86,4 +86,17 @@ create table if not exists track_options (
     played_date integer
 );
 
+-- uses column names without "_name" so "album:foo" queries work
+create virtual table tracks_fts using fts3(
+    filename, -- filename
+    name, -- track_name
+    album, -- album_name
+    artist, -- track_artist_name
+    album_artist, -- album_artist_name
+    genre, -- genre_name
+    composer, -- composer_name
+    grouping, -- grouping_name
+    comments -- comments
+);
+
 commit;

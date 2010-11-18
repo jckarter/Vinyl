@@ -27,7 +27,7 @@ overload PlaylistState(mode: PlaylistMode, track: I, library: Pointer[Library], 
         Vector[PlaylistTrack]()
     );
 
-    for (row in filteredPlaylistStatement(library^.db, *view))
+    for (row in libraryViewStatement(library^.db, String(basePlaylistQuery), *view))
         push(returned.tracks, rowRecord(row, PlaylistTrack));
 
     return move(returned);

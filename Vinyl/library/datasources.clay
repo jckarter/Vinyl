@@ -288,6 +288,8 @@ fieldByName(forward r: R, fn, str) {
 
 overload selector(static #"setLibraryView:") = Void, LibraryView;
 overload selector(static #"libraryView") = Pointer[LibraryView];
+overload selector(static #"setSearchString:") = Void, NSString;
+overload selector(static #"searchString") = NSString;
 
 maybeObject(x) = Id(x);
 overload maybeObject(x: Nothing) = nil();
@@ -298,6 +300,7 @@ record PlaylistDataSource = newClass(NSObject,
         library: Pointer[Library],
         tracks: Vector[PlaylistTrack],
         libraryView: LibraryView,
+        searchString: Retained[NSString],
     ),
     ClassMethods(),
     InstanceMethods(
@@ -305,6 +308,7 @@ record PlaylistDataSource = newClass(NSObject,
             self^.library = library;
             self^.tracks <-- Vector[PlaylistTrack]();
             self^.libraryView <-- LibraryView();
+            self^.searchString <-- Retained(nil(NSString));
             refreshPlaylistDataSource(self);
             return self;
         })),
@@ -318,14 +322,20 @@ record PlaylistDataSource = newClass(NSObject,
             self^.libraryView = view;
             refreshPlaylistDataSource(self);
         }),
+        (#"searchString", self => self^.searchString),
+        (#"setSearchString:", (self, s) => {
+            self^.searchString
+                = if (s.length() == 0) Retained(nil(NSString)) else Retained(s.copy());
+            refreshPlaylistDataSource(self);
+        }),
         (#"tracks", self => &self^.tracks, Pointer[Vector[PlaylistTrack]]),
     ),
 );
 
-alias playlistQuery = "
+alias basePlaylistQuery = "
     select
-        tracks.track_id,
-        tracks.filename,
+        tracks.track_id as track_id,
+        tracks.filename as filename,
         tracks.display_name as name,
         tracks.sort_name as sort_name,
         albums.display_name as album_name,
@@ -365,35 +375,59 @@ alias playlistQuery = "
         left join track_options on tracks.track_id = track_options.track_id
 ";
 
-filteredPlaylistStatement(db: SqliteDB, view: SortedView)
-    = SqliteStatement(db,
+alias searchJoinQuery = "
+        inner join (
+            select docid from tracks_fts where tracks_fts match :search
+        ) fts on fts.docid = tracks.track_id
+    ";
+
+libraryViewStatement(db: SqliteDB, playlistQuery: String, view: SortedView) {
+    var stmt = SqliteStatement(db,
         if (empty?(view.sort))
             String(playlistQuery)
         else
             printString(playlistQuery, " order by ", view.sort)
     );
-overload filteredPlaylistStatement(db: SqliteDB, view: PlaylistView)
-    = SqliteStatement(db, playlistQuery + "
+    return move(stmt);
+}
+overload libraryViewStatement(db: SqliteDB, playlistQuery: String, view: PlaylistView) {
+    var stmt = SqliteStatement(db, playlistQuery + "
             inner join playlist_tracks on tracks.track_id = playlist_tracks.track_id
         where
-            playlist_tracks.playlist_id = ?
+            playlist_tracks.playlist_id = :playlist_id
         order by
             playlist_tracks.position
-    ", view.id);
-overload filteredPlaylistStatement(db: SqliteDB, view: PlaylistFolderView)
-    = SqliteStatement(db, playlistQuery + "
+    ");
+    bindStatement(stmt, ":playlist_id", view.id);
+    return move(stmt);
+}
+overload libraryViewStatement(db: SqliteDB, playlistQuery: String, view: PlaylistFolderView) {
+    var stmt = SqliteStatement(db, playlistQuery + "
             inner join playlist_tracks on tracks.track_id = playlist_tracks.track_id
             inner join playlists on playlist_tracks.playlist_id = playlists.playlist_id
         where
-            playlists.playlist_folder_id = ?
+            playlists.playlist_folder_id = :playlist_folder_id
         order by
             playlists.position, playlist_tracks.position
-    ", view.id);
+    ");
+    bindStatement(stmt, ":playlist_folder_id", view.id);
+    return move(stmt);
+}
 
 refreshPlaylistDataSource(self: PlaylistDataSource) {
     clear(self^.tracks);
 
-    for (row in filteredPlaylistStatement(self^.library^.db, *self^.libraryView))
+    var playlistQuery = String();
+
+    if (nil?(self^.searchString))
+        playlistQuery = String(basePlaylistQuery);
+    else
+        playlistQuery = basePlaylistQuery + searchJoinQuery;
+
+    var stmt = libraryViewStatement(self^.library^.db, playlistQuery, *self^.libraryView);
+    if (not nil?(self^.searchString))
+        bindStatement(stmt, ":search", String(self^.searchString) + "*");
+
+    for (row in stmt)
         push(self^.tracks, rowRecord(row, PlaylistTrack));
 }
-

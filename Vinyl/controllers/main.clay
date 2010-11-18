@@ -119,7 +119,8 @@ record MainController = newClass(#VinylMainController, NSObject,
                 self^.player.setVolume(Float(volume));
             }),
             (#"performSearch:", (self, sender) => {
-                setStatusField(self, "search ", sender.stringValue());
+                self^.playlistDataSource.setSearchString(sender.stringValue());
+                self^.playlistView.reloadData();
             }),
             (#"performPlaylistControl:", (self, sender) => {
                 switch(sender.selectedSegment()) {
@@ -161,6 +162,8 @@ record MainController = newClass(#VinylMainController, NSObject,
         ),
         (#"awakeFromNib", self => {
             self^.library <-- Library();
+            updateLibraryFTS(self^.library);
+
             self^.libraryDataSource
                 = Retained(LibraryDataSource.alloc().initWithLibrary(&self^.library));
             self^.libraryView.setDataSource(self^.libraryDataSource);
@@ -183,6 +186,7 @@ record MainController = newClass(#VinylMainController, NSObject,
             self^.volumeControl.setDoubleValue(volume);
             self^.player.setVolume(Float(volume));
         }),
+
         (#"library", self => &self^.library),
         ReaderInstanceMethod(#player, Player),
         DeallocInstanceMethod(),
