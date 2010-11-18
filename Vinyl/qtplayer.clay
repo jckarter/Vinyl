@@ -48,6 +48,7 @@ overload selector(static #"nextTrack") = Void;
 record Player = newClass(NSObject,
     InstanceVars(
         state: PlayerState,
+        volume: Float,
     ),
     ClassMethods(
     ),
@@ -88,7 +89,7 @@ record Player = newClass(NSObject,
                 StoppedState,  stopped => { },
                 PlaylistState, playlistState => {
                     if (nil?(playlistState.movie))
-                        playlistState.movie = movieForFileName(playlistState.tracks[playlistState.track].filename);
+                        playlistState.movie = movieForFileName(self, playlistState.tracks[playlistState.track].filename);
                     playlistState.movie.autoplay();
                     playlistState.mode = Playing;
                 }
@@ -134,13 +135,26 @@ record Player = newClass(NSObject,
                 }
             );
         }),
+
+        ReaderInstanceMethod(#volume, Float),
+        
+        (#"setVolume:", (self, volume) => {
+            self^.volume = volume;
+            match(self^.state,
+                StoppedState,  stopped => { },
+                PlaylistState, playlistState => {
+                    if (not nil?(playlistState.movie))
+                        playlistState.movie.setVolume(Float(volume));
+                }
+            );
+        }),
     ),
 );
 
 record QTMovieError (error: NSError);
 instance Exception = QTMovieError;
 
-movieForFileName(name) {
+movieForFileName(self, name) {
     var error = nil(NSError);
     
     var movie = QTMovie.movieWithAttributes_error(makeNSDictionary(
@@ -150,6 +164,8 @@ movieForFileName(name) {
 
     if (nil?(movie))
         throw QTMovieError(error);
+
+    movie.setVolume(self^.volume);
 
     return movie;
 }

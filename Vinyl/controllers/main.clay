@@ -114,7 +114,9 @@ record MainController = newClass(#VinylMainController, NSObject,
                 playTrackNumber(self, rowNumber);
             }),
             (#"performVolumeUpdate:", (self, sender) => {
-                setStatusField(self, "volume ", sender.intValue());
+                var volume = sender.doubleValue();
+                NSUserDefaults.standardUserDefaults().setDouble_forKey(volume, "Volume");
+                self^.player.setVolume(Float(volume));
             }),
             (#"performSearch:", (self, sender) => {
                 setStatusField(self, "search ", sender.stringValue());
@@ -171,6 +173,15 @@ record MainController = newClass(#VinylMainController, NSObject,
             self^.playlistView.setDataSource(self^.playlistDataSource);
 
             self^.player = Retained(Player.alloc().init());
+
+            var defaults = NSUserDefaults.standardUserDefaults();
+            defaults.registerDefaults(makeNSDictionary(
+                "Volume", 1.0,
+            ));
+
+            var volume = defaults.doubleForKey(#"Volume");
+            self^.volumeControl.setDoubleValue(volume);
+            self^.player.setVolume(Float(volume));
         }),
         (#"library", self => &self^.library),
         ReaderInstanceMethod(#player, Player),
