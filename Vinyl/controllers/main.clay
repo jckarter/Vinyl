@@ -5,6 +5,7 @@ import Vinyl.library.*;
 import Vinyl.library.datasources.*;
 import Vinyl.qtplayer.*;
 import Vinyl.controllers.itunesimport.*;
+import libc;
 
 alias PlayControlsBackTag = 0;
 alias PlayControlsPlayTag = 1;
@@ -18,6 +19,9 @@ overload selector(static #"performPlayControl:") = Void, NSSegmentedControl;
 overload selector(static #"performVolumeUpdate:") = Void, Id;
 overload selector(static #"performSearch:") = Void, Id;
 overload selector(static #"performPlaylistControl:") = Void, NSSegmentedControl;
+overload selector(static #"performAddPlaylist:") = Void, Id;
+overload selector(static #"performToggleShuffle:") = Void, Id;
+overload selector(static #"performToggleRepeat:") = Void, Id;
 overload selector(static #"performSelectPlaylist:") = Void, NSTableView;
 overload selector(static #"performSelectTrack:") = Void, NSTableView;
 overload selector(static #"performImportItunesLibrary:") = Void, Id;
@@ -63,6 +67,32 @@ playTrackNumber(self: MainController, trackNumber: NSInteger) {
     );
 }
 
+updateShuffleControl(self: MainController, shuffle: Bool) {
+    self^.playlistControls.setLabel_forSegment(
+        if (shuffle) "X" else "x",
+        NSInteger(PlaylistControlsRandomTag)
+    );
+}
+
+updateRepeatControl(self: MainController, repeatMode: RepeatMode) {
+    var label = StringConstant();
+    switch (repeatMode) {
+    case NoRepeat:
+        label = "r";
+        break;
+    case RepeatAll:
+        label = "R";
+        break;
+    case RepeatOne:
+        label = "1";
+        break;
+    }
+    self^.playlistControls.setLabel_forSegment(
+        label,
+        NSInteger(PlaylistControlsRepeatTag)
+    );
+}
+
 record MainController = newClass(#VinylMainController, NSObject,
     InstanceVars(
         ...IBOutlets(
@@ -88,9 +118,11 @@ record MainController = newClass(#VinylMainController, NSObject,
     ClassMethods(
     ),
     InstanceMethods(
+        DeallocInstanceMethod(),
+
         ...IBActions(
             (#"performPlayControl:", (self, sender) => {
-                switch(sender.selectedSegment()) {
+                switch (sender.selectedSegment()) {
                 case PlayControlsBackTag:
                     self^.player.previousTrack();
                     break;
@@ -123,17 +155,45 @@ record MainController = newClass(#VinylMainController, NSObject,
                 self^.playlistView.reloadData();
             }),
             (#"performPlaylistControl:", (self, sender) => {
-                switch(sender.selectedSegment()) {
+                switch (sender.selectedSegment()) {
                 case PlaylistControlsAddTag:
-                    setStatusField(self, "add");
+                    self.performAddPlaylist(sender);
                     break;
                 case PlaylistControlsRandomTag:
-                    setStatusField(self, "random");
+                    self.performToggleShuffle(sender);
                     break;
                 case PlaylistControlsRepeatTag:
-                    setStatusField(self, "repeat");
+                    self.performToggleRepeat(sender);
                     break;
                 }
+            }),
+            (#"performAddPlaylist:", (self, sender) => {
+            }),
+            (#"performToggleShuffle:", (self, sender) => {
+                var shuffle = not self^.player.shuffle();
+                updateShuffleControl(self, shuffle);
+                NSUserDefaults.standardUserDefaults().setBool_forKey(shuffle, #"Shuffle");
+                self^.player.setShuffle(shuffle);
+            }),
+            (#"performToggleRepeat:", (self, sender) => {
+                var repeat = self^.player.repeatMode();
+                switch (repeat) {
+                case NoRepeat:
+                    repeat = RepeatAll;
+                    break;
+                case RepeatAll:
+                    repeat = RepeatOne;
+                    break;
+                case RepeatOne:
+                    repeat = NoRepeat;
+                    break;
+                }
+                updateRepeatControl(self, repeat);
+                NSUserDefaults.standardUserDefaults().setInteger_forKey(
+                    NSInteger(repeat),
+                    #"Repeat"
+                );
+                self^.player.setRepeatMode(repeat);
             }),
             (#"performSelectPlaylist:", (self, sender) => {
                 var item = sender.itemAtRow(sender.selectedRow());
@@ -160,7 +220,10 @@ record MainController = newClass(#VinylMainController, NSObject,
                 self^.mainWindow.makeKeyAndOrderFront(self);
             }),
         ),
+
         (#"awakeFromNib", self => {
+            libc.srandomdev();
+
             self^.library <-- Library();
             updateLibraryFTS(self^.library);
 
@@ -179,17 +242,26 @@ record MainController = newClass(#VinylMainController, NSObject,
 
             var defaults = NSUserDefaults.standardUserDefaults();
             defaults.registerDefaults(makeNSDictionary(
-                "Volume", 1.0,
+                #"Volume", 1.0,
+                #"Shuffle", false,
+                #"Repeat", Int(NoRepeat),
             ));
 
             var volume = defaults.doubleForKey(#"Volume");
+            var shuffle = defaults.boolForKey(#"Shuffle");
+            var repeat = RepeatMode(defaults.integerForKey(#"Repeat"));
+
             self^.volumeControl.setDoubleValue(volume);
+            updateShuffleControl(self, shuffle);
+            updateRepeatControl(self, repeat);
+
             self^.player.setVolume(Float(volume));
+            self^.player.setShuffle(shuffle);
+            self^.player.setRepeatMode(repeat);
         }),
 
         (#"library", self => &self^.library),
         ReaderInstanceMethod(#player, Player),
-        DeallocInstanceMethod(),
 
         (#"_itunesSheetDidEnd:returnCode:contextInfo:", (self, sheet, returnCode, context) => {
             var importController = ItunesImportController(context);

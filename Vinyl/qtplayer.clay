@@ -1,5 +1,6 @@
 import cocoa.*;
 import cocoa.qtkit.*;
+import random.*;
 import sqlite.*;
 import Vinyl.library.*;
 import Vinyl.library.datasources.*;
@@ -44,17 +45,27 @@ overload selector(static #"pause") = Void;
 overload selector(static #"stop") = Void;
 overload selector(static #"previousTrack") = Void;
 overload selector(static #"nextTrack") = Void;
+overload selector(static #"shuffle") = Bool;
+overload selector(static #"setShuffle:") = Void, Bool;
+overload selector(static #"repeatMode") = RepeatMode;
+overload selector(static #"setRepeatMode:") = Void, RepeatMode;
+
+enum RepeatMode { NoRepeat, RepeatAll, RepeatOne }
 
 record Player = newClass(NSObject,
     InstanceVars(
         state: PlayerState,
         volume: Float,
+        shuffle: Bool,
+        repeatMode: RepeatMode,
     ),
-    ClassMethods(
-    ),
+    ClassMethods(),
     InstanceMethods(
         (#"init", self => initObjectWith(self, #"init", self => {
             self^.state <-- PlayerState(StoppedState());
+            self^.volume = 1.0f;
+            self^.shuffle = false;
+            self^.repeatMode = NoRepeat;
 
             NSNotificationCenter.defaultCenter().addObserver_selector_name_object(
                 self,
@@ -72,7 +83,12 @@ record Player = newClass(NSObject,
                 StoppedState,  stopped => { },
                 PlaylistState, playlistState => {
                     if (is?(playlistState.movie, notification.object())) {
-                        self.nextTrack();
+                        if (self^.repeatMode == RepeatOne) {
+                            playlistState.movie.stop();
+                            playlistState.movie = nil();
+                            self.resume();
+                        } else
+                            self.nextTrack();
                     }
                 }
             );
@@ -115,6 +131,8 @@ record Player = newClass(NSObject,
                     playlistState.movie = nil();
                     if (playlistState.track > 0)
                         playlistState.track -= 1;
+                    else if (self^.repeatMode == RepeatAll)
+                        playlistState.track = size(playlistState.tracks) - 1;
                     self.resume();
                 }
             );
@@ -129,9 +147,11 @@ record Player = newClass(NSObject,
                     if (playlistState.track < size(playlistState.tracks) - 1) {
                         playlistState.track += 1;
                         self.resume();
-                    } else {
+                    } else if (self^.repeatMode == RepeatAll) {
+                        playlistState.track = 0;
+                        self.resume();
+                    } else
                         self^.state = PlayerState(StoppedState());
-                    }
                 }
             );
         }),
@@ -148,6 +168,9 @@ record Player = newClass(NSObject,
                 }
             );
         }),
+
+        ...PropertyInstanceMethods(#shuffle, Bool),
+        ...PropertyInstanceMethods(#repeatMode, RepeatMode),
     ),
 );
 
