@@ -767,6 +767,8 @@ importItunes(library: Library, itunesLibraryFilename: String, progressCallback) 
         runStatement(library.db, "drop table itunes_imported_tracks");
         runStatement(library.db, "drop table itunes_imported_playlists");
         runStatement(library.db, "drop table itunes_imported_playlist_tracks");
+
+        updateLibraryFTS(library);
     });
 }
 
