@@ -75,10 +75,11 @@ overload PlaylistState(mode: PlaylistMode, track: I, library: Pointer[Library], 
     for (row in libraryViewStatement(library^.db, String(), view))
         push(returned.tracks, rowRecord(row, PlaylistTrack));
 
-    returned.trackOrder = if (shuffle?)
-        shuffledTrackOrder(size(returned.tracks), SizeT(track))
-    else
-        sequentialTrackOrder(size(returned.tracks));
+    if (shuffle?) {
+        returned.trackOrder = shuffledTrackOrder(size(returned.tracks), SizeT(track));
+        returned.trackNumber = 0;
+    } else
+        returned.trackOrder = sequentialTrackOrder(size(returned.tracks));
 
     return move(returned);
 }

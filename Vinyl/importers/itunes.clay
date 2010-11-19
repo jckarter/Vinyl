@@ -600,27 +600,6 @@ importFromItunesTable(db: SqliteDB, progressCallback) {
     ");
 
     if (not progressCallback(MergeVinylLibrary, 9, MERGE_STAGE_COUNT)) throw ItunesImportCancelled();
-
-    for (row in SqliteStatement(db, "select
-            max(playlists.playlist_id) as playlist_id,
-            max(tracks.track_id) as track_id,
-            ipt.position as position
-        from
-            itunes_imported_playlist_tracks ipt
-            inner join new_playlists
-                on ipt.itunes_playlist_id = new_playlists.itunes_playlist_id
-            inner join playlists
-                on new_playlists.name = playlists.name
-            inner join itunes_imported_tracks it
-                on ipt.itunes_track_id = it.itunes_track_id
-            inner join tracks
-                on it.filename = tracks.filename
-        group by
-            playlists.name,
-            tracks.filename,
-            ipt.position
-    "))
-        observe(...rowValues(row, Int, Int, Int));
     
     runStatement(db, "insert into playlist_tracks (playlist_id, track_id, position) select
             max(playlists.playlist_id) as playlist_id,
