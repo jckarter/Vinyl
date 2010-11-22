@@ -22,8 +22,6 @@ overload selector(static #"performPlaylistControl:") = Void, NSSegmentedControl;
 overload selector(static #"performAddPlaylist:") = Void, Id;
 overload selector(static #"performToggleShuffle:") = Void, Id;
 overload selector(static #"performToggleRepeat:") = Void, Id;
-overload selector(static #"performSelectPlaylist:") = Void, NSTableView;
-overload selector(static #"performSelectTrack:") = Void, NSTableView;
 overload selector(static #"performImportItunesLibrary:") = Void, Id;
 overload selector(static #"performDoubleClickPlaylist:") = Void, NSTableView;
 overload selector(static #"performDoubleClickTrack:") = Void, NSTableView;
@@ -35,6 +33,8 @@ overload selector(static #"_itunesSheetDidEnd:returnCode:contextInfo:")
     = Void, NSWindow, NSInteger, RawPointer;
 overload selector(static #"handlePlayerStateDidChangeNotification:")
     = Void, NSNotification;
+overload selector(static #"handleSelectPlaylist:") = Void, NSNotification;
+overload selector(static #"handleSelectTrack:") = Void, NSNotification;
 
 setStatusField(self, ...contents) {
     self^.statusField.setStringValue(printString(...contents));
@@ -278,25 +278,6 @@ record MainController = newClass(#VinylMainController, NSObject,
                 );
                 self^.player.setRepeatMode(repeat);
             }),
-            (#"performSelectPlaylist:", (self, sender) => {
-                var item = sender.itemAtRow(sender.selectedRow());
-                if (itemIsFolder?(item))
-                    self^.playlistDataSource.setLibraryView(
-                        LibraryView(PlaylistFolderView(Int(item["id"])))
-                    );
-                else if (itemIsPlaylist?(item))
-                    self^.playlistDataSource.setLibraryView(
-                        LibraryView(PlaylistView(Int(item["id"])))
-                    );
-                else
-                    self^.playlistDataSource.setLibraryView(
-                        LibraryView(SortedView())
-                    );
-                self^.playlistView.reloadData();
-                updatePlayControls(self);
-            }),
-            (#"performSelectTrack:", (self, sender) => {
-            }),
             (#"performImportItunesLibrary:", (self, sender) => {
                 performImportItunesLibrary(self, findItunesLibrary());
             }),
@@ -315,7 +296,9 @@ record MainController = newClass(#VinylMainController, NSObject,
                 = Retained(LibraryDataSource.alloc().initWithLibrary(&self^.library));
             self^.libraryView.setDataSource(self^.libraryDataSource);
 
+            self^.libraryView.setTarget(self);
             self^.libraryView.setDoubleAction(selectorHandle(#"performDoubleClickPlaylist:"));
+            self^.playlistView.setTarget(self);
             self^.playlistView.setDoubleAction(selectorHandle(#"performDoubleClickTrack:"));
 
             self^.playlistDataSource
@@ -343,11 +326,24 @@ record MainController = newClass(#VinylMainController, NSObject,
             self^.player.setShuffle(shuffle);
             self^.player.setRepeatMode(repeat);
 
-            NSNotificationCenter.defaultCenter().addObserver_selector_name_object(
+            var notiCenter = NSNotificationCenter.defaultCenter();
+            notiCenter.addObserver_selector_name_object(
                 self,
                 selectorHandle(#"handlePlayerStateDidChangeNotification:"),
                 PlayerStateDidChangeNotification,
                 self^.player
+            );
+            notiCenter.addObserver_selector_name_object(
+                self,
+                selectorHandle(#"handleSelectPlaylist:"),
+                NSOutlineViewSelectionDidChangeNotification,
+                self^.libraryView
+            );
+            notiCenter.addObserver_selector_name_object(
+                self,
+                selectorHandle(#"handleSelectTrack:"),
+                NSTableViewSelectionDidChangeNotification,
+                self^.playlistView
             );
         }),
 
@@ -366,6 +362,26 @@ record MainController = newClass(#VinylMainController, NSObject,
 
         (#"handlePlayerStateDidChangeNotification:", (self, notification) => {
             updatePlayControls(self);
+        }),
+        (#"handleSelectPlaylist:", (self, notification) => {
+            var libView = self^.libraryView;
+            var item = libView.itemAtRow(libView.selectedRow());
+            if (itemIsFolder?(item))
+                self^.playlistDataSource.setLibraryView(
+                    LibraryView(PlaylistFolderView(Int(item["id"])))
+                );
+            else if (itemIsPlaylist?(item))
+                self^.playlistDataSource.setLibraryView(
+                    LibraryView(PlaylistView(Int(item["id"])))
+                );
+            else
+                self^.playlistDataSource.setLibraryView(
+                    LibraryView(SortedView())
+                );
+            self^.playlistView.reloadData();
+            updatePlayControls(self);
+        }),
+        (#"handleSelectTrack:", (self, notification) => {
         }),
     ),
 );

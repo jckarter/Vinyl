@@ -254,7 +254,7 @@ record Player = newClass(NSObject,
                     } else {
                         // else restart from the beginning
                         playlistState.movie.stop();
-                        observe(playlistState.movie).setCurrentTime(observe(QTMakeTime(CLong(0), CLong(0))));
+                        playlistState.movie.setCurrentTime(QTMakeTime(CLong(0), CLong(0)));
                         playlistState.movie.play();
                     }
                 }
