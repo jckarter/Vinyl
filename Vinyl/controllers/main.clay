@@ -33,6 +33,8 @@ overload selector(static #"player") = Player;
 overload selector(static #"library") = Pointer[Library];
 overload selector(static #"_itunesSheetDidEnd:returnCode:contextInfo:")
     = Void, NSWindow, NSInteger, RawPointer;
+overload selector(static #"handlePlayerStateDidChangeNotification:")
+    = Void, NSNotification;
 
 setStatusField(self, ...contents) {
     self^.statusField.setStringValue(printString(...contents));
@@ -90,6 +92,57 @@ updateRepeatControl(self: MainController, repeatMode: RepeatMode) {
     self^.playlistControls.setLabel_forSegment(
         label,
         NSInteger(PlaylistControlsRepeatTag)
+    );
+}
+
+updatePlayControls(self: MainController) {
+    var playControls = self^.playControls;
+    match(self^.player.playerState()^,
+        StoppedState,  stopped => {
+            playControls.setLabel_forSegment(
+                #">",
+                NSInteger(PlayControlsPlayTag)
+            );
+            playControls.setEnabled_forSegment(
+                false,
+                NSInteger(PlayControlsBackTag)
+            );
+            playControls.setEnabled_forSegment(
+                false,
+                NSInteger(PlayControlsForwardTag)
+            );
+        },
+        PlaylistState, playlistState => {
+            playControls.setEnabled_forSegment(
+                true,
+                NSInteger(PlayControlsBackTag)
+            );
+            playControls.setEnabled_forSegment(
+                true,
+                NSInteger(PlayControlsForwardTag)
+            );
+
+            switch (playlistState.mode) {
+            case Playing:
+                if (playlistState.libraryView == self^.playlistDataSource.libraryView()^)
+                    playControls.setLabel_forSegment(
+                        #"||",
+                        NSInteger(PlayControlsPlayTag)
+                    );
+                else
+                    playControls.setLabel_forSegment(
+                        #"X",
+                        NSInteger(PlayControlsPlayTag)
+                    );
+                break;
+            case Paused:
+                playControls.setLabel_forSegment(
+                    #">",
+                    NSInteger(PlayControlsPlayTag)
+                );
+                break;
+            }
+        }
     );
 }
 
@@ -210,6 +263,7 @@ record MainController = newClass(#VinylMainController, NSObject,
                         LibraryView(SortedView())
                     );
                 self^.playlistView.reloadData();
+                updatePlayControls(self);
             }),
             (#"performSelectTrack:", (self, sender) => {
             }),
@@ -258,6 +312,13 @@ record MainController = newClass(#VinylMainController, NSObject,
             self^.player.setVolume(Float(volume));
             self^.player.setShuffle(shuffle);
             self^.player.setRepeatMode(repeat);
+
+            NSNotificationCenter.defaultCenter().addObserver_selector_name_object(
+                self,
+                selectorHandle(#"handlePlayerStateDidChangeNotification:"),
+                PlayerStateDidChangeNotification,
+                self^.player
+            );
         }),
 
         (#"library", self => &self^.library),
@@ -271,6 +332,10 @@ record MainController = newClass(#VinylMainController, NSObject,
             self^.playlistView.reloadData();
             sheet.orderOut(self);
             importController.release();
+        }),
+
+        (#"handlePlayerStateDidChangeNotification:", (self, notification) => {
+            updatePlayControls(self);
         }),
     ),
 );

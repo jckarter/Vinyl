@@ -106,6 +106,18 @@ createLibraryDatabase(db: SqliteDB) {
             modified_date integer,
             played_date integer
         )");
+        if (not statementValue?(db, "select name from sqlite_master where name = 'tracks_fts'"))
+            runStatement(db, "create virtual table tracks_fts using fts3(
+                filename, -- filename
+                name, -- track_name
+                album, -- album_name
+                artist, -- track_artist_name
+                album_artist, -- album_artist_name
+                genre, -- genre_name
+                composer, -- composer_name
+                grouping, -- grouping_name
+                comments -- comments
+            )");
     });
 }
 

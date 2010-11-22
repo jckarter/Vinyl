@@ -110,8 +110,11 @@ overload selector(static #"shuffle") = Bool;
 overload selector(static #"setShuffle:") = Void, Bool;
 overload selector(static #"repeatMode") = RepeatMode;
 overload selector(static #"setRepeatMode:") = Void, RepeatMode;
+overload selector(static #"playerState") = Pointer[PlayerState];
 
 enum RepeatMode { NoRepeat, RepeatAll, RepeatOne }
+
+alias PlayerStateDidChangeNotification = NSString(#"VinylPlayerStateDidChangeNotification");
 
 record Player = newClass(NSObject,
     InstanceVars(
@@ -175,6 +178,9 @@ record Player = newClass(NSObject,
                         );
                     playlistState.movie.autoplay();
                     playlistState.mode = Playing;
+                    NSNotificationCenter.defaultCenter().postNotificationName_object(
+                        PlayerStateDidChangeNotification, self
+                    );
                 }
             );
         }),
@@ -185,6 +191,9 @@ record Player = newClass(NSObject,
                 PlaylistState, playlistState => {
                     playlistState.movie.stop();
                     self^.state = PlayerState(StoppedState());
+                    NSNotificationCenter.defaultCenter().postNotificationName_object(
+                        PlayerStateDidChangeNotification, self
+                    );
                 }
             );
         }),
@@ -218,7 +227,7 @@ record Player = newClass(NSObject,
                         playlistState.trackNumber = 0;
                         self.resume();
                     } else
-                        self^.state = PlayerState(StoppedState());
+                        self.stop();
                 }
             );
         }),
@@ -252,6 +261,8 @@ record Player = newClass(NSObject,
         }),
 
         ...PropertyInstanceMethods(#repeatMode, RepeatMode),
+
+        (#"playerState", self => &self^.state),
     ),
 );
 
