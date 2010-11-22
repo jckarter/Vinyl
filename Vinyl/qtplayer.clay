@@ -238,14 +238,25 @@ record Player = newClass(NSObject,
             match(self^.state,
                 StoppedState,  stopped => { },
                 PlaylistState, playlistState => {
-                    // XXX start from beginning/previous track behavior
-                    playlistState.movie.stop();
-                    playlistState.movie = nil();
-                    if (playlistState.trackNumber > 0)
-                        playlistState.trackNumber -= 1;
-                    else if (self^.repeatMode == RepeatAll)
-                        playlistState.trackNumber = size(playlistState.tracks) - 1;
-                    self.resume();
+                    var currentTime = playlistState.movie.currentTime();
+                    if (currentTime.timeValue < currentTime.timeScale * 2) {
+                        // in the first two seconds? then jump back a track
+                        playlistState.movie.stop();
+                        playlistState.movie = nil();
+                        if (playlistState.trackNumber > 0) {
+                            playlistState.trackNumber -= 1;
+                            self.resume();
+                        } else if (self^.repeatMode == RepeatAll) {
+                            playlistState.trackNumber = size(playlistState.tracks) - 1;
+                            self.resume();
+                        } else
+                            self.stop();
+                    } else {
+                        // else restart from the beginning
+                        playlistState.movie.stop();
+                        observe(playlistState.movie).setCurrentTime(observe(QTMakeTime(CLong(0), CLong(0))));
+                        playlistState.movie.play();
+                    }
                 }
             );
         }),
