@@ -187,4 +187,17 @@ updateLibraryPlaylistName(library: Library, playlistId, name) {
     );
 }
 
-
+insertLibraryPlaylist(library: Library, name, playlistFolderId) {
+    runStatement(library.db,
+        "insert into playlists (name, playlist_folder_id, position)
+            select
+                ?1 as name,
+                ?2 as playlist_folder_id,
+                max(position) + 1 as position
+            from
+                playlists
+            where
+                playlist_folder_id is ?2
+        ", name, playlistFolderId
+    );
+}

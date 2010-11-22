@@ -9,6 +9,8 @@ import Vinyl.library.*;
 //
 
 overload selector(static #"initWithLibrary:") = Id, Pointer[Library];
+overload selector(static #"insertPlaylistWithName:parentFolderId:")
+    = Void, NSString, Maybe[Int];
 
 record LibraryDataSource = newClass(NSObject,
     InstanceVars(
@@ -85,6 +87,10 @@ record LibraryDataSource = newClass(NSObject,
                 else
                     updateLibraryPlaylistName(self^.library^, Int(item["id"]), String(value));
             }
+        }),
+        (#"insertPlaylistWithName:parentFolderId:", (self, name, parentFolderId) => {
+            insertLibraryPlaylist(self^.library^, String(name), parentFolderId);
+            refreshLibraryDataSource(self);
         }),
     ),
 );

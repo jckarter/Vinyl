@@ -6,6 +6,7 @@ import Vinyl.library.datasources.*;
 import Vinyl.qtplayer.*;
 import Vinyl.controllers.itunesimport.*;
 import libc;
+import maybe.*;
 
 alias PlayControlsBackTag = 0;
 alias PlayControlsPlayTag = 1;
@@ -251,6 +252,19 @@ record MainController = newClass(#VinylMainController, NSObject,
                 }
             }),
             (#"performAddPlaylist:", (self, sender) => {
+                var libView = self^.libraryView;
+                var item = libView.itemAtRow(libView.selectedRow());
+
+                var parentFolderId = if (itemIsFolder?(item))
+                    Maybe(Int(item["id"]))
+                else
+                    nothing(Int);
+
+                self^.libraryDataSource.insertPlaylistWithName_parentFolderId(
+                    #"New Playlist",
+                    parentFolderId
+                );
+                self^.libraryView.reloadData();
             }),
             (#"performToggleShuffle:", (self, sender) => {
                 var shuffle = not self^.player.shuffle();
