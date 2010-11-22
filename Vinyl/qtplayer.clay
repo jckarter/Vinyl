@@ -185,6 +185,19 @@ record Player = newClass(NSObject,
             );
         }),
 
+        (#"pause", self => {
+            match(self^.state,
+                StoppedState,  stopped => { },
+                PlaylistState, playlistState => {
+                    playlistState.movie.stop();
+                    playlistState.mode = Paused;
+                    NSNotificationCenter.defaultCenter().postNotificationName_object(
+                        PlayerStateDidChangeNotification, self
+                    );
+                }
+            );
+        }),
+
         (#"stop", self => {
             match(self^.state,
                 StoppedState,  stopped => { },

@@ -99,6 +99,7 @@ updatePlayControls(self: MainController) {
     var playControls = self^.playControls;
     match(self^.player.playerState()^,
         StoppedState,  stopped => {
+            self^.playButtonMode = PlayButton;
             playControls.setLabel_forSegment(
                 #">",
                 NSInteger(PlayControlsPlayTag)
@@ -124,18 +125,25 @@ updatePlayControls(self: MainController) {
 
             switch (playlistState.mode) {
             case Playing:
-                if (playlistState.libraryView == self^.playlistDataSource.libraryView()^)
+                if (playlistState.libraryView == self^.playlistDataSource.libraryView()^) {
+                    self^.playButtonMode = PauseButton;
                     playControls.setLabel_forSegment(
                         #"||",
                         NSInteger(PlayControlsPlayTag)
                     );
-                else
+                } else {
+                    self^.playButtonMode = StopButton;
                     playControls.setLabel_forSegment(
                         #"X",
                         NSInteger(PlayControlsPlayTag)
                     );
+                }
                 break;
             case Paused:
+                if (playlistState.libraryView == self^.playlistDataSource.libraryView()^)
+                    self^.playButtonMode = ResumeButton;
+                else
+                    self^.playButtonMode = PlayButton;
                 playControls.setLabel_forSegment(
                     #">",
                     NSInteger(PlayControlsPlayTag)
@@ -144,6 +152,29 @@ updatePlayControls(self: MainController) {
             }
         }
     );
+}
+
+enum PlayButtonMode { PlayButton, ResumeButton, StopButton, PauseButton }
+
+playButton(self: MainController) {
+    switch (self^.playButtonMode) {
+    case PlayButton: {
+            var selection = self^.playlistView.selectedRow();
+            if (selection < 0)
+                selection = 0;
+            playTrackNumber(self, selection);
+        }
+        break;
+    case ResumeButton:
+        self^.player.resume();
+        break;
+    case PauseButton:
+        self^.player.pause();
+        break;
+    case StopButton:
+        self^.player.stop();
+        break;
+    }
 }
 
 record MainController = newClass(#VinylMainController, NSObject,
@@ -167,6 +198,7 @@ record MainController = newClass(#VinylMainController, NSObject,
         playlistDataSource: Retained[PlaylistDataSource],
         library: Library,
         player: Retained[Player],
+        playButtonMode: PlayButtonMode,
     ),
     ClassMethods(
     ),
@@ -179,12 +211,9 @@ record MainController = newClass(#VinylMainController, NSObject,
                 case PlayControlsBackTag:
                     self^.player.previousTrack();
                     break;
-                case PlayControlsPlayTag: {
-                        var selection = self^.playlistView.selectedRow();
-                        if (selection < 0) selection = 0;
-                        playTrackNumber(self, selection);
-                        break;
-                    }
+                case PlayControlsPlayTag:
+                    playButton(self);
+                    break;
                 case PlayControlsForwardTag:
                     self^.player.nextTrack();
                     break;
