@@ -100,6 +100,7 @@ variant PlayerState = StoppedState | PlaylistState;
 overload selector(static #"state") = PlayerState;
 overload selector(static #"setState:") = Void, PlayerState;
 overload selector(static #"handleMovieDidEndNotification:") = Void, NSNotification;
+overload selector(static #"handleMovieLoadStateDidChangeNotification:") = Void, NSNotification;
 overload selector(static #"playLibrary:view:trackNumber:") = Void, Pointer[Library], LibraryView, SizeT;
 overload selector(static #"resume") = Void;
 overload selector(static #"pause") = Void;
@@ -137,6 +138,12 @@ record Player = newClass(NSObject,
                 QTMovieDidEndNotification,
                 nil()
             );
+            NSNotificationCenter.defaultCenter().addObserver_selector_name_object(
+                self,
+                selectorHandle(#"handleMovieLoadStateDidChangeNotification:"),
+                QTMovieLoadStateDidChangeNotification,
+                nil()
+            );
             return self;
         })),
         DeallocInstanceMethod(),
@@ -152,6 +159,22 @@ record Player = newClass(NSObject,
                             playlistState.movie = nil();
                             self.resume();
                         } else
+                            self.nextTrack();
+                    }
+                }
+            );
+        }),
+        (#"handleMovieLoadStateDidChangeNotification:", (self, notification) => {
+            match(self^.state,
+                StoppedState,  stopped => { },
+                PlaylistState, playlistState => {
+                    if (is?(playlistState.movie, notification.object())
+                        and playlistState.movie.attributeForKey(QTMovieLoadStateAttribute)
+                            == QTMovieLoadStateError
+                    ) {
+                        if (self^.repeatMode == RepeatOne)
+                            self.stop();
+                        else
                             self.nextTrack();
                     }
                 }

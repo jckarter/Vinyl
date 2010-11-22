@@ -144,6 +144,7 @@ updatePlayControls(self: MainController) {
                     self^.playButtonMode = ResumeButton;
                 else
                     self^.playButtonMode = PlayButton;
+
                 playControls.setLabel_forSegment(
                     #">",
                     NSInteger(PlayControlsPlayTag)
