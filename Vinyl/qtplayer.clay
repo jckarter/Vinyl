@@ -193,17 +193,20 @@ record Player = newClass(NSObject,
             match(self^.state,
                 StoppedState,  stopped => { },
                 PlaylistState, playlistState => {
-                    var realTrackNumber = playlistState.trackOrder[playlistState.trackNumber];
-                    if (nil?(playlistState.movie))
-                        playlistState.movie = movieForFileName(
-                            self,
-                            playlistState.tracks[realTrackNumber].filename
+                    if (playlistState.trackNumber < size(playlistState.tracks)) {
+                        var realTrackNumber = playlistState.trackOrder[playlistState.trackNumber];
+                        if (nil?(playlistState.movie))
+                            playlistState.movie = movieForFileName(
+                                self,
+                                playlistState.tracks[realTrackNumber].filename
+                            );
+                        playlistState.movie.autoplay();
+                        playlistState.mode = Playing;
+                        NSNotificationCenter.defaultCenter().postNotificationName_object(
+                            PlayerStateDidChangeNotification, self
                         );
-                    playlistState.movie.autoplay();
-                    playlistState.mode = Playing;
-                    NSNotificationCenter.defaultCenter().postNotificationName_object(
-                        PlayerStateDidChangeNotification, self
-                    );
+                    } else
+                        self.stop();
                 }
             );
         }),
