@@ -161,10 +161,10 @@ enum PlayButtonMode { PlayButton, ResumeButton, StopButton, PauseButton }
 playButton(self: MainController) {
     switch (self^.playButtonMode) {
     case PlayButton: {
-            var selection = self^.playlistView.selectedRow();
-            if (selection < 0)
+            var selection = self^.playlistView.selectedRowIndexes().firstIndex();
+            if (selection == NSNotFound)
                 selection = 0;
-            playTrackNumber(self, selection);
+            playTrackNumber(self, NSInteger(selection));
         }
         break;
     case ResumeButton:
