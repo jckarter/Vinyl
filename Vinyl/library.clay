@@ -201,3 +201,23 @@ insertLibraryPlaylist(library: Library, name, playlistFolderId) {
         ", name, playlistFolderId
     );
 }
+
+deleteLibraryFolder(library: Library, folderId) {
+    withTransaction(library.db, () ref=> {
+        runStatement(library.db,
+            "delete from playlists where playlist_folder_id = ?",
+            folderId
+        );
+        runStatement(library.db,
+            "delete from playlist_folders where playlist_folder_id = ?",
+            folderId
+        );
+    });
+}
+
+deleteLibraryPlaylist(library: Library, playlistId) {
+    runStatement(library.db,
+        "delete from playlists where playlist_id = ?",
+        playlistId
+    );
+}

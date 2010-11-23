@@ -1,0 +1,61 @@
+import cocoa.*;
+import cocoa.appkit.*;
+
+overload selector(static #"outlineView:deleteItem:") = Void, NSOutlineView, Id;
+overload selector(static #"tableView:deleteRow:") = Void, NSTableView, NSInteger;
+
+isDeleteKeyEvent(event: NSEvent) {
+    var chars = event.characters();
+    if (chars.length() == 0)
+        return false;
+
+    switch (chars.characterAtIndex(SizeT(0))) {
+    case NSDeleteFunctionKey:
+    case NSDeleteCharFunctionKey:
+    case NSDeleteCharacter:
+    case NSBackspaceCharacter:
+        return true;
+    default:
+        return false;
+    }
+}
+
+record DeletingTableView = newClass(#VinylDeletingTableView, NSTableView,
+    InstanceVars(),
+    ClassMethods(),
+    InstanceMethods(
+        (#"keyDown:", (self, event) => {
+            var selectedRow = self.selectedRow();
+            var dataSource = self.dataSource();
+            if (isDeleteKeyEvent(event)
+                and selectedRow >= 0
+                and dataSource.respondsToSelector(selectorHandle(#"tableView:deleteRow:"))
+            ) {
+                self.dataSource().tableView_deleteRow(self, selectedRow);
+                self.reloadData();
+            }
+            else
+                super(self).keyDown(event);
+        }),
+    )
+);
+
+record DeletingOutlineView = newClass(#VinylDeletingOutlineView, NSOutlineView,
+    InstanceVars(),
+    ClassMethods(),
+    InstanceMethods(
+        (#"keyDown:", (self, event) => {
+            var selectedRow = self.selectedRow();
+            var dataSource = self.dataSource();
+            if (isDeleteKeyEvent(event)
+                and selectedRow >= 0
+                and dataSource.respondsToSelector(selectorHandle(#"outlineView:deleteItem:"))
+            ) {
+                self.dataSource().outlineView_deleteItem(self, self.itemAtRow(selectedRow));
+                self.reloadData();
+            }
+            else
+                super(self).keyDown(event);
+        }),
+    )
+);

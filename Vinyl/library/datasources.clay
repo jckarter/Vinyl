@@ -2,6 +2,7 @@ import cocoa.*;
 import sqlite.*;
 import maybe.*;
 import Vinyl.library.*;
+import Vinyl.controls.deletingtableview.*;
 
 
 //
@@ -86,6 +87,19 @@ record LibraryDataSource = newClass(NSObject,
                     updateLibraryFolderName(self^.library^, Int(item["id"]), String(value));
                 else
                     updateLibraryPlaylistName(self^.library^, Int(item["id"]), String(value));
+            }
+        }),
+        (#"outlineView:deleteItem:", (self, outlineView, item) => {
+            if (item.isKindOfClass(NSString))
+                return;
+            else if (itemIsFolder?(item)) {
+                deleteLibraryFolder(self^.library^, Int(item["id"]));
+                self^.folders.removeObject(item);
+            } else {
+                deleteLibraryPlaylist(self^.library^, Int(item["id"]));
+                self^.playlists.removeObject(item);
+                for (folder in self^.folders)
+                    folder["playlists"].removeObject(item);
             }
         }),
         (#"insertPlaylistWithName:parentFolderId:", (self, name, parentFolderId) => {
@@ -323,6 +337,8 @@ record PlaylistDataSource = newClass(NSObject,
         (#"tableView:objectValueForTableColumn:row:", (self, tableView, tableColumn, rowIndex) =>
             fieldByName(self^.tracks[rowIndex], maybeObject, tableColumn.identifier())
         ),
+        (#"tableView:deleteRow:", (self, tableView, row) => {
+        }),
         (#"libraryView", self => &self^.libraryView),
         (#"setLibraryView:", (self, view) => {
             self^.libraryView = view;

@@ -2,5 +2,12 @@ import cocoa.*;
 import Vinyl.appdelegate.*;
 import Vinyl.controllers.main.*;
 import Vinyl.controllers.itunesimport.*;
+import Vinyl.controls.deletingtableview.*;
 
-main() = appKitMain(AppDelegate, MainController, ItunesImportController);
+main() = appKitMain(
+    AppDelegate,
+    MainController,
+    ItunesImportController,
+    DeletingTableView,
+    DeletingOutlineView,
+);
