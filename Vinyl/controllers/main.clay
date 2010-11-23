@@ -312,6 +312,8 @@ record MainController = newClass(#VinylMainController, NSObject,
 
             self^.libraryView.setTarget(self);
             self^.libraryView.setDoubleAction(selectorHandle(#"performDoubleClickPlaylist:"));
+            self^.libraryView.registerForDraggedTypes(makeNSArray(TrackIdsPboardType));
+
             self^.playlistView.setTarget(self);
             self^.playlistView.setDoubleAction(selectorHandle(#"performDoubleClickTrack:"));
 

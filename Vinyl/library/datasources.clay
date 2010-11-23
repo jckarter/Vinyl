@@ -14,6 +14,13 @@ overload selector(static #"initWithLibrary:") = Id, Pointer[Library];
 overload selector(static #"insertPlaylistWithName:parentFolderId:")
     = Void, NSString, Maybe[Int];
 
+libraryDataSourceItemCount(self: LibraryDataSource)
+    = NSInteger(
+        1 // Library
+        + self^.folders.count() // folders
+        + self^.playlists.count() // toplevel playlists
+    );
+
 record LibraryDataSource = newClass(NSObject,
     InstanceVars(
         (#library, Pointer[Library]),
@@ -33,11 +40,7 @@ record LibraryDataSource = newClass(NSObject,
         DeallocInstanceMethod(),
         (#"outlineView:numberOfChildrenOfItem:", (self, outlineView, item) =>
             if (nil?(item))
-                NSInteger(
-                    1 // Library
-                    + self^.folders.count() // folders
-                    + self^.playlists.count() // toplevel playlists
-                )
+                libraryDataSourceItemCount(self)
             else if (itemIsFolder?(item))
                 NSInteger(item["playlists"].count()) // playlist folder
             else
@@ -103,6 +106,47 @@ record LibraryDataSource = newClass(NSObject,
                     folder["playlists"].removeObject(item);
             }
         }),
+
+        /* XXX drag out
+        (#"outlineView:writeItems:toPasteboard:", (self, tableView, rowIndexes, pasteboard) => {
+        })
+        */
+
+        (#"outlineView:validateDrop:proposedItem:proposedChildIndex:", (self, outlineView, info, item, index) => {
+            if (item.isKindOfClass(NSString))
+                return NSDragOperation(NSDragOperationNone);
+
+            var pasteboard = info.draggingPasteboard();
+            var pasteboardType = pasteboard.availableTypeFromArray(makeNSArray(TrackIdsPboardType));
+            if (nil?(pasteboardType))
+                return NSDragOperation(NSDragOperationNone);
+
+            if (nil?(item))
+                outlineView.setDropItem_dropChildIndex(
+                    nil(),
+                    NSInteger(libraryDataSourceItemCount(self))
+                );
+            else if (itemIsFolder?(item))
+                outlineView.setDropItem_dropChildIndex(
+                    item,
+                    NSInteger(item["playlists"].count())
+                );
+            return NSDragOperation(NSDragOperationCopy);
+        }),
+
+        (#"outlineView:acceptDrop:item:childIndex:", (self, outlineView, info, item, index) => {
+            if (item.isKindOfClass(NSString))
+                return false;
+
+            var pasteboard = info.draggingPasteboard();
+            var pasteboardType = pasteboard.availableTypeFromArray(makeNSArray(TrackIdsPboardType));
+            if (nil?(pasteboardType))
+                return false;
+
+            var trackIds = NSArray(pasteboard.propertyListForType(pasteboardType));
+            return true;
+        }),
+
         (#"insertPlaylistWithName:parentFolderId:", (self, name, parentFolderId) => {
             insertLibraryPlaylist(self^.library^, String(name), parentFolderId);
             refreshLibraryDataSource(self);
