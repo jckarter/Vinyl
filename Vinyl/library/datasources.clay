@@ -1,4 +1,5 @@
 import cocoa.*;
+import cocoa.appkit.*;
 import sqlite.*;
 import maybe.*;
 import Vinyl.library.*;
@@ -315,6 +316,9 @@ maybeObject(x) = Id(x);
 overload maybeObject(x: Nothing) = nil();
 [T] overload maybeObject(x: Maybe[T]) = maybeObject(*x);
 
+alias TrackIdsPboardType
+    = NSString(#"com.duriansoftware.Vinyl.pasteboard.track_ids");
+
 record PlaylistDataSource = newClass(NSObject,
     InstanceVars(
         library: Pointer[Library],
@@ -339,6 +343,49 @@ record PlaylistDataSource = newClass(NSObject,
         ),
         (#"tableView:deleteRow:", (self, tableView, row) => {
         }),
+        (#"tableView:writeRowsWithIndexes:toPasteboard:", (self, tableView, rowIndexes, pasteboard) => {
+            var filenames = NSMutableArray.array();
+            var trackIds = NSMutableArray.array();
+
+            var rows = Vector[NSUInteger]();
+            var rowCount = rowIndexes.count();
+            resize(rows, rowCount);
+            rowIndexes.getIndexes_maxCount_inIndexRange(
+                begin(rows),
+                rowCount,
+                NSRangePointer(0),
+            );
+
+            for (row in rows) {
+                filenames.addObject(self^.tracks[row].filename);
+                trackIds.addObject(self^.tracks[row].track_id);
+            }
+
+            var localMask = match(self^.libraryView,
+                PlaylistView, v => bitwiseOr(NSDragOperationCopy, NSDragOperationMove, NSDragOperationDelete),
+                PlaylistFolderView, v => bitwiseOr(NSDragOperationCopy, NSDragOperationMove, NSDragOperationDelete),
+                SortedView, v => bitwiseOr(NSDragOperationCopy, NSDragOperationDelete),
+            );
+
+            tableView.setDraggingSourceOperationMask_forLocal(
+                NSUInteger(localMask),
+                true
+            );
+            tableView.setDraggingSourceOperationMask_forLocal(
+                NSUInteger(bitwiseOr(NSDragOperationCopy, NSDragOperationDelete)),
+                false
+            );
+
+            pasteboard.declareTypes_owner(
+                makeNSArray(NSFilenamesPboardType, TrackIdsPboardType),
+                self
+            );
+            pasteboard.setPropertyList_forType(filenames, NSFilenamesPboardType);
+            pasteboard.setPropertyList_forType(trackIds, TrackIdsPboardType);
+
+            return true;
+        }),
+
         (#"libraryView", self => &self^.libraryView),
         (#"setLibraryView:", (self, view) => {
             self^.libraryView = view;
