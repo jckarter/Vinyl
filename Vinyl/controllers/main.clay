@@ -259,29 +259,14 @@ record MainController = newClass(#VinylMainController, NSObject,
                 else
                     libView.parentForItem(selItem);
 
-                var parentFolderId = if (itemIsFolder?(parentItem))
-                    Maybe(NSInteger(parentItem["id"]))
-                else
-                    nothing(NSInteger);
-
-                // XXX this should return new item
-                self^.libraryDataSource.insertPlaylistWithName_parentFolderId(
+                var newItem = self^.libraryDataSource.insertPlaylistWithName_parentItem(
                     #"New Playlist",
-                    parentFolderId
+                    parentItem
                 );
                 libView.reloadData();
 
-                // XXX folder item will be different!
                 libView.expandItem(parentItem);
-                var newItem = if (itemIsFolder?(parentItem))
-                    parentItem["playlists"][parentItem["playlists"].count() - 1]
-                else
-                    // XXX inappropriate touching
-                    self^.libraryDataSource^.playlists[
-                        self^.libraryDataSource^.playlists.count() - 1
-                    ];
 
-                // XXX refactor
                 var playlistRow = libView.rowForItem(newItem);
                 libView.selectRowIndexes_byExtendingSelection(
                     NSIndexSet.indexSetWithIndex(NSUInteger(playlistRow)),

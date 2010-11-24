@@ -11,8 +11,8 @@ import Vinyl.controls.deletingtableview.*;
 //
 
 overload selector(static #"initWithLibrary:") = Id, Pointer[Library];
-overload selector(static #"insertPlaylistWithName:parentFolderId:")
-    = NSInteger, NSString, Maybe[NSInteger];
+overload selector(static #"insertPlaylistWithName:parentItem:")
+    = Id, NSString, Id;
 
 libraryDataSourceItemCount(self: LibraryDataSource)
     = NSInteger(
@@ -145,28 +145,15 @@ record LibraryDataSource = newClass(NSObject,
 
             var trackIds = NSArray(pasteboard.propertyListForType(pasteboardType));
 
-            var playlistId = NSInteger();
-            var playlistItem = nil();
-
-            if (nil?(item)) {
-                playlistId = self.insertPlaylistWithName_parentFolderId(
+            var playlistItem = if (itemIsPlaylist?(item))
+                item
+            else
+                self.insertPlaylistWithName_parentItem(
                     #"New Playlist", // XXX derive playlist name from track attributes
-                    nothing(NSInteger)
+                    item
                 );
-                playlistItem = self^.playlists[self^.playlists.count() - 1];
-            } else if (itemIsFolder?(item)) {
-                playlistId = self.insertPlaylistWithName_parentFolderId(
-                    #"New Playlist",
-                    Maybe(NSInteger(item["id"]))
-                );
-                // XXX folder item will be different!
-                playlistItem = item["playlists"][item["playlists"].count() - 1];
-            } else { // itemIsPlaylist?
-                playlistId = NSInteger(item["id"]);
-                playlistItem = item;
-            }
 
-            insertLibraryPlaylistTracks(self^.library^, playlistId, mapped(NSInteger, trackIds));
+            insertLibraryPlaylistTracks(self^.library^, NSInteger(playlistItem["id"]), mapped(NSInteger, trackIds));
 
             outlineView.reloadData();
             if (itemIsFolder?(item))
@@ -187,9 +174,22 @@ record LibraryDataSource = newClass(NSObject,
             return true;
         }),
 
-        (#"insertPlaylistWithName:parentFolderId:", (self, name, parentFolderId) => {
-            var id = insertLibraryPlaylist(self^.library^, String(name), parentFolderId);
-            refreshLibraryDataSource(self);
+        (#"insertPlaylistWithName:parentItem:", (self, name, parentItem) => {
+            var parentId = if (itemIsFolder?(parentItem))
+                Maybe(NSInteger(parentItem["id"]))
+            else
+                nothing(NSInteger);
+
+            var id = insertLibraryPlaylist(self^.library^, String(name), parentId);
+
+            var newItem = makeNSMutableDictionary("id", id, "name", name);
+
+            if (itemIsFolder?(parentItem))
+                parentItem["playlists"].addObject(newItem);
+            else
+                self^.playlists.addObject(newItem);
+
+            return newItem;
         }),
 
     ),
