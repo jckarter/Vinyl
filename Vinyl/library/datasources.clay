@@ -159,6 +159,7 @@ record LibraryDataSource = newClass(NSObject,
                     #"New Playlist",
                     Maybe(NSInteger(item["id"]))
                 );
+                // XXX folder item will be different!
                 playlistItem = item["playlists"][item["playlists"].count() - 1];
             } else { // itemIsPlaylist?
                 playlistId = NSInteger(item["id"]);
@@ -189,7 +190,6 @@ record LibraryDataSource = newClass(NSObject,
         (#"insertPlaylistWithName:parentFolderId:", (self, name, parentFolderId) => {
             var id = insertLibraryPlaylist(self^.library^, String(name), parentFolderId);
             refreshLibraryDataSource(self);
-            return id;
         }),
 
     ),
