@@ -85,6 +85,8 @@ record LibraryDataSource = newClass(NSObject,
         (#"outlineView:setObjectValue:forTableColumn:byItem:", (self, outlineView, value, column, item) => {
             if (item.isKindOfClass(NSString))
                 return;
+            else if (value.description().length() == 0)
+                return;
             else {
                 item.setObject_forKey(value.description(), "name");
                 if (itemIsFolder?(item))
@@ -96,7 +98,9 @@ record LibraryDataSource = newClass(NSObject,
         (#"outlineView:deleteItem:", (self, outlineView, item) => {
             if (item.isKindOfClass(NSString))
                 return;
-            else if (itemIsFolder?(item)) {
+            var parentItem = outlineView.parentForItem(item);
+
+            if (itemIsFolder?(item)) {
                 deleteLibraryFolder(self^.library^, Int(item["id"]));
                 self^.folders.removeObject(item);
             } else {
@@ -104,6 +108,20 @@ record LibraryDataSource = newClass(NSObject,
                 self^.playlists.removeObject(item);
                 for (folder in self^.folders)
                     folder["playlists"].removeObject(item);
+            }
+
+            outlineView.reloadData();
+            if (nil?(parentItem))
+                outlineView.selectRowIndexes_byExtendingSelection(
+                    NSIndexSet.indexSetWithIndex(NSUInteger(0)),
+                    false
+                );
+            else {
+                var parentRow = outlineView.rowForItem(parentItem);
+                outlineView.selectRowIndexes_byExtendingSelection(
+                    NSIndexSet.indexSetWithIndex(NSUInteger(parentRow)),
+                    false
+                );
             }
         }),
 
@@ -427,6 +445,27 @@ record PlaylistDataSource = newClass(NSObject,
             fieldByName(self^.tracks[rowIndex], maybeObject, tableColumn.identifier())
         ),
         (#"tableView:deleteRowsWithIndexes:", (self, tableView, rowIndexes) => {
+            match(self^.libraryView,
+                PlaylistView, playlist => {
+                    var rows = Vector[NSUInteger]();
+                    var rowCount = rowIndexes.count();
+                    resize(rows, rowCount);
+                    rowIndexes.getIndexes_maxCount_inIndexRange(
+                        begin(rows),
+                        rowCount,
+                        NSRangePointer(0),
+                    );
+
+                    deleteLibraryPlaylistPositions(self^.library^, playlist.id, rows);
+                    refreshPlaylistDataSource(self);
+                    tableView.reloadData();
+                    tableView.selectRowIndexes_byExtendingSelection(
+                        NSIndexSet.indexSet(),
+                        false
+                    );
+                },
+                MatchDefault, _ => {}
+            );
         }),
         (#"tableView:writeRowsWithIndexes:toPasteboard:", (self, tableView, rowIndexes, pasteboard) => {
             var filenames = NSMutableArray.array();

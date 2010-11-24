@@ -225,6 +225,7 @@ insertLibraryPlaylistTracks(library: Library, playlistId, trackIds) {
     });
 }
 
+// XXX should move positions, not track ids
 moveLibraryPlaylistTracks(library: Library, playlistId, trackIds, position) {
     return withTransaction(library.db, () ref=> {
         var trackIdSetSQL = "(" + join(", ", mapped(printString, trackIds)) + ")";
@@ -300,15 +301,24 @@ deleteLibraryFolder(library: Library, folderId) {
 }
 
 deleteLibraryPlaylist(library: Library, playlistId) {
-    runStatement(library.db,
-        "delete from playlist_tracks where playlist_id = ?",
-        playlistId
-    );
-    runStatement(library.db,
-        "delete from playlists where playlist_id = ?",
-        playlistId
-    );
+    withTransaction(library.db, () ref=> {
+        runStatement(library.db,
+            "delete from playlist_tracks where playlist_id = ?",
+            playlistId
+        );
+        runStatement(library.db,
+            "delete from playlists where playlist_id = ?",
+            playlistId
+        );
+    });
 }
 
-deleteLibraryPlaylistTracks(library: Library, playlistId, trackIds) {
+deleteLibraryPlaylistPositions(library: Library, playlistId, positions) {
+    withTransaction(library.db, () ref=> {
+        for (position in positions)
+            runStatement(library.db,
+                "delete from playlist_tracks where playlist_id = ? and position = ?",
+                playlistId, position
+            );
+    });
 }
