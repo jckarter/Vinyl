@@ -193,13 +193,32 @@ insertLibraryPlaylist(library: Library, name, playlistFolderId) {
             select
                 ?1 as name,
                 ?2 as playlist_folder_id,
-                max(position) + 1 as position
+                coalesce(max(position), -1) + 1 as position
             from
                 playlists
             where
                 playlist_folder_id is ?2
         ", name, playlistFolderId
     );
+    return NSInteger(lastInsertedRowId(library.db));
+}
+
+insertLibraryPlaylistTracks(library: Library, playlistId, trackIds) {
+    withTransaction(library.db, () ref=> {
+        for (trackId in trackIds)
+            runStatement(library.db,
+                "insert into playlist_tracks (playlist_id, track_id, position)
+                    select
+                        ?1 as playlist_id,
+                        ?2 as track_id,
+                        coalesce(max(position), -1) + 1 as position
+                    from
+                        playlist_tracks
+                    where
+                        playlist_id = ?1
+                ", playlistId, trackId
+            );
+    });
 }
 
 deleteLibraryFolder(library: Library, folderId) {

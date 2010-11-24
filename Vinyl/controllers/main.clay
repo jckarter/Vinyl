@@ -256,9 +256,9 @@ record MainController = newClass(#VinylMainController, NSObject,
                 var item = libView.itemAtRow(libView.selectedRow());
 
                 var parentFolderId = if (itemIsFolder?(item))
-                    Maybe(Int(item["id"]))
+                    Maybe(NSInteger(item["id"]))
                 else
-                    nothing(Int);
+                    nothing(NSInteger);
 
                 self^.libraryDataSource.insertPlaylistWithName_parentFolderId(
                     #"New Playlist",
