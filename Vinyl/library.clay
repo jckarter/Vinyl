@@ -226,7 +226,7 @@ insertLibraryPlaylistTracks(library: Library, playlistId, trackIds) {
 }
 
 moveLibraryPlaylistTracks(library: Library, playlistId, trackIds, position) {
-    withTransaction(library.db, () ref=> {
+    return withTransaction(library.db, () ref=> {
         var trackIdSetSQL = "(" + join(", ", mapped(printString, trackIds)) + ")";
 
         runStatement(library.db,
@@ -242,6 +242,7 @@ moveLibraryPlaylistTracks(library: Library, playlistId, trackIds, position) {
                 position
             ", playlistId, position
         );
+        var newPosition = statementValue(NSInteger, library.db, "select count(1) from new_playlist_track_positions");
         for (trackId in trackIds) {
             runStatement(library.db,
                 "insert into new_playlist_track_positions (track_id) values (?)",
@@ -275,11 +276,18 @@ moveLibraryPlaylistTracks(library: Library, playlistId, trackIds, position) {
             ", playlistId
         );
         runStatement(library.db, "drop table new_playlist_track_positions");
+        return newPosition;
     });
 }
 
 deleteLibraryFolder(library: Library, folderId) {
     withTransaction(library.db, () ref=> {
+        runStatement(library.db,
+            "delete from playlist_tracks where playlist_id in (
+                select playlist_id from playlists where playlist_folder_id = ?
+            )",
+            folderId
+        );
         runStatement(library.db,
             "delete from playlists where playlist_folder_id = ?",
             folderId
@@ -293,7 +301,14 @@ deleteLibraryFolder(library: Library, folderId) {
 
 deleteLibraryPlaylist(library: Library, playlistId) {
     runStatement(library.db,
+        "delete from playlist_tracks where playlist_id = ?",
+        playlistId
+    );
+    runStatement(library.db,
         "delete from playlists where playlist_id = ?",
         playlistId
     );
+}
+
+deleteLibraryPlaylistTracks(library: Library, playlistId, trackIds) {
 }

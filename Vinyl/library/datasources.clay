@@ -146,24 +146,42 @@ record LibraryDataSource = newClass(NSObject,
             var trackIds = NSArray(pasteboard.propertyListForType(pasteboardType));
 
             var playlistId = NSInteger();
+            var playlistItem = nil();
 
             if (nil?(item)) {
                 playlistId = self.insertPlaylistWithName_parentFolderId(
                     #"New Playlist", // XXX derive playlist name from track attributes
                     nothing(NSInteger)
                 );
+                playlistItem = self^.playlists[self^.playlists.count() - 1];
             } else if (itemIsFolder?(item)) {
                 playlistId = self.insertPlaylistWithName_parentFolderId(
                     #"New Playlist",
                     Maybe(NSInteger(item["id"]))
                 );
+                playlistItem = item["playlists"][item["playlists"].count() - 1];
             } else { // itemIsPlaylist?
                 playlistId = NSInteger(item["id"]);
+                playlistItem = item;
             }
 
             insertLibraryPlaylistTracks(self^.library^, playlistId, mapped(NSInteger, trackIds));
 
             outlineView.reloadData();
+            if (itemIsFolder?(item))
+                outlineView.expandItem(item);
+
+            var playlistRow = outlineView.rowForItem(playlistItem);
+            outlineView.selectRowIndexes_byExtendingSelection(
+                NSIndexSet.indexSetWithIndex(NSUInteger(playlistRow)),
+                false
+            );
+            outlineView.editColumn_row_withEvent_select(
+                NSInteger(0),
+                NSInteger(playlistRow),
+                nil(NSEvent),
+                true
+            );
 
             return true;
         }),
@@ -493,9 +511,17 @@ record PlaylistDataSource = newClass(NSObject,
                 return false;
 
             var trackIds = mapped(NSInteger, pasteboard.propertyListForType(pasteboardType));
-            moveLibraryPlaylistTracks(self^.library^, playlistId, trackIds, row);
+            var newPosition = moveLibraryPlaylistTracks(self^.library^, playlistId, trackIds, row);
             refreshPlaylistDataSource(self);
             tableView.reloadData();
+
+            tableView.selectRowIndexes_byExtendingSelection(
+                NSIndexSet.indexSetWithIndexesInRange(
+                    NSMakeRange(NSUInteger(newPosition), NSUInteger(size(trackIds)))
+                ),
+                false
+            );
+
             return true;
         }),
 

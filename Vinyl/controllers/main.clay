@@ -381,6 +381,12 @@ record MainController = newClass(#VinylMainController, NSObject,
             updatePlayControls(self);
         }),
         (#"handleSelectPlaylist:", (self, notification) => {
+            // XXX preserve selection for each view
+            self^.playlistView.selectRowIndexes_byExtendingSelection(
+                NSIndexSet.indexSet(),
+                false
+            );
+
             var libView = self^.libraryView;
             var item = libView.itemAtRow(libView.selectedRow());
             if (itemIsFolder?(item))
