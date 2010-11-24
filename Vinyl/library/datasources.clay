@@ -408,7 +408,7 @@ record PlaylistDataSource = newClass(NSObject,
         (#"tableView:objectValueForTableColumn:row:", (self, tableView, tableColumn, rowIndex) =>
             fieldByName(self^.tracks[rowIndex], maybeObject, tableColumn.identifier())
         ),
-        (#"tableView:deleteRow:", (self, tableView, row) => {
+        (#"tableView:deleteRowsWithIndexes:", (self, tableView, rowIndexes) => {
         }),
         (#"tableView:writeRowsWithIndexes:toPasteboard:", (self, tableView, rowIndexes, pasteboard) => {
             var filenames = NSMutableArray.array();
@@ -450,6 +450,52 @@ record PlaylistDataSource = newClass(NSObject,
             pasteboard.setPropertyList_forType(filenames, NSFilenamesPboardType);
             pasteboard.setPropertyList_forType(trackIds, TrackIdsPboardType);
 
+            return true;
+        }),
+
+        (#"tableView:validateDrop:proposedRow:proposedDropOperation:", (self, tableView, info, row, operation) => {
+            var allowDrop = match(self^.libraryView,
+                PlaylistView, v => true,
+                PlaylistFolderView, v => false,
+                SortedView, v => false,
+            );
+            if (not allowDrop) return NSDragOperation(NSDragOperationNone);
+
+            var pasteboard = info.draggingPasteboard();
+            var pasteboardType = pasteboard.availableTypeFromArray(makeNSArray(TrackIdsPboardType));
+            if (nil?(pasteboardType))
+                return NSDragOperation(NSDragOperationNone);
+
+            if (row == -1)
+                tableView.setDropRow_dropOperation(
+                    tableView.numberOfRows(),
+                    NSTableViewDropOperation(NSTableViewDropAbove)
+                );
+            else
+                tableView.setDropRow_dropOperation(
+                    row,
+                    NSTableViewDropOperation(NSTableViewDropAbove)
+                );
+            return NSDragOperation(NSDragOperationMove);
+        }),
+        (#"tableView:acceptDrop:row:dropOperation:", (self, tableView, info, row, operation) => {
+            var ok?, playlistId = ...match(self^.libraryView,
+                PlaylistView, v => ...(true, NSInteger(v.id)),
+                PlaylistFolderView, v => ...(false, NSInteger(-1)),
+                SortedView, v => ...(false, NSInteger(-1)),
+            );
+            if (not ok?)
+                return false;
+
+            var pasteboard = info.draggingPasteboard();
+            var pasteboardType = pasteboard.availableTypeFromArray(makeNSArray(TrackIdsPboardType));
+            if (nil?(pasteboardType))
+                return false;
+
+            var trackIds = mapped(NSInteger, pasteboard.propertyListForType(pasteboardType));
+            moveLibraryPlaylistTracks(self^.library^, playlistId, trackIds, row);
+            refreshPlaylistDataSource(self);
+            tableView.reloadData();
             return true;
         }),
 

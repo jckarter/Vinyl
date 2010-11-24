@@ -2,7 +2,7 @@ import cocoa.*;
 import cocoa.appkit.*;
 
 overload selector(static #"outlineView:deleteItem:") = Void, NSOutlineView, Id;
-overload selector(static #"tableView:deleteRow:") = Void, NSTableView, NSInteger;
+overload selector(static #"tableView:deleteRowsWithIndexes:") = Void, NSTableView, NSIndexSet;
 
 isDeleteKeyEvent(event: NSEvent) {
     var chars = event.characters();
@@ -25,13 +25,13 @@ record DeletingTableView = newClass(#VinylDeletingTableView, NSTableView,
     ClassMethods(),
     InstanceMethods(
         (#"keyDown:", (self, event) => {
-            var selectedRow = self.selectedRow();
+            var selectedRowIndexes = self.selectedRowIndexes();
             var dataSource = self.dataSource();
             if (isDeleteKeyEvent(event)
-                and selectedRow >= 0
-                and dataSource.respondsToSelector(selectorHandle(#"tableView:deleteRow:"))
+                and selectedRowIndexes.count() > 0
+                and dataSource.respondsToSelector(selectorHandle(#"tableView:deleteRowsWithIndexes:"))
             ) {
-                self.dataSource().tableView_deleteRow(self, selectedRow);
+                self.dataSource().tableView_deleteRowsWithIndexes(self, selectedRowIndexes);
                 self.reloadData();
             }
             else
