@@ -17,12 +17,19 @@ alias PlaylistControlsRandomTag = 1;
 alias PlaylistControlsRepeatTag = 2;
 
 overload selector(static #"performPlayControl:") = Void, NSSegmentedControl;
+overload selector(static #"performBack:") = Void, Id;
+overload selector(static #"performPlay:") = Void, Id;
+overload selector(static #"performForward:") = Void, Id;
 overload selector(static #"performVolumeUpdate:") = Void, Id;
 overload selector(static #"performSearch:") = Void, Id;
 overload selector(static #"performPlaylistControl:") = Void, NSSegmentedControl;
 overload selector(static #"performAddPlaylist:") = Void, Id;
 overload selector(static #"performToggleShuffle:") = Void, Id;
 overload selector(static #"performToggleRepeat:") = Void, Id;
+overload selector(static #"performRepeatOff:") = Void, Id;
+overload selector(static #"performRepeatAll:") = Void, Id;
+overload selector(static #"performRepeatOne:") = Void, Id;
+overload selector(static #"performTogglePlaylistColumn:") = Void, Id;
 overload selector(static #"performImportItunesLibrary:") = Void, Id;
 overload selector(static #"performDoubleClickPlaylist:") = Void, NSTableView;
 overload selector(static #"performDoubleClickTrack:") = Void, NSTableView;
@@ -70,11 +77,14 @@ playTrackNumber(self: MainController, trackNumber: NSInteger) {
     );
 }
 
+boolState(x: Bool) = if (x) NSInteger(NSOnState) else NSInteger(NSOffState);
+
 updateShuffleControl(self: MainController, shuffle: Bool) {
     self^.playlistControls.setLabel_forSegment(
         if (shuffle) "X" else "x",
         NSInteger(PlaylistControlsRandomTag)
     );
+    self^.shuffleMenuItem.setState(boolState(shuffle));
 }
 
 updateRepeatControl(self: MainController, repeatMode: RepeatMode) {
@@ -94,6 +104,9 @@ updateRepeatControl(self: MainController, repeatMode: RepeatMode) {
         label,
         NSInteger(PlaylistControlsRepeatTag)
     );
+    self^.noRepeatMenuItem.setState(boolState(repeatMode == NoRepeat));
+    self^.repeatAllMenuItem.setState(boolState(repeatMode == RepeatAll));
+    self^.repeatOneMenuItem.setState(boolState(repeatMode == RepeatOne));
 }
 
 updatePlayControls(self: MainController) {
@@ -113,6 +126,7 @@ updatePlayControls(self: MainController) {
                 false,
                 NSInteger(PlayControlsForwardTag)
             );
+            self^.playMenuItem.setTitle("Play");
         },
         PlaylistState, playlistState => {
             playControls.setEnabled_forSegment(
@@ -132,12 +146,14 @@ updatePlayControls(self: MainController) {
                         #"||",
                         NSInteger(PlayControlsPlayTag)
                     );
+                    self^.playMenuItem.setTitle("Pause");
                 } else {
                     self^.playButtonMode = StopButton;
                     playControls.setLabel_forSegment(
                         #"X",
                         NSInteger(PlayControlsPlayTag)
                     );
+                    self^.playMenuItem.setTitle("Stop");
                 }
                 break;
             case Paused:
@@ -150,6 +166,7 @@ updatePlayControls(self: MainController) {
                     #">",
                     NSInteger(PlayControlsPlayTag)
                 );
+                self^.playMenuItem.setTitle("Resume");
                 break;
             }
         }
@@ -195,6 +212,12 @@ record MainController = newClass(#VinylMainController, NSObject,
             // status bar controls
             playlistControls: NSSegmentedControl,
             statusField: NSTextField,
+            // menu items
+            playMenuItem: NSMenuItem,
+            shuffleMenuItem: NSMenuItem,
+            noRepeatMenuItem: NSMenuItem,
+            repeatAllMenuItem: NSMenuItem,
+            repeatOneMenuItem: NSMenuItem,
         ),
         libraryDataSource: Retained[LibraryDataSource],
         playlistDataSource: Retained[PlaylistDataSource],
@@ -211,15 +234,24 @@ record MainController = newClass(#VinylMainController, NSObject,
             (#"performPlayControl:", (self, sender) => {
                 switch (sender.selectedSegment()) {
                 case PlayControlsBackTag:
-                    self^.player.previousTrack();
+                    self.performBack(sender);
                     break;
                 case PlayControlsPlayTag:
-                    playButton(self);
+                    self.performPlay(sender);
                     break;
                 case PlayControlsForwardTag:
-                    self^.player.nextTrack();
+                    self.performForward(sender);
                     break;
                 }
+            }),
+            (#"performPlay:", (self, sender) => {
+                playButton(self);
+            }),
+            (#"performBack:", (self, sender) => {
+                self^.player.previousTrack();
+            }),
+            (#"performForward:", (self, sender) => {
+                self^.player.nextTrack();
             }),
             (#"performDoubleClickPlaylist:", (self, sender) => {
             }),
@@ -305,6 +337,20 @@ record MainController = newClass(#VinylMainController, NSObject,
                     #"Repeat"
                 );
                 self^.player.setRepeatMode(repeat);
+            }),
+            (#"performRepeatOff:", (self, sender) => {
+                updateRepeatControl(self, NoRepeat);
+                self^.player.setRepeatMode(NoRepeat);
+            }),
+            (#"performRepeatAll:", (self, sender) => {
+                updateRepeatControl(self, RepeatAll);
+                self^.player.setRepeatMode(RepeatAll);
+            }),
+            (#"performRepeatOne:", (self, sender) => {
+                updateRepeatControl(self, RepeatOne);
+                self^.player.setRepeatMode(RepeatOne);
+            }),
+            (#"performTogglePlaylistColumn:", (self, sender) => {
             }),
             (#"performImportItunesLibrary:", (self, sender) => {
                 performImportItunesLibrary(self, findItunesLibrary());

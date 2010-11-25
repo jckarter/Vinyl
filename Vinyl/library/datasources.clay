@@ -537,9 +537,9 @@ record PlaylistDataSource = newClass(NSObject,
         }),
         (#"tableView:acceptDrop:row:dropOperation:", (self, tableView, info, row, operation) => {
             var ok?, playlistId = ...match(self^.libraryView,
-                PlaylistView, v => ...(true, NSInteger(v.id)),
+                PlaylistView,       v => ...(true, NSInteger(v.id)),
                 PlaylistFolderView, v => ...(false, NSInteger(-1)),
-                SortedView, v => ...(false, NSInteger(-1)),
+                SortedView,         v => ...(false, NSInteger(-1)),
             );
             if (not ok?)
                 return false;
