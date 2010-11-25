@@ -5,6 +5,7 @@ import Vinyl.library.*;
 import Vinyl.library.datasources.*;
 import Vinyl.qtplayer.*;
 import Vinyl.controllers.itunesimport.*;
+import Vinyl.formatting.*;
 import libc;
 import maybe.*;
 
@@ -24,6 +25,7 @@ overload selector(static #"performVolumeUpdate:") = Void, Id;
 overload selector(static #"performSearch:") = Void, Id;
 overload selector(static #"performPlaylistControl:") = Void, NSSegmentedControl;
 overload selector(static #"performAddPlaylist:") = Void, Id;
+overload selector(static #"performAddPlaylistFromSelection:") = Void, Id;
 overload selector(static #"performToggleShuffle:") = Void, Id;
 overload selector(static #"performToggleRepeat:") = Void, Id;
 overload selector(static #"performRepeatOff:") = Void, Id;
@@ -173,6 +175,14 @@ updatePlayControls(self: MainController) {
     );
 }
 
+updateStatus(self: MainController) {
+    // XXX more inappropriate touching
+    ref tracks = self^.playlistDataSource^.tracks;
+    var trackCount = size(tracks);
+    var trackTime = reduce(add, 0.0, mapped(x => x.duration_time, tracks));
+    self^.statusField.setStringValue(NSString.stringWithFormat(#"%lu tracks, %@ total time", trackCount, timeFormat(trackTime)));
+}
+
 enum PlayButtonMode { PlayButton, ResumeButton, StopButton, PauseButton }
 
 playButton(self: MainController) {
@@ -194,6 +204,40 @@ playButton(self: MainController) {
         self^.player.stop();
         break;
     }
+}
+
+private newPlaylist(self: MainController) {
+    var libView = self^.libraryView;
+    var selItem = libView.itemAtRow(libView.selectedRow());
+    var parentItem = if (itemIsFolder?(selItem))
+        selItem
+    else
+        libView.parentForItem(selItem);
+
+    var newItem = self^.libraryDataSource.insertPlaylistWithName_parentItem(
+        #"New Playlist",
+        parentItem
+    );
+    libView.reloadData();
+
+    return parentItem, newItem;
+}
+
+private editNewPlaylist(self: MainController, parentItem, newItem) {
+    var libView = self^.libraryView;
+
+    libView.expandItem(parentItem);
+    var playlistRow = libView.rowForItem(newItem);
+    libView.selectRowIndexes_byExtendingSelection(
+        NSIndexSet.indexSetWithIndex(NSUInteger(playlistRow)),
+        false
+    );
+    libView.editColumn_row_withEvent_select(
+        NSInteger(0),
+        NSInteger(playlistRow),
+        nil(NSEvent),
+        true
+    );
 }
 
 record MainController = newClass(#VinylMainController, NSObject,
@@ -284,33 +328,22 @@ record MainController = newClass(#VinylMainController, NSObject,
                 }
             }),
             (#"performAddPlaylist:", (self, sender) => {
-                var libView = self^.libraryView;
-                var selItem = libView.itemAtRow(libView.selectedRow());
-                var parentItem = if (itemIsFolder?(selItem))
-                    selItem
-                else
-                    libView.parentForItem(selItem);
+                var parentItem, newItem = ...newPlaylist(self);
+                editNewPlaylist(self, parentItem, newItem);
+            }),
+            (#"performAddPlaylistFromSelection:", (self, sender) => {
+                var parentItem, newItem = ...newPlaylist(self);
+                var selectedTracks = self^.playlistView.selectedRowIndexes();
+                var selectedTrackRows = indexSetIndices(selectedTracks);
 
-                var newItem = self^.libraryDataSource.insertPlaylistWithName_parentItem(
-                    #"New Playlist",
-                    parentItem
+                // XXX inappropriate touch
+                var selectedTrackIds = mapped(
+                    row => self^.playlistDataSource^.tracks[row].track_id,
+                    selectedTrackRows
                 );
-                libView.reloadData();
 
-                libView.expandItem(parentItem);
-
-                var playlistRow = libView.rowForItem(newItem);
-                libView.selectRowIndexes_byExtendingSelection(
-                    NSIndexSet.indexSetWithIndex(NSUInteger(playlistRow)),
-                    false
-                );
-                libView.editColumn_row_withEvent_select(
-                    NSInteger(0),
-                    NSInteger(playlistRow),
-                    nil(NSEvent),
-                    true
-                );
-                
+                insertLibraryPlaylistTracks(self^.library, NSInteger(newItem["id"]), selectedTrackIds);
+                editNewPlaylist(self, parentItem, newItem);
             }),
             (#"performToggleShuffle:", (self, sender) => {
                 var shuffle = not self^.player.shuffle();
@@ -398,6 +431,7 @@ record MainController = newClass(#VinylMainController, NSObject,
             self^.volumeControl.setDoubleValue(volume);
             updateShuffleControl(self, shuffle);
             updateRepeatControl(self, repeat);
+            updateStatus(self);
 
             self^.player.setVolume(Float(volume));
             self^.player.setShuffle(shuffle);
@@ -463,6 +497,7 @@ record MainController = newClass(#VinylMainController, NSObject,
                 );
             self^.playlistView.reloadData();
             updatePlayControls(self);
+            updateStatus(self);
         }),
         (#"handleSelectTrack:", (self, notification) => {
         }),

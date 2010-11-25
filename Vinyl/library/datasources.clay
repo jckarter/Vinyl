@@ -4,6 +4,7 @@ import sqlite.*;
 import maybe.*;
 import Vinyl.library.*;
 import Vinyl.controls.deletingtableview.*;
+import Vinyl.formatting.*;
 
 
 //
@@ -209,7 +210,6 @@ record LibraryDataSource = newClass(NSObject,
 
             return newItem;
         }),
-
     ),
 );
 
@@ -339,7 +339,7 @@ overload LibraryView() = LibraryView(SortedView());
 
 // XXX store sort names too
 record PlaylistTrack (
-    track_id: Int,
+    track_id: NSInteger,
     filename: String,
     name: String,
     sort_name: Maybe[String],
@@ -358,7 +358,7 @@ record PlaylistTrack (
     sides_count: Maybe[Int],
     track_number: Maybe[Int],
     tracks_count: Maybe[Int],
-    duration_time: Double,
+    duration_time: NSTimeInterval,
     year: Maybe[String],
     comments: Maybe[String],
     enabled_p: Bool,
@@ -369,7 +369,7 @@ record PlaylistTrack (
 );
 
 overload PlaylistTrack() = PlaylistTrack(
-    0,
+    NSInteger(0),
     String(),
     String(),
     Maybe[String](),
@@ -447,14 +447,7 @@ record PlaylistDataSource = newClass(NSObject,
         (#"tableView:deleteRowsWithIndexes:", (self, tableView, rowIndexes) => {
             match(self^.libraryView,
                 PlaylistView, playlist => {
-                    var rows = Vector[NSUInteger]();
-                    var rowCount = rowIndexes.count();
-                    resize(rows, rowCount);
-                    rowIndexes.getIndexes_maxCount_inIndexRange(
-                        begin(rows),
-                        rowCount,
-                        NSRangePointer(0),
-                    );
+                    var rows = indexSetIndices(rowIndexes);
 
                     deleteLibraryPlaylistPositions(self^.library^, playlist.id, rows);
                     refreshPlaylistDataSource(self);
@@ -471,14 +464,7 @@ record PlaylistDataSource = newClass(NSObject,
             var filenames = NSMutableArray.array();
             var trackIds = NSMutableArray.array();
 
-            var rows = Vector[NSUInteger]();
-            var rowCount = rowIndexes.count();
-            resize(rows, rowCount);
-            rowIndexes.getIndexes_maxCount_inIndexRange(
-                begin(rows),
-                rowCount,
-                NSRangePointer(0),
-            );
+            var rows = indexSetIndices(rowIndexes);
 
             for (row in rows) {
                 filenames.addObject(self^.tracks[row].filename);
@@ -486,9 +472,9 @@ record PlaylistDataSource = newClass(NSObject,
             }
 
             var localMask = match(self^.libraryView,
-                PlaylistView, v => bitwiseOr(NSDragOperationCopy, NSDragOperationMove, NSDragOperationDelete),
-                PlaylistFolderView, v => bitwiseOr(NSDragOperationCopy, NSDragOperationMove, NSDragOperationDelete),
-                SortedView, v => bitwiseOr(NSDragOperationCopy, NSDragOperationDelete),
+                PlaylistView,       v => bitwiseOr(NSDragOperationCopy, NSDragOperationMove, NSDragOperationDelete),
+                PlaylistFolderView, v => bitwiseOr(NSDragOperationCopy, NSDragOperationDelete),
+                SortedView,         v => bitwiseOr(NSDragOperationCopy, NSDragOperationDelete),
             );
 
             tableView.setDraggingSourceOperationMask_forLocal(
