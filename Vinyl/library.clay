@@ -216,6 +216,46 @@ insertLibraryPlaylistFolder(library: Library, name) {
     return NSInteger(lastInsertedRowId(library.db));
 }
 
+moveLibraryPlaylist(library: Library, playlistId, parentFolderId) {
+    withTransaction(library.db, () ref=> {
+        var oldFolderPositionStmt = SqliteStatement(
+            library.db,
+            "select playlist_folder_id, position from playlists where playlist_id = ?",
+            playlistId
+        );
+        var iter = iterator(oldFolderPositionStmt);
+        var oldParentFolderId, oldPosition = Maybe(NSInteger(0)), NSInteger(0);
+        if (hasNext?(iter)) {
+            next(iter);
+            oldParentFolderId, oldPosition = ...rowValues(iter, Maybe[NSInteger], NSInteger);
+        } else {
+            return;
+        }
+        runStatement(library.db,
+            "update playlists set
+                playlist_folder_id = ?1,
+                position = (select
+                        coalesce(max(position), -1) + 1 as position
+                    from
+                        playlists
+                    where
+                        playlist_folder_id is ?1
+                )
+            where
+                playlist_id = ?2
+            ", parentFolderId, playlistId
+        );
+        runStatement(library.db,
+            "update playlists set
+                position = position - 1
+            where
+                playlist_folder_id is ?
+                and position >= ?
+            ", oldParentFolderId, oldPosition
+        );
+    });
+}
+
 private _insertLibraryPlaylistTracks(library, playlistId, trackIds) {
     for (trackId in trackIds)
         runStatement(library.db,
@@ -333,5 +373,27 @@ deleteLibraryPlaylistPositions(library: Library, playlistId, positions) {
                 "delete from playlist_tracks where playlist_id = ? and position = ?",
                 playlistId, position
             );
+        runStatement(library.db,
+            "create temporary table new_playlist_track_positions as select
+                track_id
+            from
+                playlist_tracks
+            where
+                playlist_id = ?
+            order by
+                position
+            ", playlistId
+        );
+        runStatement(library.db, "delete from playlist_tracks where playlist_id = ?", playlistId);
+        runStatement(library.db,
+            "insert into playlist_tracks (playlist_id, track_id, position) select
+                ? as playlist_id,
+                track_id,
+                rowid - 1 as position
+            from
+                new_playlist_track_positions
+            ", playlistId
+        );
+        runStatement(library.db, "drop table new_playlist_track_positions");
     });
 }

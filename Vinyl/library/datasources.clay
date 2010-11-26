@@ -128,17 +128,35 @@ record LibraryDataSource = newClass(NSObject,
             }
         }),
 
-        /* XXX drag out
-        (#"outlineView:writeItems:toPasteboard:", (self, tableView, rowIndexes, pasteboard) => {
-        })
-        */
+        (#"outlineView:writeItems:toPasteboard:", (self, outlineView, items, pasteboard) => {
+            if (items.count() != 1)
+                return false;
+            var item = items[0];
+            if (not itemIsPlaylist?(item))
+                return false;
+
+            outlineView.setDraggingSourceOperationMask_forLocal(
+                NSUInteger(bitwiseOr(NSDragOperationMove, NSDragOperationDelete)),
+                false,
+            );
+
+            pasteboard.declareTypes_owner(
+                makeNSArray(PlaylistIdsPboardType),
+                self
+            );
+            pasteboard.setPropertyList_forType(makeNSArray(item["id"]), PlaylistIdsPboardType);
+
+            return true;
+        }),
 
         (#"outlineView:validateDrop:proposedItem:proposedChildIndex:", (self, outlineView, info, item, index) => {
             if (item.isKindOfClass(NSString))
                 return NSDragOperation(NSDragOperationNone);
 
             var pasteboard = info.draggingPasteboard();
-            var pasteboardType = pasteboard.availableTypeFromArray(makeNSArray(TrackIdsPboardType));
+            var pasteboardType = pasteboard.availableTypeFromArray(
+                makeNSArray(TrackIdsPboardType, PlaylistIdsPboardType)
+            );
             if (nil?(pasteboardType))
                 return NSDragOperation(NSDragOperationNone);
 
@@ -152,6 +170,9 @@ record LibraryDataSource = newClass(NSObject,
                     item,
                     NSInteger(item["playlists"].count())
                 );
+            else if (itemIsPlaylist?(item) and pasteboardType == PlaylistIdsPboardType)
+                return NSDragOperation(NSDragOperationNone);
+
             return NSDragOperation(NSDragOperationCopy);
         }),
 
@@ -160,21 +181,59 @@ record LibraryDataSource = newClass(NSObject,
                 return false;
 
             var pasteboard = info.draggingPasteboard();
-            var pasteboardType = pasteboard.availableTypeFromArray(makeNSArray(TrackIdsPboardType));
+            var pasteboardType = pasteboard.availableTypeFromArray(
+                makeNSArray(TrackIdsPboardType, PlaylistIdsPboardType)
+            );
             if (nil?(pasteboardType))
                 return false;
 
-            var trackIds = NSArray(pasteboard.propertyListForType(pasteboardType));
+            var playlistItem = nil();
+            var newPlaylist? = false;
+            if (pasteboardType == TrackIdsPboardType) {
+                if (itemIsPlaylist?(item))
+                    playlistItem = item;
+                else {
+                    playlistItem = self.insertPlaylistWithName_parentItem(
+                        #"New Playlist", // XXX derive playlist name from track attributes
+                        item
+                    );
+                    newPlaylist? = true;
+                }
 
-            var playlistItem = if (itemIsPlaylist?(item))
-                item
-            else
-                self.insertPlaylistWithName_parentItem(
-                    #"New Playlist", // XXX derive playlist name from track attributes
-                    item
-                );
+                var trackIds = NSArray(pasteboard.propertyListForType(pasteboardType));
+                insertLibraryPlaylistTracks(self^.library^, NSInteger(playlistItem["id"]), mapped(NSInteger, trackIds));
+            } else if (pasteboardType == PlaylistIdsPboardType) {
+                var playlistId = NSInteger(pasteboard.propertyListForType(pasteboardType)[0]);
+                var parentFolderId = if (itemIsFolder?(item))
+                    Maybe(NSInteger(item["id"]))
+                else
+                    nothing(NSInteger);
 
-            insertLibraryPlaylistTracks(self^.library^, NSInteger(playlistItem["id"]), mapped(NSInteger, trackIds));
+                for (folder in self^.folders)
+                    for (playlist in folder["playlists"])
+                        if (playlist["id"] == playlistId) {
+                            if (parentFolderId == Maybe(NSInteger(folder["id"])))
+                                return false;
+                            playlistItem = playlist;
+                            folder["playlists"].removeObject(playlist);
+                            goto foundPlaylistItem;
+                        }
+                for (playlist in self^.playlists)
+                    if (playlist["id"] == playlistId) {
+                        if (parentFolderId == nothing(NSInteger))
+                            return false;
+                        playlistItem = playlist;
+                        self^.playlists.removeObject(playlist);
+                        goto foundPlaylistItem;
+                    }
+foundPlaylistItem:
+                moveLibraryPlaylist(self^.library^, playlistId, parentFolderId);
+                if (itemIsFolder?(item) and not nil?(playlistItem))
+                    item["playlists"].addObject(playlistItem);
+                else
+                    self^.playlists.addObject(playlistItem);
+            } else
+                return false;
 
             outlineView.reloadData();
             if (itemIsFolder?(item))
@@ -185,12 +244,13 @@ record LibraryDataSource = newClass(NSObject,
                 NSIndexSet.indexSetWithIndex(NSUInteger(playlistRow)),
                 false
             );
-            outlineView.editColumn_row_withEvent_select(
-                NSInteger(0),
-                NSInteger(playlistRow),
-                nil(NSEvent),
-                true
-            );
+            if (newPlaylist?)
+                outlineView.editColumn_row_withEvent_select(
+                    NSInteger(0),
+                    NSInteger(playlistRow),
+                    nil(NSEvent),
+                    true
+                );
 
             return true;
         }),
@@ -436,6 +496,8 @@ overload maybeObject(x: Nothing) = nil();
 
 alias TrackIdsPboardType
     = NSString(#"com.duriansoftware.Vinyl.pasteboard.track_ids");
+alias PlaylistIdsPboardType
+    = NSString(#"com.duriansoftware.Vinyl.pasteboard.playlist_ids");
 
 record PlaylistDataSource = newClass(NSObject,
     InstanceVars(

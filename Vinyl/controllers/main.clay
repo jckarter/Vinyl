@@ -260,7 +260,7 @@ private editNewPlaylistItem(self: MainController, parentItem, newItem) {
     );
 }
 
-var defaultColumnsDict = makeNSDictionary(
+defaultColumnsDict() = makeNSDictionary(
     "name", true,
     "duration_time", true,
     "album_name", true,
@@ -463,7 +463,7 @@ record MainController = newClass(#VinylMainController, NSObject,
 
             self^.libraryView.setTarget(self);
             self^.libraryView.setDoubleAction(selectorHandle(#"performDoubleClickPlaylist:"));
-            self^.libraryView.registerForDraggedTypes(makeNSArray(TrackIdsPboardType));
+            self^.libraryView.registerForDraggedTypes(makeNSArray(PlaylistIdsPboardType, TrackIdsPboardType));
             self^.playlistView.registerForDraggedTypes(makeNSArray(TrackIdsPboardType));
 
             self^.playlistView.setTarget(self);
@@ -480,7 +480,7 @@ record MainController = newClass(#VinylMainController, NSObject,
                 #"Volume", 1.0,
                 #"Shuffle", false,
                 #"Repeat", Int(NoRepeat),
-                #"Columns", defaultColumnsDict,
+                #"Columns", defaultColumnsDict(),
             ));
 
             var volume = defaults.doubleForKey(#"Volume");
