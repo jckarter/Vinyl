@@ -26,6 +26,7 @@ overload selector(static #"performSearch:") = Void, Id;
 overload selector(static #"performPlaylistControl:") = Void, NSSegmentedControl;
 overload selector(static #"performAddPlaylist:") = Void, Id;
 overload selector(static #"performAddPlaylistFromSelection:") = Void, Id;
+overload selector(static #"performAddPlaylistFolder:") = Void, Id;
 overload selector(static #"performToggleShuffle:") = Void, Id;
 overload selector(static #"performToggleRepeat:") = Void, Id;
 overload selector(static #"performRepeatOff:") = Void, Id;
@@ -242,7 +243,7 @@ private newPlaylist(self: MainController) {
     return parentItem, newItem;
 }
 
-private editNewPlaylist(self: MainController, parentItem, newItem) {
+private editNewPlaylistItem(self: MainController, parentItem, newItem) {
     var libView = self^.libraryView;
 
     libView.expandItem(parentItem);
@@ -360,7 +361,7 @@ record MainController = newClass(#VinylMainController, NSObject,
             }),
             (#"performAddPlaylist:", (self, sender) => {
                 var parentItem, newItem = ...newPlaylist(self);
-                editNewPlaylist(self, parentItem, newItem);
+                editNewPlaylistItem(self, parentItem, newItem);
             }),
             (#"performAddPlaylistFromSelection:", (self, sender) => {
                 var parentItem, newItem = ...newPlaylist(self);
@@ -374,7 +375,16 @@ record MainController = newClass(#VinylMainController, NSObject,
                 );
 
                 insertLibraryPlaylistTracks(self^.library, NSInteger(newItem["id"]), selectedTrackIds);
-                editNewPlaylist(self, parentItem, newItem);
+                editNewPlaylistItem(self, parentItem, newItem);
+            }),
+            (#"performAddPlaylistFolder:", (self, sender) => {
+                var libView = self^.libraryView;
+
+                var newItem = self^.libraryDataSource.insertPlaylistFolderWithName(#"New Folder");
+
+                libView.reloadData();
+
+                editNewPlaylistItem(self, nil(), newItem);
             }),
             (#"performToggleShuffle:", (self, sender) => {
                 var shuffle = not self^.player.shuffle();

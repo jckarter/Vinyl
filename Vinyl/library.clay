@@ -203,6 +203,19 @@ insertLibraryPlaylist(library: Library, name, playlistFolderId) {
     return NSInteger(lastInsertedRowId(library.db));
 }
 
+insertLibraryPlaylistFolder(library: Library, name) {
+    runStatement(library.db,
+        "insert into playlist_folders (name, position)
+            select
+                ?1 as name,
+                coalesce(max(position), -1) + 1 as position
+            from
+                playlist_folders
+        ", name
+    );
+    return NSInteger(lastInsertedRowId(library.db));
+}
+
 private _insertLibraryPlaylistTracks(library, playlistId, trackIds) {
     for (trackId in trackIds)
         runStatement(library.db,

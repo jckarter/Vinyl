@@ -14,6 +14,8 @@ import Vinyl.formatting.*;
 overload selector(static #"initWithLibrary:") = Id, Pointer[Library];
 overload selector(static #"insertPlaylistWithName:parentItem:")
     = Id, NSString, Id;
+overload selector(static #"insertPlaylistFolderWithName:")
+    = Id, NSString;
 
 libraryDataSourceItemCount(self: LibraryDataSource)
     = NSInteger(
@@ -207,6 +209,19 @@ record LibraryDataSource = newClass(NSObject,
                 parentItem["playlists"].addObject(newItem);
             else
                 self^.playlists.addObject(newItem);
+
+            return newItem;
+        }),
+        (#"insertPlaylistFolderWithName:", (self, name) => {
+            var id = insertLibraryPlaylistFolder(self^.library^, String(name));
+
+            var newItem = makeNSMutableDictionary(
+                "id", id,
+                "name", name,
+                "playlists", makeNSMutableArray(),
+            );
+
+            self^.folders.addObject(newItem);
 
             return newItem;
         }),
