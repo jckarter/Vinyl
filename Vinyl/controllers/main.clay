@@ -261,6 +261,7 @@ private editNewPlaylist(self: MainController, parentItem, newItem) {
 
 var defaultColumnsDict = makeNSDictionary(
     "name", true,
+    "duration_time", true,
     "album_name", true,
     "track_artist_name", true,
     "album_name", true,
@@ -421,7 +422,6 @@ record MainController = newClass(#VinylMainController, NSObject,
             }),
 
             (#"performTogglePlaylistColumn:", (self, sender) => {
-                observe(#"toggling column", sender.tag(), self^.columns[NSNumber(sender.tag())][0].identifier());
                 var column = self^.columns[NSNumber(sender.tag())];
                 var tableColumn = column[0];
                 var columnName = tableColumn.identifier();
