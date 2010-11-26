@@ -7,7 +7,7 @@ timeFormat(time: NSTimeInterval) {
     var seconds = Int(round(fmod(time, 60.0)));
     var minutes = Int(trunc(fmod(time/60.0, 60.0)));
     var hours = Int(trunc(fmod(time/3_600.0, 24.0)));
-    var days = Int(trunc(fmod(time/86_400.0, 60.0)));
+    var days = Int(trunc(time/86_400.0));
 
     var str = String();
     reserve(str, 10);

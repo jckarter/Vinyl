@@ -31,7 +31,7 @@ overload selector(static #"performToggleRepeat:") = Void, Id;
 overload selector(static #"performRepeatOff:") = Void, Id;
 overload selector(static #"performRepeatAll:") = Void, Id;
 overload selector(static #"performRepeatOne:") = Void, Id;
-overload selector(static #"performTogglePlaylistColumn:") = Void, Id;
+overload selector(static #"performTogglePlaylistColumn:") = Void, NSMenuItem;
 overload selector(static #"performImportItunesLibrary:") = Void, Id;
 overload selector(static #"performDoubleClickPlaylist:") = Void, NSTableView;
 overload selector(static #"performDoubleClickTrack:") = Void, NSTableView;
@@ -45,6 +45,25 @@ overload selector(static #"handlePlayerStateDidChangeNotification:")
     = Void, NSNotification;
 overload selector(static #"handleSelectPlaylist:") = Void, NSNotification;
 overload selector(static #"handleSelectTrack:") = Void, NSNotification;
+
+var columnMenuItemOrder = [
+    "name",
+    "album_name",
+    "album_artist_name",
+    "track_artist_name",
+    "genre_name",
+    "composer_name",
+    "grouping_name",
+    "side_number",
+    "track_number",
+    "duration_time",
+    "year",
+    "comments",
+    "play_count",
+    "added_date",
+    "modified_date",
+    "played_date",
+];
 
 setStatusField(self, ...contents) {
     self^.statusField.setStringValue(printString(...contents));
@@ -240,6 +259,15 @@ private editNewPlaylist(self: MainController, parentItem, newItem) {
     );
 }
 
+var defaultColumnsDict = makeNSDictionary(
+    "name", true,
+    "album_name", true,
+    "track_artist_name", true,
+    "album_name", true,
+    "genre_name", true,
+    /* "rating", true, */
+);
+
 record MainController = newClass(#VinylMainController, NSObject,
     InstanceVars(
         ...IBOutlets(
@@ -262,12 +290,14 @@ record MainController = newClass(#VinylMainController, NSObject,
             noRepeatMenuItem: NSMenuItem,
             repeatAllMenuItem: NSMenuItem,
             repeatOneMenuItem: NSMenuItem,
+            firstViewColumnMenuItem: NSMenuItem,
         ),
         libraryDataSource: Retained[LibraryDataSource],
         playlistDataSource: Retained[PlaylistDataSource],
         library: Library,
         player: Retained[Player],
         playButtonMode: PlayButtonMode,
+        columns: Retained[NSMutableDictionary],
     ),
     ClassMethods(
     ),
@@ -383,13 +413,31 @@ record MainController = newClass(#VinylMainController, NSObject,
                 updateRepeatControl(self, RepeatOne);
                 self^.player.setRepeatMode(RepeatOne);
             }),
-            (#"performTogglePlaylistColumn:", (self, sender) => {
-            }),
             (#"performImportItunesLibrary:", (self, sender) => {
                 performImportItunesLibrary(self, findItunesLibrary());
             }),
             (#"performOpenLibraryWindow:", (self, sender) => {
                 self^.mainWindow.makeKeyAndOrderFront(self);
+            }),
+
+            (#"performTogglePlaylistColumn:", (self, sender) => {
+                observe(#"toggling column", sender.tag(), self^.columns[NSNumber(sender.tag())][0].identifier());
+                var column = self^.columns[NSNumber(sender.tag())];
+                var tableColumn = column[0];
+                var columnName = tableColumn.identifier();
+                var menuItem = NSMenuItem(column[1]);
+
+                var visible? = menuItem.state() != NSOnState;
+                menuItem.setState(boolState(visible?));
+                tableColumn.setHidden(not visible?);
+
+                var defaults = NSUserDefaults.standardUserDefaults();
+                var columnDefaults = Retained(defaults.dictionaryForKey(#"Columns").mutableCopy());
+                if (visible?)
+                    columnDefaults.setObject_forKey(true, columnName);
+                else
+                    columnDefaults.removeObjectForKey(columnName);
+                defaults.setObject_forKey(columnDefaults, #"Columns");
             }),
         ),
 
@@ -422,6 +470,7 @@ record MainController = newClass(#VinylMainController, NSObject,
                 #"Volume", 1.0,
                 #"Shuffle", false,
                 #"Repeat", Int(NoRepeat),
+                #"Columns", defaultColumnsDict,
             ));
 
             var volume = defaults.doubleForKey(#"Volume");
@@ -456,6 +505,31 @@ record MainController = newClass(#VinylMainController, NSObject,
                 NSTableViewSelectionDidChangeNotification,
                 self^.playlistView
             );
+
+            self^.columns <-- Retained(NSMutableDictionary.alloc().init());
+            var columnMenu = self^.firstViewColumnMenuItem.menu();
+            var columnMenuIndex = columnMenu.indexOfItem(self^.firstViewColumnMenuItem);
+            var visibleColumns = defaults.dictionaryForKey(#"Columns");
+
+            for (columnName, index in zipped(
+                columnMenuItemOrder,
+                range(columnMenuIndex, columnMenuIndex + size(columnMenuItemOrder))
+            )) {
+                var tableColumn = self^.playlistView.tableColumnWithIdentifier(columnName);
+                var menuItem = columnMenu.itemAtIndex(NSInteger(index));
+
+                menuItem.setTag(NSInteger(index));
+                menuItem.setTarget(self);
+                menuItem.setAction(selectorHandle(#"performTogglePlaylistColumn:"));
+
+                self^.columns.setObject_forKey(
+                    makeNSArray(tableColumn, menuItem),
+                    index
+                );
+                var visible? = not nil?(visibleColumns.objectForKey(columnName));
+                menuItem.setState(boolState(visible?));
+                tableColumn.setHidden(not visible?);
+            }
         }),
 
         (#"library", self => &self^.library),

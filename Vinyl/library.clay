@@ -138,7 +138,7 @@ updateLibraryFTS(library: Library) {
             tracks.display_name as name,
             albums.display_name as album,
             album_artists.display_name as album_artist,
-            track_artists.display_name as artist,
+            coalesce(track_artists.display_name, album_artists.display_name) as artist,
             genres.name as genre,
             composers.display_name as composer,
             groupings.name as grouping,
