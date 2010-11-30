@@ -3,6 +3,7 @@ import Vinyl.appdelegate.*;
 import Vinyl.controllers.main.*;
 import Vinyl.controllers.itunesimport.*;
 import Vinyl.controls.deletingtableview.*;
+import Vinyl.controls.playinfoview.*;
 
 main() = appKitMain(
     AppDelegate,
@@ -10,4 +11,5 @@ main() = appKitMain(
     ItunesImportController,
     DeletingTableView,
     DeletingOutlineView,
+    PlayInfoView,
 );

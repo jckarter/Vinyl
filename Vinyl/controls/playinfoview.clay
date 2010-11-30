@@ -1,0 +1,119 @@
+import cocoa.*;
+import cocoa.appkit.*;
+import cocoa.applicationservices.*;
+
+overload selector(static #"trackName") = NSString;
+overload selector(static #"setTrackName:") = Void, NSString;
+overload selector(static #"albumName") = NSString;
+overload selector(static #"setAlbumName:") = Void, NSString;
+overload selector(static #"artistName") = NSString;
+overload selector(static #"setArtistName:") = Void, NSString;
+overload selector(static #"currentTime") = NSTimeInterval;
+overload selector(static #"setCurrentTime:") = Void, NSTimeInterval;
+overload selector(static #"durationTime") = NSTimeInterval;
+overload selector(static #"setDurationTime:") = Void, NSTimeInterval;
+overload selector(static #"trackAttributedString") = NSAttributedString;
+overload selector(static #"performTimeSlider:") = Void, Id;
+overload selector(static #"updateInterface") = Void;
+
+record PlayInfoView = newClass(#VinylPlayInfoView, NSView,
+    InstanceVars(
+        ...IBOutlets(
+            trackField: NSTextField,
+            timeSlider: NSSlider,
+        ),
+        trackName: Retained[NSString],
+        albumName: Retained[NSString],
+        artistName: Retained[NSString],
+        currentTime: NSTimeInterval,
+        durationTime: NSTimeInterval,
+    ),
+    ClassMethods(
+    ),
+    InstanceMethods(
+        DeallocInstanceMethod(),
+
+        (#"awakeFromNib", self => {
+            self^.currentTime = 0.0;
+            self^.durationTime = 0.0;
+
+            self.updateInterface();
+        }),
+
+        (#"trackName", self => self^.trackName),
+        (#"setTrackName:", (self, trackName) => {
+            self^.trackName = Retained(trackName.copy());
+        }),
+        (#"albumName", self => self^.albumName),
+        (#"setAlbumName:", (self, albumName) => {
+            self^.albumName = Retained(albumName.copy());
+        }),
+        (#"artistName", self => self^.artistName),
+        (#"setArtistName:", (self, artistName) => {
+            self^.artistName = Retained(artistName.copy());
+        }),
+        (#"currentTime", self => self^.currentTime),
+        (#"setCurrentTime:", (self, time) => {
+            self^.currentTime = time;
+        }),
+        (#"durationTime", self => self^.durationTime),
+        (#"setDurationTime:", (self, time) => {
+            self^.durationTime = time;
+        }),
+
+        (#"updateInterface", self => {
+            self^.trackField.setAttributedStringValue(self.trackAttributedString());
+            self^.timeSlider.setMaxValue(self^.durationTime);
+            self^.timeSlider.setDoubleValue(self^.currentTime);
+            self^.timeSlider.setHidden(self^.durationTime == 0.0);
+        }),
+
+        (#"trackAttributedString", self => {
+            if (nil?(self^.trackName))
+                return nil(NSMutableAttributedString);
+            var centered = Retained(NSParagraphStyle.defaultParagraphStyle().mutableCopy());
+            centered.setAlignment(NSTextAlignment(NSCenterTextAlignment));
+            centered.setLineBreakMode(NSLineBreakMode(NSLineBreakByClipping));
+
+            var text = NSMutableAttributedString.alloc().initWithString_attributes(
+                NSString.stringWithFormat(#"%@\n", self^.trackName),
+                makeNSDictionary(
+                    NSFontAttributeName, NSFont.boldSystemFontOfSize(CGFloat(10.0)),
+                    NSParagraphStyleAttributeName, centered,
+                )
+            ).autorelease();
+
+            if (not nil?(self^.artistName) and not nil?(self^.albumName))
+                text.appendAttributedString(NSAttributedString.alloc().initWithString_attributes(
+                    NSString.stringWithFormat(#"%@ %C %@\n",
+                        self^.artistName,
+                        unichar(0x2014),
+                        self^.albumName,
+                    ),
+                    makeNSDictionary(
+                        NSFontAttributeName, NSFont.systemFontOfSize(CGFloat(10.0)),
+                        NSParagraphStyleAttributeName, centered,
+                    )
+                ).autorelease());
+            else if (not nil?(self^.artistName))
+                text.appendAttributedString(NSAttributedString.alloc().initWithString_attributes(
+                    self^.artistName,
+                    makeNSDictionary(
+                        NSFontAttributeName, NSFont.systemFontOfSize(CGFloat(10.0)),
+                        NSParagraphStyleAttributeName, centered,
+                    )
+                ).autorelease());
+            else // if (not nil?(self^.albumName))
+                text.appendAttributedString(NSAttributedString.alloc().initWithString_attributes(
+                    self^.albumName,
+                    makeNSDictionary(
+                        NSFontAttributeName, NSFont.systemFontOfSize(CGFloat(10.0)),
+                        NSParagraphStyleAttributeName, centered,
+                    )
+                ).autorelease());
+
+            return text;
+        }),
+    ),
+);
+

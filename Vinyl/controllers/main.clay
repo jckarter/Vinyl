@@ -6,6 +6,7 @@ import Vinyl.library.datasources.*;
 import Vinyl.qtplayer.*;
 import Vinyl.controllers.itunesimport.*;
 import Vinyl.formatting.*;
+import Vinyl.controls.playinfoview.*;
 import libc;
 import maybe.*;
 
@@ -38,11 +39,14 @@ overload selector(static #"performDoubleClickPlaylist:") = Void, NSTableView;
 overload selector(static #"performDoubleClickTrack:") = Void, NSTableView;
 overload selector(static #"performImportItunesLibrary:") = Void, Id;
 overload selector(static #"performOpenLibraryWindow:") = Void, Id;
+overload selector(static #"performScanTrack:") = Void, NSSlider;
 overload selector(static #"player") = Player;
 overload selector(static #"library") = Pointer[Library];
 overload selector(static #"_itunesSheetDidEnd:returnCode:contextInfo:")
     = Void, NSWindow, NSInteger, RawPointer;
 overload selector(static #"handlePlayerStateDidChangeNotification:")
+    = Void, NSNotification;
+overload selector(static #"handlePlayerUpdateTimeNotification:")
     = Void, NSNotification;
 overload selector(static #"handleSelectPlaylist:") = Void, NSNotification;
 overload selector(static #"handleSelectTrack:") = Void, NSNotification;
@@ -193,6 +197,30 @@ updatePlayControls(self: MainController) {
             }
         }
     );
+
+    updatePlayInfo(self);
+}
+
+updatePlayInfo(self: MainController) {
+    var piView = self^.playInfoView;
+    var track = self^.player.currentTrack();
+    if (null?(track)) {
+        piView.setTrackName(nil());
+        piView.setAlbumName(nil());
+        piView.setArtistName(nil());
+        piView.setDurationTime(0.0);
+    } else {
+        piView.setTrackName(track^.name);
+        piView.setAlbumName(maybe(track^.album_name, name => Id(name), () => nil()));
+        piView.setArtistName(maybe(track^.track_artist_name, name => Id(name), () => nil()));
+        piView.setDurationTime(track^.duration_time);
+    }
+    updatePlayTime(self);
+}
+
+updatePlayTime(self: MainController) {
+    self^.playInfoView.setCurrentTime(self^.player.currentTrackTime());
+    self^.playInfoView.updateInterface();
 }
 
 updateStatus(self: MainController) {
@@ -281,7 +309,7 @@ record MainController = newClass(#VinylMainController, NSObject,
             // toolbar
             playControls: NSSegmentedControl,
             volumeControl: NSControl,
-            playInfoView: NSView,
+            playInfoView: PlayInfoView,
             searchField: NSTextField,
             // status bar controls
             playlistControls: NSSegmentedControl,
@@ -345,6 +373,7 @@ record MainController = newClass(#VinylMainController, NSObject,
             (#"performSearch:", (self, sender) => {
                 self^.playlistDataSource.setSearchString(sender.stringValue());
                 self^.playlistView.reloadData();
+                updateStatus(self);
             }),
             (#"performPlaylistControl:", (self, sender) => {
                 switch (sender.selectedSegment()) {
@@ -449,6 +478,10 @@ record MainController = newClass(#VinylMainController, NSObject,
                     columnDefaults.removeObjectForKey(columnName);
                 defaults.setObject_forKey(columnDefaults, #"Columns");
             }),
+
+            (#"performScanTrack:", (self, sender) => {
+                self^.player.setCurrentTrackTime(sender.doubleValue());
+            }),
         ),
 
         (#"awakeFromNib", self => {
@@ -505,6 +538,12 @@ record MainController = newClass(#VinylMainController, NSObject,
             );
             notiCenter.addObserver_selector_name_object(
                 self,
+                selectorHandle(#"handlePlayerUpdateTimeNotification:"),
+                PlayerUpdateTimeNotification,
+                self^.player
+            );
+            notiCenter.addObserver_selector_name_object(
+                self,
                 selectorHandle(#"handleSelectPlaylist:"),
                 NSOutlineViewSelectionDidChangeNotification,
                 self^.libraryView
@@ -551,12 +590,16 @@ record MainController = newClass(#VinylMainController, NSObject,
             refreshLibraryDataSource(weak(self^.libraryDataSource));
             self^.libraryView.reloadData();
             self^.playlistView.reloadData();
+            updateStatus(self);
             sheet.orderOut(self);
             importController.release();
         }),
 
         (#"handlePlayerStateDidChangeNotification:", (self, notification) => {
             updatePlayControls(self);
+        }),
+        (#"handlePlayerUpdateTimeNotification:", (self, notification) => {
+            updatePlayTime(self);
         }),
         (#"handleSelectPlaylist:", (self, notification) => {
             // XXX preserve selection for each view

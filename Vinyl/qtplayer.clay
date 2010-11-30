@@ -101,6 +101,7 @@ overload selector(static #"state") = PlayerState;
 overload selector(static #"setState:") = Void, PlayerState;
 overload selector(static #"handleMovieDidEndNotification:") = Void, NSNotification;
 overload selector(static #"handleMovieLoadStateDidChangeNotification:") = Void, NSNotification;
+overload selector(static #"handleMovieTimeDidChangeNotification:") = Void, NSNotification;
 overload selector(static #"playLibrary:view:trackNumber:") = Void, Pointer[Library], LibraryView, SizeT;
 overload selector(static #"resume") = Void;
 overload selector(static #"pause") = Void;
@@ -112,10 +113,17 @@ overload selector(static #"setShuffle:") = Void, Bool;
 overload selector(static #"repeatMode") = RepeatMode;
 overload selector(static #"setRepeatMode:") = Void, RepeatMode;
 overload selector(static #"playerState") = Pointer[PlayerState];
+overload selector(static #"currentTrack") = Pointer[PlaylistTrack];
+overload selector(static #"setCurrentTrackTime:") = Void, NSTimeInterval;
+overload selector(static #"currentTrackTime") = NSTimeInterval;
+overload selector(static #"updateTimeTimer:") = Void, NSTimer;
 
 enum RepeatMode { NoRepeat, RepeatAll, RepeatOne }
 
 alias PlayerStateDidChangeNotification = NSString(#"VinylPlayerStateDidChangeNotification");
+alias PlayerUpdateTimeNotification = NSString(#"VinylPlayerUpdateTimeNotification");
+
+alias UPDATE_TIME_INTERVAL = 0.5;
 
 record Player = newClass(NSObject,
     InstanceVars(
@@ -123,6 +131,7 @@ record Player = newClass(NSObject,
         volume: Float,
         shuffle: Bool,
         repeatMode: RepeatMode,
+        updateTimeTimer: Retained[NSTimer],
     ),
     ClassMethods(),
     InstanceMethods(
@@ -142,6 +151,12 @@ record Player = newClass(NSObject,
                 self,
                 selectorHandle(#"handleMovieLoadStateDidChangeNotification:"),
                 QTMovieLoadStateDidChangeNotification,
+                nil()
+            );
+            NSNotificationCenter.defaultCenter().addObserver_selector_name_object(
+                self,
+                selectorHandle(#"handleMovieTimeDidChangeNotification:"),
+                QTMovieTimeDidChangeNotification,
                 nil()
             );
             return self;
@@ -180,6 +195,17 @@ record Player = newClass(NSObject,
                 }
             );
         }),
+        (#"handleMovieTimeDidChangeNotification:", (self, notification) => {
+            NSNotificationCenter.defaultCenter().postNotificationName_object(
+                PlayerUpdateTimeNotification, self
+            );
+        }),
+
+        (#"updateTimeTimer:", (self, timer) => {
+            NSNotificationCenter.defaultCenter().postNotificationName_object(
+                PlayerUpdateTimeNotification, self
+            );
+        }),
 
         (#"playLibrary:view:trackNumber:", (self, library, libraryView, trackNumber) => {
             self.stop();
@@ -205,6 +231,17 @@ record Player = newClass(NSObject,
                         NSNotificationCenter.defaultCenter().postNotificationName_object(
                             PlayerStateDidChangeNotification, self
                         );
+                        self^.updateTimeTimer = NSTimer.timerWithTimeInterval_target_selector_userInfo_repeats(
+                            UPDATE_TIME_INTERVAL,
+                            self,
+                            selectorHandle(#"updateTimeTimer:"),
+                            nil(),
+                            true,
+                        );
+                        NSRunLoop.currentRunLoop().addTimer_forMode(
+                            self^.updateTimeTimer,
+                            NSDefaultRunLoopMode,
+                        );
                     } else
                         self.stop();
                 }
@@ -220,6 +257,8 @@ record Player = newClass(NSObject,
                     NSNotificationCenter.defaultCenter().postNotificationName_object(
                         PlayerStateDidChangeNotification, self
                     );
+                    self^.updateTimeTimer.invalidate();
+                    self^.updateTimeTimer = nil();
                 }
             );
         }),
@@ -233,6 +272,8 @@ record Player = newClass(NSObject,
                     NSNotificationCenter.defaultCenter().postNotificationName_object(
                         PlayerStateDidChangeNotification, self
                     );
+                    self^.updateTimeTimer.invalidate();
+                    self^.updateTimeTimer = nil();
                 }
             );
         }),
@@ -256,9 +297,7 @@ record Player = newClass(NSObject,
                             self.stop();
                     } else {
                         // else restart from the beginning
-                        playlistState.movie.stop();
-                        playlistState.movie.setCurrentTime(QTMakeTime(CLong(0), CLong(0)));
-                        playlistState.movie.play();
+                        self.setCurrentTrackTime(0.0);
                     }
                 }
             );
@@ -281,6 +320,44 @@ record Player = newClass(NSObject,
                 }
             );
         }),
+
+        (#"setCurrentTrackTime:", (self, time) => {
+            match(self^.state,
+                StoppedState,  stopped => { },
+                PlaylistState, playlistState => {
+                    playlistState.movie.stop();
+                    // XXX using NSInvocation to hack around x86-64 abi bugs
+                    var invocation = NSInvocation.invocationWithMethodSignature(
+                        playlistState.movie.methodSignatureForSelector(
+                            selectorHandle(#"setCurrentTime:")
+                        )
+                    );
+                    invocation.setTarget(playlistState.movie);
+                    invocation.setSelector(selectorHandle(#"setCurrentTime:"));
+                    var qttime = QTMakeTime(CLong(time * 1000.0), CLong(1000));
+                    invocation.setArgument_atIndex(RawPointer(&qttime), NSInteger(2));
+                    invocation.invoke();
+                    playlistState.movie.play();
+                }
+            );
+        }),
+
+        (#"currentTrackTime", self => match(self^.state,
+            StoppedState,  stopped => 0.0,
+            PlaylistState, playlistState => {
+                var invocation = NSInvocation.invocationWithMethodSignature(
+                    playlistState.movie.methodSignatureForSelector(
+                        selectorHandle(#"currentTime")
+                    )
+                );
+                invocation.setTarget(playlistState.movie);
+                invocation.setSelector(selectorHandle(#"currentTime"));
+                invocation.invoke();
+                var qttime = QTTime();
+                invocation.getReturnValue(RawPointer(&qttime));
+                return Double(qttime.timeValue)/Double(qttime.timeScale);
+            }
+        )),
 
         ReaderInstanceMethod(#volume, Float),
         
@@ -313,6 +390,14 @@ record Player = newClass(NSObject,
         ...PropertyInstanceMethods(#repeatMode, RepeatMode),
 
         (#"playerState", self => &self^.state),
+
+        (#"currentTrack", self => match(self^.state,
+            StoppedState,  stopped       => null(PlaylistTrack),
+            PlaylistState, playlistState => {
+                var realTrackNumber = playlistState.trackOrder[playlistState.trackNumber];
+                return &playlistState.tracks[realTrackNumber];
+            },
+        ))
     ),
 );
 

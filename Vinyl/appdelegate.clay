@@ -6,5 +6,10 @@ record AppDelegate = newClass(#"VinylAppDelegate", NSObject,
         (#mainWindow, IBOutlet(NSWindow)),
     ),
     ClassMethods(),
-    InstanceMethods(),
+    InstanceMethods(
+        (#"applicationShouldHandleReopen:hasVisibleWindows:", (self, app, visibleWindows?) => {
+            if (not visibleWindows?)
+                self^.mainWindow.makeKeyAndOrderFront(self);
+        }),
+    ),
 );
