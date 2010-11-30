@@ -13,7 +13,7 @@
 		<object class="NSMutableArray" key="IBDocument.EditedObjectIDs">
 			<bool key="EncodedWithXMLCoder">YES</bool>
 			<integer value="81"/>
-			<integer value="762"/>
+			<integer value="575"/>
 		</object>
 		<object class="NSArray" key="IBDocument.PluginDependencies">
 			<bool key="EncodedWithXMLCoder">YES</bool>
@@ -752,10 +752,9 @@
 								<string key="NSToolbarItemPaletteLabel">Search</string>
 								<nil key="NSToolbarItemToolTip"/>
 								<object class="NSSearchField" key="NSToolbarItemView" id="741056778">
-									<reference key="NSNextResponder"/>
+									<nil key="NSNextResponder"/>
 									<int key="NSvFlags">268</int>
 									<string key="NSFrame">{{0, 14}, {96, 22}}</string>
-									<reference key="NSSuperview"/>
 									<bool key="NSEnabled">YES</bool>
 									<object class="NSSearchFieldCell" key="NSCell" id="342665027">
 										<int key="NSCellFlags">343014976</int>
@@ -843,25 +842,25 @@
 								<bool key="NSToolbarIsUserRemovable">YES</bool>
 								<int key="NSToolbarItemVisibilityPriority">30</int>
 							</object>
-							<object class="NSToolbarItem" id="637812509">
+							<object class="NSToolbarItem" id="625063557">
 								<object class="NSMutableString" key="NSToolbarItemIdentifier">
 									<characters key="NS.bytes">9C60F9E3-2592-45D2-8B8B-DF29369D3044</characters>
 								</object>
 								<string key="NSToolbarItemLabel">Play Info</string>
 								<string key="NSToolbarItemPaletteLabel">Play Info</string>
 								<nil key="NSToolbarItemToolTip"/>
-								<object class="NSView" key="NSToolbarItemView" id="48474449">
-									<reference key="NSNextResponder"/>
+								<object class="NSView" key="NSToolbarItemView" id="25791685">
+									<nil key="NSNextResponder"/>
 									<int key="NSvFlags">256</int>
 									<object class="NSMutableArray" key="NSSubviews">
 										<bool key="EncodedWithXMLCoder">YES</bool>
-										<object class="NSTextField" id="73557807">
-											<reference key="NSNextResponder" ref="48474449"/>
+										<object class="NSTextField" id="194259911">
+											<reference key="NSNextResponder" ref="25791685"/>
 											<int key="NSvFlags">266</int>
 											<string key="NSFrame">{{0, -62}, {200, 102}}</string>
-											<reference key="NSSuperview" ref="48474449"/>
+											<reference key="NSSuperview" ref="25791685"/>
 											<bool key="NSEnabled">YES</bool>
-											<object class="NSTextFieldCell" key="NSCell" id="726042598">
+											<object class="NSTextFieldCell" key="NSCell" id="572144064">
 												<int key="NSCellFlags">67239488</int>
 												<int key="NSCellFlags2">1212286976</int>
 												<string type="base64-UTF8" key="NSContents">RXZlcnlib2R5J3MgR290IFNvbWV0aGluZyBUbyBIaWRlIEV4Y2VwdCBGb3IgTWUgYW5kIE15IE1vbmtl
@@ -871,8 +870,8 @@ eQpUaGUgQmVhdGxlcyDigJQgVGhlIEJlYXRsZXM</string>
 													<double key="NSSize">11</double>
 													<int key="NSfFlags">16</int>
 												</object>
-												<reference key="NSControlView" ref="73557807"/>
-												<object class="NSColor" key="NSBackgroundColor" id="374487440">
+												<reference key="NSControlView" ref="194259911"/>
+												<object class="NSColor" key="NSBackgroundColor" id="600634347">
 													<int key="NSColorSpace">6</int>
 													<string key="NSCatalogName">System</string>
 													<string key="NSColorName">controlColor</string>
@@ -884,17 +883,17 @@ eQpUaGUgQmVhdGxlcyDigJQgVGhlIEJlYXRsZXM</string>
 												<reference key="NSTextColor" ref="789817812"/>
 											</object>
 										</object>
-										<object class="NSSlider" id="940458434">
-											<reference key="NSNextResponder" ref="48474449"/>
+										<object class="NSSlider" id="214940327">
+											<reference key="NSNextResponder" ref="25791685"/>
 											<int key="NSvFlags">266</int>
 											<string key="NSFrame">{{0, -1}, {200, 12}}</string>
-											<reference key="NSSuperview" ref="48474449"/>
+											<reference key="NSSuperview" ref="25791685"/>
 											<bool key="NSEnabled">YES</bool>
-											<object class="NSSliderCell" key="NSCell" id="257258140">
+											<object class="NSSliderCell" key="NSCell" id="522662716">
 												<int key="NSCellFlags">-2080244224</int>
 												<int key="NSCellFlags2">262144</int>
 												<string key="NSContents"/>
-												<reference key="NSControlView" ref="940458434"/>
+												<reference key="NSControlView" ref="214940327"/>
 												<double key="NSMaxValue">100</double>
 												<double key="NSMinValue">0.0</double>
 												<double key="NSValue">50</double>
@@ -907,7 +906,6 @@ eQpUaGUgQmVhdGxlcyDigJQgVGhlIEJlYXRsZXM</string>
 										</object>
 									</object>
 									<string key="NSFrame">{{0, 14}, {200, 40}}</string>
-									<reference key="NSSuperview"/>
 								</object>
 								<nil key="NSToolbarItemImage"/>
 								<nil key="NSToolbarItemTarget"/>
@@ -928,10 +926,9 @@ eQpUaGUgQmVhdGxlcyDigJQgVGhlIEJlYXRsZXM</string>
 								<string key="NSToolbarItemPaletteLabel">Volume</string>
 								<nil key="NSToolbarItemToolTip"/>
 								<object class="NSSlider" key="NSToolbarItemView" id="412627095">
-									<reference key="NSNextResponder"/>
+									<nil key="NSNextResponder"/>
 									<int key="NSvFlags">266</int>
 									<string key="NSFrame">{{0, 14}, {80, 15}}</string>
-									<reference key="NSSuperview"/>
 									<bool key="NSEnabled">YES</bool>
 									<object class="NSSliderCell" key="NSCell" id="321081611">
 										<int key="NSCellFlags">67501824</int>
@@ -967,10 +964,9 @@ eQpUaGUgQmVhdGxlcyDigJQgVGhlIEJlYXRsZXM</string>
 								<string key="NSToolbarItemPaletteLabel">Play Controls</string>
 								<nil key="NSToolbarItemToolTip"/>
 								<object class="NSSegmentedControl" key="NSToolbarItemView" id="749324148">
-									<reference key="NSNextResponder"/>
+									<nil key="NSNextResponder"/>
 									<int key="NSvFlags">268</int>
 									<string key="NSFrame">{{0, 14}, {92, 25}}</string>
-									<reference key="NSSuperview"/>
 									<bool key="NSEnabled">YES</bool>
 									<object class="NSSegmentedCell" key="NSCell" id="868682370">
 										<int key="NSCellFlags">67239424</int>
@@ -1102,7 +1098,7 @@ eQpUaGUgQmVhdGxlcyDigJQgVGhlIEJlYXRsZXM</string>
 						<bool key="EncodedWithXMLCoder">YES</bool>
 						<reference ref="90433590"/>
 						<reference ref="246670371"/>
-						<reference ref="637812509"/>
+						<reference ref="625063557"/>
 						<reference ref="106904291"/>
 						<reference ref="18501020"/>
 						<reference ref="313973857"/>
@@ -1113,7 +1109,7 @@ eQpUaGUgQmVhdGxlcyDigJQgVGhlIEJlYXRsZXM</string>
 						<reference ref="90433590"/>
 						<reference ref="246670371"/>
 						<reference ref="313973857"/>
-						<reference ref="637812509"/>
+						<reference ref="625063557"/>
 						<reference ref="313973857"/>
 						<reference ref="106904291"/>
 					</object>
@@ -1343,6 +1339,11 @@ eQpUaGUgQmVhdGxlcyDigJQgVGhlIEJlYXRsZXM</string>
 																<int key="NSPeriodicInterval">25</int>
 															</object>
 															<reference key="NSTableView" ref="612707953"/>
+															<object class="NSSortDescriptor" key="NSSortDescriptorPrototype">
+																<string key="NSKey">enabled_p</string>
+																<bool key="NSAscending">NO</bool>
+																<string key="NSSelector">compare:</string>
+															</object>
 														</object>
 														<object class="NSTableColumn" id="855848356">
 															<string key="NSIdentifier">name</string>
@@ -1369,6 +1370,11 @@ eQpUaGUgQmVhdGxlcyDigJQgVGhlIEJlYXRsZXM</string>
 															<int key="NSResizingMask">2</int>
 															<bool key="NSIsResizeable">YES</bool>
 															<reference key="NSTableView" ref="612707953"/>
+															<object class="NSSortDescriptor" key="NSSortDescriptorPrototype">
+																<string key="NSKey">name</string>
+																<bool key="NSAscending">YES</bool>
+																<string key="NSSelector">compare:</string>
+															</object>
 														</object>
 														<object class="NSTableColumn" id="804537945">
 															<string key="NSIdentifier">album_name</string>
@@ -1400,6 +1406,11 @@ eQpUaGUgQmVhdGxlcyDigJQgVGhlIEJlYXRsZXM</string>
 															<int key="NSResizingMask">2</int>
 															<bool key="NSIsResizeable">YES</bool>
 															<reference key="NSTableView" ref="612707953"/>
+															<object class="NSSortDescriptor" key="NSSortDescriptorPrototype">
+																<string key="NSKey">album_name</string>
+																<bool key="NSAscending">YES</bool>
+																<string key="NSSelector">compare:</string>
+															</object>
 														</object>
 														<object class="NSTableColumn" id="474805061">
 															<string key="NSIdentifier">album_artist_name</string>
@@ -1426,6 +1437,11 @@ eQpUaGUgQmVhdGxlcyDigJQgVGhlIEJlYXRsZXM</string>
 															<int key="NSResizingMask">2</int>
 															<bool key="NSIsResizeable">YES</bool>
 															<reference key="NSTableView" ref="612707953"/>
+															<object class="NSSortDescriptor" key="NSSortDescriptorPrototype">
+																<string key="NSKey">album_artist_name</string>
+																<bool key="NSAscending">YES</bool>
+																<string key="NSSelector">compare:</string>
+															</object>
 														</object>
 														<object class="NSTableColumn" id="118323174">
 															<string key="NSIdentifier">track_artist_name</string>
@@ -1452,6 +1468,11 @@ eQpUaGUgQmVhdGxlcyDigJQgVGhlIEJlYXRsZXM</string>
 															<int key="NSResizingMask">2</int>
 															<bool key="NSIsResizeable">YES</bool>
 															<reference key="NSTableView" ref="612707953"/>
+															<object class="NSSortDescriptor" key="NSSortDescriptorPrototype">
+																<string key="NSKey">track_artist_name</string>
+																<bool key="NSAscending">YES</bool>
+																<string key="NSSelector">compare:</string>
+															</object>
 														</object>
 														<object class="NSTableColumn" id="202523308">
 															<string key="NSIdentifier">genre_name</string>
@@ -1478,6 +1499,11 @@ eQpUaGUgQmVhdGxlcyDigJQgVGhlIEJlYXRsZXM</string>
 															<int key="NSResizingMask">2</int>
 															<bool key="NSIsResizeable">YES</bool>
 															<reference key="NSTableView" ref="612707953"/>
+															<object class="NSSortDescriptor" key="NSSortDescriptorPrototype">
+																<string key="NSKey">genre_name</string>
+																<bool key="NSAscending">YES</bool>
+																<string key="NSSelector">compare:</string>
+															</object>
 														</object>
 														<object class="NSTableColumn" id="722766788">
 															<string key="NSIdentifier">composer_name</string>
@@ -1504,6 +1530,11 @@ eQpUaGUgQmVhdGxlcyDigJQgVGhlIEJlYXRsZXM</string>
 															<int key="NSResizingMask">2</int>
 															<bool key="NSIsResizeable">YES</bool>
 															<reference key="NSTableView" ref="612707953"/>
+															<object class="NSSortDescriptor" key="NSSortDescriptorPrototype">
+																<string key="NSKey">composer_name</string>
+																<bool key="NSAscending">YES</bool>
+																<string key="NSSelector">compare:</string>
+															</object>
 														</object>
 														<object class="NSTableColumn" id="80215239">
 															<string key="NSIdentifier">grouping_name</string>
@@ -1530,6 +1561,11 @@ eQpUaGUgQmVhdGxlcyDigJQgVGhlIEJlYXRsZXM</string>
 															<int key="NSResizingMask">2</int>
 															<bool key="NSIsResizeable">YES</bool>
 															<reference key="NSTableView" ref="612707953"/>
+															<object class="NSSortDescriptor" key="NSSortDescriptorPrototype">
+																<string key="NSKey">grouping_name</string>
+																<bool key="NSAscending">YES</bool>
+																<string key="NSSelector">compare:</string>
+															</object>
 														</object>
 														<object class="NSTableColumn" id="311771343">
 															<string key="NSIdentifier">side_number</string>
@@ -1556,6 +1592,11 @@ eQpUaGUgQmVhdGxlcyDigJQgVGhlIEJlYXRsZXM</string>
 															<int key="NSResizingMask">2</int>
 															<bool key="NSIsResizeable">YES</bool>
 															<reference key="NSTableView" ref="612707953"/>
+															<object class="NSSortDescriptor" key="NSSortDescriptorPrototype">
+																<string key="NSKey">side_number</string>
+																<bool key="NSAscending">YES</bool>
+																<string key="NSSelector">compare:</string>
+															</object>
 														</object>
 														<object class="NSTableColumn" id="747352525">
 															<string key="NSIdentifier">track_number</string>
@@ -1582,6 +1623,11 @@ eQpUaGUgQmVhdGxlcyDigJQgVGhlIEJlYXRsZXM</string>
 															<int key="NSResizingMask">2</int>
 															<bool key="NSIsResizeable">YES</bool>
 															<reference key="NSTableView" ref="612707953"/>
+															<object class="NSSortDescriptor" key="NSSortDescriptorPrototype">
+																<string key="NSKey">track_number</string>
+																<bool key="NSAscending">YES</bool>
+																<string key="NSSelector">compare:</string>
+															</object>
 														</object>
 														<object class="NSTableColumn" id="813313052">
 															<string key="NSIdentifier">duration_time</string>
@@ -1608,6 +1654,11 @@ eQpUaGUgQmVhdGxlcyDigJQgVGhlIEJlYXRsZXM</string>
 															<int key="NSResizingMask">2</int>
 															<bool key="NSIsResizeable">YES</bool>
 															<reference key="NSTableView" ref="612707953"/>
+															<object class="NSSortDescriptor" key="NSSortDescriptorPrototype">
+																<string key="NSKey">duration_time</string>
+																<bool key="NSAscending">YES</bool>
+																<string key="NSSelector">compare:</string>
+															</object>
 														</object>
 														<object class="NSTableColumn" id="610135077">
 															<string key="NSIdentifier">year</string>
@@ -1634,6 +1685,11 @@ eQpUaGUgQmVhdGxlcyDigJQgVGhlIEJlYXRsZXM</string>
 															<int key="NSResizingMask">2</int>
 															<bool key="NSIsResizeable">YES</bool>
 															<reference key="NSTableView" ref="612707953"/>
+															<object class="NSSortDescriptor" key="NSSortDescriptorPrototype">
+																<string key="NSKey">year</string>
+																<bool key="NSAscending">YES</bool>
+																<string key="NSSelector">compare:</string>
+															</object>
 														</object>
 														<object class="NSTableColumn" id="66651146">
 															<string key="NSIdentifier">comments</string>
@@ -1660,6 +1716,11 @@ eQpUaGUgQmVhdGxlcyDigJQgVGhlIEJlYXRsZXM</string>
 															<int key="NSResizingMask">2</int>
 															<bool key="NSIsResizeable">YES</bool>
 															<reference key="NSTableView" ref="612707953"/>
+															<object class="NSSortDescriptor" key="NSSortDescriptorPrototype">
+																<string key="NSKey">comments</string>
+																<bool key="NSAscending">YES</bool>
+																<string key="NSSelector">compare:</string>
+															</object>
 														</object>
 														<object class="NSTableColumn" id="120272563">
 															<string key="NSIdentifier">play_count</string>
@@ -1686,6 +1747,11 @@ eQpUaGUgQmVhdGxlcyDigJQgVGhlIEJlYXRsZXM</string>
 															<int key="NSResizingMask">2</int>
 															<bool key="NSIsResizeable">YES</bool>
 															<reference key="NSTableView" ref="612707953"/>
+															<object class="NSSortDescriptor" key="NSSortDescriptorPrototype">
+																<string key="NSKey">play_count</string>
+																<bool key="NSAscending">YES</bool>
+																<string key="NSSelector">compare:</string>
+															</object>
 														</object>
 														<object class="NSTableColumn" id="97270011">
 															<string key="NSIdentifier">added_date</string>
@@ -1712,6 +1778,11 @@ eQpUaGUgQmVhdGxlcyDigJQgVGhlIEJlYXRsZXM</string>
 															<int key="NSResizingMask">2</int>
 															<bool key="NSIsResizeable">YES</bool>
 															<reference key="NSTableView" ref="612707953"/>
+															<object class="NSSortDescriptor" key="NSSortDescriptorPrototype">
+																<string key="NSKey">added_date</string>
+																<bool key="NSAscending">YES</bool>
+																<string key="NSSelector">compare:</string>
+															</object>
 														</object>
 														<object class="NSTableColumn" id="752445994">
 															<string key="NSIdentifier">modified_date</string>
@@ -1738,6 +1809,11 @@ eQpUaGUgQmVhdGxlcyDigJQgVGhlIEJlYXRsZXM</string>
 															<int key="NSResizingMask">2</int>
 															<bool key="NSIsResizeable">YES</bool>
 															<reference key="NSTableView" ref="612707953"/>
+															<object class="NSSortDescriptor" key="NSSortDescriptorPrototype">
+																<string key="NSKey">modified_date</string>
+																<bool key="NSAscending">YES</bool>
+																<string key="NSSelector">compare:</string>
+															</object>
 														</object>
 														<object class="NSTableColumn" id="722111437">
 															<string key="NSIdentifier">played_date</string>
@@ -1764,6 +1840,11 @@ eQpUaGUgQmVhdGxlcyDigJQgVGhlIEJlYXRsZXM</string>
 															<int key="NSResizingMask">2</int>
 															<bool key="NSIsResizeable">YES</bool>
 															<reference key="NSTableView" ref="612707953"/>
+															<object class="NSSortDescriptor" key="NSSortDescriptorPrototype">
+																<string key="NSKey">played_date</string>
+																<bool key="NSAscending">YES</bool>
+																<string key="NSSelector">compare:</string>
+															</object>
 														</object>
 													</object>
 													<double key="NSIntercellSpacingWidth">3</double>
@@ -1898,7 +1979,7 @@ eQpUaGUgQmVhdGxlcyDigJQgVGhlIEJlYXRsZXM</string>
 								<string key="NSContents">and in the end, the love you take</string>
 								<reference key="NSSupport" ref="26"/>
 								<reference key="NSControlView" ref="1043578401"/>
-								<reference key="NSBackgroundColor" ref="374487440"/>
+								<reference key="NSBackgroundColor" ref="600634347"/>
 								<reference key="NSTextColor" ref="789817812"/>
 							</object>
 						</object>
@@ -2359,16 +2440,16 @@ eQpUaGUgQmVhdGxlcyDigJQgVGhlIEJlYXRsZXM</string>
 				<object class="IBConnectionRecord">
 					<object class="IBOutletConnection" key="connection">
 						<string key="label">timeSlider</string>
-						<reference key="source" ref="48474449"/>
-						<reference key="destination" ref="940458434"/>
+						<reference key="source" ref="25791685"/>
+						<reference key="destination" ref="214940327"/>
 					</object>
 					<int key="connectionID">770</int>
 				</object>
 				<object class="IBConnectionRecord">
 					<object class="IBOutletConnection" key="connection">
 						<string key="label">trackField</string>
-						<reference key="source" ref="48474449"/>
-						<reference key="destination" ref="73557807"/>
+						<reference key="source" ref="25791685"/>
+						<reference key="destination" ref="194259911"/>
 					</object>
 					<int key="connectionID">771</int>
 				</object>
@@ -2376,7 +2457,7 @@ eQpUaGUgQmVhdGxlcyDigJQgVGhlIEJlYXRsZXM</string>
 					<object class="IBOutletConnection" key="connection">
 						<string key="label">playInfoView</string>
 						<reference key="source" ref="45671344"/>
-						<reference key="destination" ref="48474449"/>
+						<reference key="destination" ref="25791685"/>
 					</object>
 					<int key="connectionID">772</int>
 				</object>
@@ -2384,7 +2465,7 @@ eQpUaGUgQmVhdGxlcyDigJQgVGhlIEJlYXRsZXM</string>
 					<object class="IBActionConnection" key="connection">
 						<string key="label">performScanTrack:</string>
 						<reference key="source" ref="45671344"/>
-						<reference key="destination" ref="940458434"/>
+						<reference key="destination" ref="214940327"/>
 					</object>
 					<int key="connectionID">773</int>
 				</object>
@@ -2766,7 +2847,7 @@ eQpUaGUgQmVhdGxlcyDigJQgVGhlIEJlYXRsZXM</string>
 							<reference ref="106904291"/>
 							<reference ref="18501020"/>
 							<reference ref="246670371"/>
-							<reference ref="637812509"/>
+							<reference ref="625063557"/>
 						</object>
 						<reference key="parent" ref="972006081"/>
 					</object>
@@ -3454,50 +3535,50 @@ eQpUaGUgQmVhdGxlcyDigJQgVGhlIEJlYXRsZXM</string>
 					</object>
 					<object class="IBObjectRecord">
 						<int key="objectID">763</int>
-						<reference key="object" ref="637812509"/>
+						<reference key="object" ref="625063557"/>
 						<object class="NSMutableArray" key="children">
 							<bool key="EncodedWithXMLCoder">YES</bool>
-							<reference ref="48474449"/>
+							<reference ref="25791685"/>
 						</object>
 						<reference key="parent" ref="7108754"/>
 					</object>
 					<object class="IBObjectRecord">
 						<int key="objectID">762</int>
-						<reference key="object" ref="48474449"/>
+						<reference key="object" ref="25791685"/>
 						<object class="NSMutableArray" key="children">
 							<bool key="EncodedWithXMLCoder">YES</bool>
-							<reference ref="73557807"/>
-							<reference ref="940458434"/>
+							<reference ref="194259911"/>
+							<reference ref="214940327"/>
 						</object>
-						<reference key="parent" ref="637812509"/>
+						<reference key="parent" ref="625063557"/>
 					</object>
 					<object class="IBObjectRecord">
 						<int key="objectID">766</int>
-						<reference key="object" ref="73557807"/>
+						<reference key="object" ref="194259911"/>
 						<object class="NSMutableArray" key="children">
 							<bool key="EncodedWithXMLCoder">YES</bool>
-							<reference ref="726042598"/>
+							<reference ref="572144064"/>
 						</object>
-						<reference key="parent" ref="48474449"/>
+						<reference key="parent" ref="25791685"/>
 					</object>
 					<object class="IBObjectRecord">
 						<int key="objectID">767</int>
-						<reference key="object" ref="726042598"/>
-						<reference key="parent" ref="73557807"/>
+						<reference key="object" ref="572144064"/>
+						<reference key="parent" ref="194259911"/>
 					</object>
 					<object class="IBObjectRecord">
 						<int key="objectID">768</int>
-						<reference key="object" ref="940458434"/>
+						<reference key="object" ref="214940327"/>
 						<object class="NSMutableArray" key="children">
 							<bool key="EncodedWithXMLCoder">YES</bool>
-							<reference ref="257258140"/>
+							<reference ref="522662716"/>
 						</object>
-						<reference key="parent" ref="48474449"/>
+						<reference key="parent" ref="25791685"/>
 					</object>
 					<object class="IBObjectRecord">
 						<int key="objectID">769</int>
-						<reference key="object" ref="257258140"/>
-						<reference key="parent" ref="940458434"/>
+						<reference key="object" ref="522662716"/>
+						<reference key="parent" ref="214940327"/>
 					</object>
 				</object>
 			</object>
@@ -3758,7 +3839,7 @@ eQpUaGUgQmVhdGxlcyDigJQgVGhlIEJlYXRsZXM</string>
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
 					<integer value="1"/>
 					<string>{{525, 802}, {197, 73}}</string>
-					<string>{{148, 706}, {411, 20}}</string>
+					<string>{{148, 806}, {411, 20}}</string>
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
 					<integer value="1"/>
 					<string>{74, 862}</string>
@@ -3769,9 +3850,9 @@ eQpUaGUgQmVhdGxlcyDigJQgVGhlIEJlYXRsZXM</string>
 					<string>{{475, 832}, {234, 43}}</string>
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
-					<string>{{112, 298}, {658, 388}}</string>
+					<string>{{112, 398}, {658, 388}}</string>
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
-					<string>{{112, 298}, {658, 388}}</string>
+					<string>{{112, 398}, {658, 388}}</string>
 					<integer value="1"/>
 					<string>{{33, 99}, {480, 360}}</string>
 					<boolean value="YES"/>
@@ -3784,7 +3865,7 @@ eQpUaGUgQmVhdGxlcyDigJQgVGhlIEJlYXRsZXM</string>
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
 					<integer value="1"/>
-					<string>{{133, 443}, {616, 243}}</string>
+					<string>{{133, 786}, {616, 0}}</string>
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
@@ -3906,7 +3987,7 @@ eQpUaGUgQmVhdGxlcyDigJQgVGhlIEJlYXRsZXM</string>
 						<bytes key="NSTransformStruct">P4AAAL+AAAAAAAAAwRAAAA</bytes>
 					</object>
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
-					<string>{{215, 593}, {273, 113}}</string>
+					<string>{{215, 693}, {273, 113}}</string>
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
 					<integer value="1"/>
 					<string>{{145, 474}, {199, 203}}</string>

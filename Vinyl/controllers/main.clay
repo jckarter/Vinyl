@@ -503,7 +503,10 @@ record MainController = newClass(#VinylMainController, NSObject,
             self^.playlistView.setDoubleAction(selectorHandle(#"performDoubleClickTrack:"));
 
             self^.playlistDataSource
-                = Retained(PlaylistDataSource.alloc().initWithLibrary(&self^.library));
+                = Retained(PlaylistDataSource.alloc().initWithLibrary_sortDescriptors(
+                    &self^.library,
+                    self^.playlistView.sortDescriptors(),
+                ));
             self^.playlistView.setDataSource(self^.playlistDataSource);
 
             self^.player = Retained(Player.alloc().init());
@@ -620,7 +623,7 @@ record MainController = newClass(#VinylMainController, NSObject,
                 );
             else
                 self^.playlistDataSource.setLibraryView(
-                    LibraryView(SortedView())
+                    LibraryView(SortedView(self^.playlistView.sortDescriptors()))
                 );
             self^.playlistView.reloadData();
             updatePlayControls(self);

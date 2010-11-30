@@ -328,78 +328,65 @@ refreshLibraryDataSource(self: LibraryDataSource) {
 itemIsPlaylist?(item) = item.isKindOfClass(NSDictionary) and nil?(item["playlists"]);
 itemIsFolder?(item) = item.isKindOfClass(NSDictionary) and not nil?(item["playlists"]);
 
+private desc?(ascending?) = if (ascending?) "" else " desc";
 
-
-//
-// data source for library
-//
-enum SortDirection { SortAscending, SortDescending }
-
-record SortDescriptor (column: String, direction: SortDirection);
-
-sortSQL(sortColumn: String) {
+sortSQL(sortColumn: String, ascending?: Bool) {
+    var desc = desc?(ascending?);
     switch (sortColumn) {
     case "filename":
     case "name":
     case "sort_name":
-        return "tracks.sort_name";
+        return "tracks.sort_name" + desc;
     case "album_name":
     case "album_sort_name":
-        return "albums.sort_name";
+    case "track_number":
     case "album_artist_name":
     case "album_artist_sort_name":
-        return "album_artists.sort_name";
     case "album_compilation_p":
-        return "not albums.compilation_p";
-    case "track_artist_name":
-    case "track_artist_sort_name":
-        return "track_artists.sort_name";
-    case "genre_name":
-        return "genres.name";
-    case "composer_name":
-    case "composer_sort_name":
-        return "composers.sort_name";
-    case "grouping_name":
-        return "groupings.name";
     case "side_number":
     case "sides_count":
-        return "tracks.side_number";
     case "track_number":
     case "tracks_count":
-        return "tracks.track_number";
+        return printString(
+            "not albums.compilation_p", desc,
+            ", coalesce(album_artists.sort_name, track_artists.sort_name)", desc,
+            ", albums.sort_name", desc,
+            ", tracks.side_number", desc,
+            ", tracks.track_number", desc,
+        );
+    case "track_artist_name":
+    case "track_artist_sort_name":
+        return "coalesce(track_artists.sort_name, album_artists.sort_name)" + desc;
+    case "genre_name":
+        return "genres.name" + desc;
+    case "composer_name":
+    case "composer_sort_name":
+        return "composers.sort_name" + desc;
+    case "grouping_name":
+        return "groupings.name" + desc;
     case "duration_time":
-        return "tracks.duration_time";
+        return "tracks.duration_time" + desc;
     case "year":
-        return "cast(tracks.year as integer)";
+        return "cast(tracks.year as integer)" + desc;
     case "comments":
-        return "tracks.comments";
+        return "tracks.comments" + desc;
     case "enabled_p":
-        return "not enabled_p";
+        return "not enabled_p" + desc;
     case "play_count":
-        return "track_options.play_count";
+        return "track_options.play_count" + desc;
     case "added_date":
-        return "track_options.added_date";
+        return "track_options.added_date" + desc;
     case "modified_date":
-        return "track_options.modified_date";
+        return "track_options.modified_date" + desc;
     case "played_date":
-        return "track_options.played_date";
+        return "track_options.played_date" + desc;
     case "track_id":
-        return "tracks.track_id";
+        return "tracks.track_id" + desc;
+
     default:
-        return "tracks.track_id";
+        return "tracks.track_id" + desc;
     }
 }
-
-overload sortSQL(sortDescriptor: SortDescriptor) {
-    var baseSort = sortSQL(sortDescriptor.column);
-    if (sortDescriptor.direction == SortDescending)
-        return baseSort + " desc";
-    else
-        return baseSort;
-}
-
-[S | Sequence?(S) and SequenceElementType(S) == SortDescriptor]
-overload sortSQL(descriptors: S) = join(", ", mapped(sortSQL, descriptors));
 
 record PlaylistFolderView (id: Int);
 record PlaylistView (id: Int);
@@ -408,11 +395,22 @@ variant LibraryView = PlaylistFolderView | PlaylistView | SortedView;
 
 [S | String?(S) and S != String]
 overload SortedView(sort: S) = SortedView(String(sort));
-overload SortedView() = SortedView(sortSQL(String("name")));
+overload SortedView() = SortedView(sortSQL(String("name"), true));
+
+[O | ObjectRef?(O)]
+overload SortedView(sortDescriptors: O) {
+    var key = String("name");
+    var ascending? = true;
+    if (sortDescriptors.count() > 0) {
+        var mainDescriptor = sortDescriptors[0];
+        key = String(mainDescriptor.key());
+        ascending? = mainDescriptor.ascending();
+    }
+    return SortedView(sortSQL(key, ascending?));
+}
 
 overload LibraryView() = LibraryView(SortedView());
 
-// XXX store sort names too
 record PlaylistTrack (
     track_id: NSInteger,
     filename: String,
@@ -485,6 +483,7 @@ fieldByName(forward r: R, fn, str) {
     throw NoFieldForString(StaticName(R), String(str));
 }
 
+overload selector(static #"initWithLibrary:sortDescriptors:") = Void, Pointer[Library], NSArray;
 overload selector(static #"setLibraryView:") = Void, LibraryView;
 overload selector(static #"libraryView") = Pointer[LibraryView];
 overload selector(static #"setSearchString:") = Void, NSString;
@@ -508,14 +507,16 @@ record PlaylistDataSource = newClass(NSObject,
     ),
     ClassMethods(),
     InstanceMethods(
-        (#"initWithLibrary:", (self, library) => initObjectWith(self, #"init", self => {
-            self^.library = library;
-            self^.tracks <-- Vector[PlaylistTrack]();
-            self^.libraryView <-- LibraryView();
-            self^.searchString <-- Retained(nil(NSString));
-            refreshPlaylistDataSource(self);
-            return self;
-        })),
+        (#"initWithLibrary:sortDescriptors:", (self, library, sortDescriptors) =>
+            initObjectWith(self, #"init", self => {
+                self^.library = library;
+                self^.tracks <-- Vector[PlaylistTrack]();
+                self^.searchString <-- Retained(nil(NSString));
+                self^.libraryView <-- LibraryView(SortedView(sortDescriptors));
+                refreshPlaylistDataSource(self);
+                return self;
+            })
+        ),
         DeallocInstanceMethod(),
         (#"numberOfRowsInTableView:", (self, tableView) => NSInteger(size(self^.tracks))),
         (#"tableView:objectValueForTableColumn:row:", (self, tableView, tableColumn, rowIndex) =>
@@ -625,6 +626,20 @@ record PlaylistDataSource = newClass(NSObject,
             );
 
             return true;
+        }),
+
+        (#"tableView:sortDescriptorsDidChange:", (self, tableView, oldDescriptors) => {
+            match(self^.libraryView,
+                SortedView,   v => {
+                    var sortDescriptors = tableView.sortDescriptors();
+                    self^.libraryView = LibraryView(SortedView(sortDescriptors));
+                    refreshPlaylistDataSource(self);
+                    tableView.reloadData();
+                },
+                MatchDefault, v => {
+                    
+                },
+            );
         }),
 
         (#"libraryView", self => &self^.libraryView),
