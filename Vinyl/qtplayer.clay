@@ -8,7 +8,7 @@ import libc;
 
 record StoppedState ();
 
-enum PlaylistMode { Playing, Paused }
+enum PlaylistMode { Playing, Paused, Stopped }
 
 variant TrackOrder = Vector[SizeT] | Range[SizeT];
 

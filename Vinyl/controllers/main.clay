@@ -154,6 +154,8 @@ updatePlayControls(self: MainController) {
                 NSInteger(PlayControlsForwardTag)
             );
             self^.playMenuItem.setTitle("Play");
+            // XXX bad touch
+            self^.playlistDataSource^.playingTrackId = nothing(NSInteger);
         },
         PlaylistState, playlistState => {
             playControls.setEnabled_forSegment(
@@ -196,8 +198,13 @@ updatePlayControls(self: MainController) {
                 self^.playMenuItem.setTitle("Resume");
                 break;
             }
+            
+            // XXX bad touch
+            self^.playlistDataSource^.playingTrackId = Maybe(self^.player.currentTrack()^.track_id);
+            self^.playlistDataSource^.playingMode = playlistState.mode;
         }
     );
+    self^.playlistView.reloadData();
 
     updatePlayInfo(self);
 }
@@ -593,6 +600,7 @@ record MainController = newClass(#VinylMainController, NSObject,
                 menuItem.setState(boolState(visible?));
                 tableColumn.setHidden(not visible?);
             }
+            self^.playlistView.tableColumnWithIdentifier(#"playing_p").setHidden(false);
         }),
 
         (#"library", self => &self^.library),

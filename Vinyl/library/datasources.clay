@@ -5,6 +5,7 @@ import maybe.*;
 import Vinyl.library.*;
 import Vinyl.controls.deletingtableview.*;
 import Vinyl.formatting.*;
+import Vinyl.qtplayer.*;
 
 
 //
@@ -536,6 +537,8 @@ record PlaylistDataSource = newClass(NSObject,
         tracks: Vector[PlaylistTrack],
         libraryView: LibraryView,
         searchString: Retained[NSString],
+        playingTrackId: Maybe[NSInteger],
+        playingMode: PlaylistMode,
     ),
     ClassMethods(),
     InstanceMethods(
@@ -545,6 +548,8 @@ record PlaylistDataSource = newClass(NSObject,
                 self^.tracks <-- Vector[PlaylistTrack]();
                 self^.searchString <-- Retained(nil(NSString));
                 self^.libraryView <-- LibraryView(SortedView(sortDescriptors));
+                self^.playingTrackId <-- nothing(NSInteger);
+                self^.playingMode <-- Paused;
                 refreshPlaylistDataSource(self);
                 return self;
             })
@@ -552,7 +557,17 @@ record PlaylistDataSource = newClass(NSObject,
         DeallocInstanceMethod(),
         (#"numberOfRowsInTableView:", (self, tableView) => NSInteger(size(self^.tracks))),
         (#"tableView:objectValueForTableColumn:row:", (self, tableView, tableColumn, rowIndex) =>
-            formattedFieldByName(self^.tracks[rowIndex], maybeObject, tableColumn.identifier())
+            if (tableColumn.identifier() == "playing_p")
+                maybe(self^.playingTrackId,
+                    trackId =>
+                        if (trackId == self^.tracks[rowIndex].track_id)
+                            (if (self^.playingMode == Paused) Id(#"||") else Id(#">"))
+                        else
+                            nil(),
+                    () => nil(),
+                )
+            else
+                formattedFieldByName(self^.tracks[rowIndex], maybeObject, tableColumn.identifier())
         ),
         (#"tableView:deleteRowsWithIndexes:", (self, tableView, rowIndexes) => {
             match(self^.libraryView,
