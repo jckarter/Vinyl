@@ -85,7 +85,7 @@ record PlayInfoView = newClass(#VinylPlayInfoView, NSView,
 
             if (not nil?(self^.artistName) and not nil?(self^.albumName))
                 text.appendAttributedString(NSAttributedString.alloc().initWithString_attributes(
-                    NSString.stringWithFormat(#"%@ %C %@\n",
+                    NSString.stringWithFormat(#"%@ %C %@",
                         self^.artistName,
                         unichar(0x2014),
                         self^.albumName,
@@ -103,7 +103,7 @@ record PlayInfoView = newClass(#VinylPlayInfoView, NSView,
                         NSParagraphStyleAttributeName, centered,
                     )
                 ).autorelease());
-            else // if (not nil?(self^.albumName))
+            else if (not nil?(self^.albumName))
                 text.appendAttributedString(NSAttributedString.alloc().initWithString_attributes(
                     self^.albumName,
                     makeNSDictionary(

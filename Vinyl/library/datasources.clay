@@ -341,23 +341,36 @@ sortSQL(sortColumn: String, ascending?: Bool) {
     case "album_name":
     case "album_sort_name":
     case "track_number":
-    case "album_artist_name":
-    case "album_artist_sort_name":
     case "album_compilation_p":
     case "side_number":
     case "sides_count":
     case "track_number":
     case "tracks_count":
         return printString(
-            "not albums.compilation_p", desc,
+            "lower(albums.sort_name)", desc,
+            ", not albums.compilation_p", desc,
             ", lower(coalesce(album_artists.sort_name, track_artists.sort_name))", desc,
+            ", tracks.side_number", desc,
+            ", tracks.track_number", desc,
+        );
+    case "album_artist_name":
+    case "album_artist_sort_name":
+        return printString(
+            "lower(coalesce(album_artists.sort_name, track_artists.sort_name))", desc,
             ", lower(albums.sort_name)", desc,
+            ", not albums.compilation_p", desc,
             ", tracks.side_number", desc,
             ", tracks.track_number", desc,
         );
     case "track_artist_name":
     case "track_artist_sort_name":
-        return "lower(coalesce(track_artists.sort_name, album_artists.sort_name))" + desc;
+        return printString(
+            "lower(coalesce(track_artists.sort_name, album_artists.sort_name))", desc,
+            ", lower(albums.sort_name)", desc,
+            ", not albums.compilation_p", desc,
+            ", tracks.side_number", desc,
+            ", tracks.track_number", desc,
+        );
     case "genre_name":
         return "lower(genres.name)" + desc;
     case "composer_name":

@@ -16,6 +16,7 @@
 		D828F98F129512FB005CE8ED /* sqlite3.c in Sources */ = {isa = PBXBuildFile; fileRef = D828F97B12951232005CE8ED /* sqlite3.c */; };
 		D828F990129512FF005CE8ED /* shell.c in Sources */ = {isa = PBXBuildFile; fileRef = D828F97A12951232005CE8ED /* shell.c */; };
 		D8444395128AC32400ACB9D5 /* QTKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D8444394128AC32400ACB9D5 /* QTKit.framework */; };
+		D8492B6D12A68C2400005C44 /* Vinyl.icns in Resources */ = {isa = PBXBuildFile; fileRef = D8492B6C12A68C2400005C44 /* Vinyl.icns */; };
 		D851B2E0127AA5C800C08AC9 /* main.clay in Sources */ = {isa = PBXBuildFile; fileRef = D851B2DC127AA5C800C08AC9 /* main.clay */; };
 /* End PBXBuildFile section */
 
@@ -52,6 +53,7 @@
 		D828F985129512E7005CE8ED /* sqlite3 */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = sqlite3; sourceTree = BUILT_PRODUCTS_DIR; };
 		D8444257127FD84700ACB9D5 /* libsqlite3.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libsqlite3.dylib; path = usr/lib/libsqlite3.dylib; sourceTree = SDKROOT; };
 		D8444394128AC32400ACB9D5 /* QTKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QTKit.framework; path = System/Library/Frameworks/QTKit.framework; sourceTree = SDKROOT; };
+		D8492B6C12A68C2400005C44 /* Vinyl.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = Vinyl.icns; sourceTree = "<group>"; };
 		D851B2DC127AA5C800C08AC9 /* main.clay */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = main.clay; sourceTree = "<group>"; };
 		D851B2DD127AA5C800C08AC9 /* Vinyl */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Vinyl; sourceTree = "<group>"; };
 		D851B2E2127AA66C00C08AC9 /* NibInterfaces.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = NibInterfaces.h; sourceTree = "<group>"; };
@@ -123,6 +125,7 @@
 		29B97317FDCFA39411CA2CEA /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				D8492B6C12A68C2400005C44 /* Vinyl.icns */,
 				8D1107310486CEB800E47090 /* Vinyl-Info.plist */,
 				089C165CFE840E0CC02AAC07 /* InfoPlist.strings */,
 				1DDD58140DA1D0A300B32029 /* MainMenu.xib */,
@@ -241,6 +244,7 @@
 				8D11072B0486CEB800E47090 /* InfoPlist.strings in Resources */,
 				1DDD58160DA1D0A300B32029 /* MainMenu.xib in Resources */,
 				D828F8AA12913795005CE8ED /* ItunesImportController.xib in Resources */,
+				D8492B6D12A68C2400005C44 /* Vinyl.icns in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
