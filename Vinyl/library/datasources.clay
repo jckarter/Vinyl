@@ -387,7 +387,6 @@ sortSQL(sortColumn: String, ascending?: Bool) {
         return "tracks.track_id" + desc;
     }
 }
-
 record PlaylistFolderView (id: Int);
 record PlaylistView (id: Int);
 record SortedView (sort: String);
@@ -483,6 +482,34 @@ fieldByName(forward r: R, fn, str) {
     throw NoFieldForString(StaticName(R), String(str));
 }
 
+formattedCount(fn, number, count) {
+    if (nothing?(count))
+        return fn(number);
+    else if (just?(number) and just?(count))
+        return fn(printString(number, " of ", count));
+    else
+        return fn(nothing(Type(number)));
+}
+
+formattedFieldByName(r, fn, str) {
+    switch (str) {
+    case "track_number":
+        return formattedCount(fn, r.track_number, r.tracks_count);
+    case "side_number":
+        return formattedCount(fn, r.side_number, r.sides_count);
+    case "duration_time":
+        return Id(timeFormat(r.duration_time));
+    case "added_date":
+        return Id(dateFormat(*r.added_date));
+    case "modified_date":
+        return Id(dateFormat(*r.modified_date));
+    case "played_date":
+        return Id(dateFormat(*r.played_date));
+    default:
+        return fieldByName(r, fn, str);
+    }
+}
+
 overload selector(static #"initWithLibrary:sortDescriptors:") = Void, Pointer[Library], NSArray;
 overload selector(static #"setLibraryView:") = Void, LibraryView;
 overload selector(static #"libraryView") = Pointer[LibraryView];
@@ -497,6 +524,9 @@ alias TrackIdsPboardType
     = NSString(#"com.duriansoftware.Vinyl.pasteboard.track_ids");
 alias PlaylistIdsPboardType
     = NSString(#"com.duriansoftware.Vinyl.pasteboard.playlist_ids");
+
+alias PlaylistDidChangeNotification = NSString(#"VinylPlaylistDidChangeNotification");
+alias PlaylistIDKey = NSString(#"VinylPlaylistID");
 
 record PlaylistDataSource = newClass(NSObject,
     InstanceVars(
@@ -520,7 +550,7 @@ record PlaylistDataSource = newClass(NSObject,
         DeallocInstanceMethod(),
         (#"numberOfRowsInTableView:", (self, tableView) => NSInteger(size(self^.tracks))),
         (#"tableView:objectValueForTableColumn:row:", (self, tableView, tableColumn, rowIndex) =>
-            fieldByName(self^.tracks[rowIndex], maybeObject, tableColumn.identifier())
+            formattedFieldByName(self^.tracks[rowIndex], maybeObject, tableColumn.identifier())
         ),
         (#"tableView:deleteRowsWithIndexes:", (self, tableView, rowIndexes) => {
             match(self^.libraryView,
@@ -533,6 +563,11 @@ record PlaylistDataSource = newClass(NSObject,
                     tableView.selectRowIndexes_byExtendingSelection(
                         NSIndexSet.indexSet(),
                         false
+                    );
+                    NSNotificationCenter.defaultCenter().postNotificationName_object_userInfo(
+                        PlaylistDidChangeNotification,
+                        self,
+                        makeNSDictionary(PlaylistIDKey, playlist.id),
                     );
                 },
                 MatchDefault, _ => {}
@@ -623,6 +658,12 @@ record PlaylistDataSource = newClass(NSObject,
                     NSMakeRange(NSUInteger(newPosition), NSUInteger(size(trackIds)))
                 ),
                 false
+            );
+
+            NSNotificationCenter.defaultCenter().postNotificationName_object_userInfo(
+                PlaylistDidChangeNotification,
+                self,
+                makeNSDictionary(PlaylistIDKey, playlistId),
             );
 
             return true;

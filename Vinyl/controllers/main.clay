@@ -50,6 +50,7 @@ overload selector(static #"handlePlayerUpdateTimeNotification:")
     = Void, NSNotification;
 overload selector(static #"handleSelectPlaylist:") = Void, NSNotification;
 overload selector(static #"handleSelectTrack:") = Void, NSNotification;
+overload selector(static #"handlePlaylistDidChange:") = Void, NSNotification;
 
 var columnMenuItemOrder = [
     "name",
@@ -95,11 +96,11 @@ performImportItunesLibrary(self: MainController, itunesLibrary: NSString) {
     }
 }
 
-playTrackNumber(self: MainController, trackNumber: NSInteger) {
-    self^.player.playLibrary_view_trackNumber(
+playTrackId(self: MainController, trackId: NSInteger) {
+    self^.player.playLibrary_view_trackId(
         &self^.library,
         self^.playlistDataSource.libraryView()^,
-        SizeT(trackNumber)
+        trackId
     );
 }
 
@@ -239,7 +240,9 @@ playButton(self: MainController) {
             var selection = self^.playlistView.selectedRowIndexes().firstIndex();
             if (selection == NSNotFound)
                 selection = 0;
-            playTrackNumber(self, NSInteger(selection));
+            // XXX inappropriate touch
+            var trackId = self^.playlistDataSource^.tracks[selection].track_id;
+            playTrackId(self, trackId);
         }
         break;
     case ResumeButton:
@@ -363,7 +366,9 @@ record MainController = newClass(#VinylMainController, NSObject,
                 var rowNumber = sender.clickedRow();
                 if (rowNumber < 0)
                     return;
-                playTrackNumber(self, rowNumber);
+                // XXX inappropriate touch
+                var trackId = self^.playlistDataSource^.tracks[rowNumber].track_id;
+                playTrackId(self, trackId);
             }),
             (#"performVolumeUpdate:", (self, sender) => {
                 var volume = sender.doubleValue();
@@ -557,6 +562,12 @@ record MainController = newClass(#VinylMainController, NSObject,
                 NSTableViewSelectionDidChangeNotification,
                 self^.playlistView
             );
+            notiCenter.addObserver_selector_name_object(
+                self,
+                selectorHandle(#"handlePlaylistDidChange:"),
+                PlaylistDidChangeNotification,
+                self^.playlistDataSource
+            );
 
             self^.columns <-- Retained(NSMutableDictionary.alloc().init());
             var columnMenu = self^.firstViewColumnMenuItem.menu();
@@ -630,6 +641,16 @@ record MainController = newClass(#VinylMainController, NSObject,
             updateStatus(self);
         }),
         (#"handleSelectTrack:", (self, notification) => {
+        }),
+        (#"handlePlaylistDidChange:", (self, notification) => {
+            match(self^.player.playerState()^,
+                StoppedState,  stopped => {},
+                PlaylistState, playlistState => {
+                    if (playlistState.libraryView == self^.playlistDataSource.libraryView()^) {
+                        self^.player.changeView(self^.playlistDataSource.libraryView()^);
+                    }
+                }
+            );
         }),
     ),
 );

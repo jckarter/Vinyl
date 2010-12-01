@@ -55,31 +55,26 @@ record PlaylistState (
     mode: PlaylistMode,
     trackOrder: TrackOrder,
     trackNumber: SizeT,
+    library: Pointer[Library],
     libraryView: LibraryView,
     movie: Retained[QTMovie],
     tracks: Vector[PlaylistTrack],
 );
 
 [I | Integer?(I)]
-overload PlaylistState(mode: PlaylistMode, track: I, library: Pointer[Library], view: LibraryView, shuffle?: Bool)
+overload PlaylistState(mode: PlaylistMode, trackId: I, library: Pointer[Library], view: LibraryView, shuffle?: Bool)
 {
     var returned = PlaylistState(
         mode,
         sequentialTrackOrder(SizeT(0)),
-        SizeT(track),
+        SizeT(),
+        library,
         view,
         Retained[QTMovie](),
         Vector[PlaylistTrack]()
     );
 
-    for (row in libraryViewStatement(library^.db, String(), view))
-        push(returned.tracks, rowRecord(row, PlaylistTrack));
-
-    if (shuffle?) {
-        returned.trackOrder = shuffledTrackOrder(size(returned.tracks), SizeT(track));
-        returned.trackNumber = 0;
-    } else
-        returned.trackOrder = sequentialTrackOrder(size(returned.tracks));
+    _changeLibraryView(returned, view, trackId, shuffle?);
 
     return move(returned);
 }
@@ -95,6 +90,37 @@ setShuffledTrackOrder(ps: PlaylistState) {
     ps.trackNumber = 0;
 }
 
+changeLibraryView(ps: PlaylistState, view: LibraryView) {
+    var realTrackNumber = ps.trackOrder[ps.trackNumber];
+    var trackId = ps.tracks[realTrackNumber].track_id;
+    var shuffle? = variantIs?(ps.trackOrder, Vector[SizeT]);
+    ps.libraryView = view;
+    return _changeLibraryView(ps, view, trackId, shuffle?);
+}
+
+_changeLibraryView(ps: PlaylistState, view: LibraryView, trackId: NSInteger, shuffle?: Bool) {
+    var i = SizeT(0);
+    var currentTrack? = false;
+    clear(ps.tracks);
+    ps.trackNumber = 0;
+    for (row in libraryViewStatement(ps.library^.db, String(), view)) {
+        var track = rowRecord(row, PlaylistTrack);
+        push(ps.tracks, track);
+        if (track.track_id == trackId) {
+            ps.trackNumber = i;
+            currentTrack? = true;
+        }
+        inc(i);
+    }
+
+    if (shuffle?) {
+        ps.trackOrder = shuffledTrackOrder(i, ps.trackNumber);
+        ps.trackNumber = 0;
+    } else
+        ps.trackOrder = sequentialTrackOrder(i);
+    return currentTrack?;
+}
+
 variant PlayerState = StoppedState | PlaylistState;
 
 overload selector(static #"state") = PlayerState;
@@ -102,7 +128,8 @@ overload selector(static #"setState:") = Void, PlayerState;
 overload selector(static #"handleMovieDidEndNotification:") = Void, NSNotification;
 overload selector(static #"handleMovieLoadStateDidChangeNotification:") = Void, NSNotification;
 overload selector(static #"handleMovieTimeDidChangeNotification:") = Void, NSNotification;
-overload selector(static #"playLibrary:view:trackNumber:") = Void, Pointer[Library], LibraryView, SizeT;
+overload selector(static #"playLibrary:view:trackId:") = Void, Pointer[Library], LibraryView, NSInteger;
+overload selector(static #"changeView:") = Void, LibraryView;
 overload selector(static #"resume") = Void;
 overload selector(static #"pause") = Void;
 overload selector(static #"stop") = Void;
@@ -207,12 +234,23 @@ record Player = newClass(NSObject,
             );
         }),
 
-        (#"playLibrary:view:trackNumber:", (self, library, libraryView, trackNumber) => {
+        (#"playLibrary:view:trackId:", (self, library, libraryView, trackId) => {
             self.stop();
             self^.state = PlayerState(
-                PlaylistState(Paused, trackNumber, library, libraryView, self^.shuffle)
+                PlaylistState(Paused, trackId, library, libraryView, self^.shuffle)
             );
             self.resume();
+        }),
+
+        (#"changeView:", (self, libraryView) => {
+            match(self^.state,
+                StoppedState,  stopped => {},
+                PlaylistState, playlistState => {
+                    var currentTrack? = changeLibraryView(playlistState, libraryView);
+                    if (not currentTrack?)
+                        self.stop();
+                },
+            );
         }),
 
         (#"resume", self => {
@@ -337,6 +375,7 @@ record Player = newClass(NSObject,
                     var qttime = QTMakeTime(CLong(time * 1000.0), CLong(1000));
                     invocation.setArgument_atIndex(RawPointer(&qttime), NSInteger(2));
                     invocation.invoke();
+                    // XXX don't play if we weren't already playing
                     playlistState.movie.play();
                 }
             );

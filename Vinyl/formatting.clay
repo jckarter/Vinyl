@@ -1,6 +1,8 @@
 import cocoa.*;
+import cocoa.appkit.*;
 import libc.(round, trunc, fmod);
 import printer.formatter.*;
+import maybe.*;
 
 timeFormat(time: NSTimeInterval) {
     // XXX use locale time separator
@@ -34,6 +36,7 @@ timeFormat(time: NSTimeInterval) {
     return NSString(str);
 }
 
+[I | Integer?(I)]
 dateFormat(date: I) {
     var date = NSDate.dateWithTimeIntervalSince1970(NSTimeInterval(date));
     var locale = NSLocale.autoupdatingCurrentLocale();
@@ -42,5 +45,7 @@ dateFormat(date: I) {
     dateFormatter.setDateStyle(NSDateFormatterStyle(NSDateFormatterShortStyle));
     dateFormatter.setTimeStyle(NSDateFormatterStyle(NSDateFormatterLongStyle));
 
-    return dateFormatter.stringFromDate(date);
+    return Id(dateFormatter.stringFromDate(date));
 }
+
+overload dateFormat(n: Nothing) = nil();
