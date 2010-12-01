@@ -363,7 +363,6 @@ record Player = newClass(NSObject,
             match(self^.state,
                 StoppedState,  stopped => { },
                 PlaylistState, playlistState => {
-                    playlistState.movie.stop();
                     // XXX using NSInvocation to hack around x86-64 abi bugs
                     var invocation = NSInvocation.invocationWithMethodSignature(
                         playlistState.movie.methodSignatureForSelector(
@@ -375,8 +374,6 @@ record Player = newClass(NSObject,
                     var qttime = QTMakeTime(CLong(time * 1000.0), CLong(1000));
                     invocation.setArgument_atIndex(RawPointer(&qttime), NSInteger(2));
                     invocation.invoke();
-                    // XXX don't play if we weren't already playing
-                    playlistState.movie.play();
                 }
             );
         }),

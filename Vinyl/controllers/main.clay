@@ -616,7 +616,8 @@ record MainController = newClass(#VinylMainController, NSObject,
             updatePlayTime(self);
         }),
         (#"handleSelectPlaylist:", (self, notification) => {
-            // XXX preserve selection for each view
+            // XXX preserve selection and search for each view
+
             self^.playlistView.selectRowIndexes_byExtendingSelection(
                 NSIndexSet.indexSet(),
                 false
@@ -636,7 +637,11 @@ record MainController = newClass(#VinylMainController, NSObject,
                 self^.playlistDataSource.setLibraryView(
                     LibraryView(SortedView(self^.playlistView.sortDescriptors()))
                 );
+
+            self^.searchField.setStringValue(NSString(#""));
+            self^.playlistDataSource.setSearchString(NSString(#""));
             self^.playlistView.reloadData();
+
             updatePlayControls(self);
             updateStatus(self);
         }),
@@ -651,6 +656,7 @@ record MainController = newClass(#VinylMainController, NSObject,
                     }
                 }
             );
+            updateStatus(self);
         }),
     ),
 );

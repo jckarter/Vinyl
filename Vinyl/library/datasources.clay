@@ -336,7 +336,7 @@ sortSQL(sortColumn: String, ascending?: Bool) {
     case "filename":
     case "name":
     case "sort_name":
-        return "tracks.sort_name" + desc;
+        return "lower(tracks.sort_name)" + desc;
     case "album_name":
     case "album_sort_name":
     case "track_number":
@@ -349,21 +349,21 @@ sortSQL(sortColumn: String, ascending?: Bool) {
     case "tracks_count":
         return printString(
             "not albums.compilation_p", desc,
-            ", coalesce(album_artists.sort_name, track_artists.sort_name)", desc,
-            ", albums.sort_name", desc,
+            ", lower(coalesce(album_artists.sort_name, track_artists.sort_name))", desc,
+            ", lower(albums.sort_name)", desc,
             ", tracks.side_number", desc,
             ", tracks.track_number", desc,
         );
     case "track_artist_name":
     case "track_artist_sort_name":
-        return "coalesce(track_artists.sort_name, album_artists.sort_name)" + desc;
+        return "lower(coalesce(track_artists.sort_name, album_artists.sort_name))" + desc;
     case "genre_name":
-        return "genres.name" + desc;
+        return "lower(genres.name)" + desc;
     case "composer_name":
     case "composer_sort_name":
-        return "composers.sort_name" + desc;
+        return "lower(composers.sort_name)" + desc;
     case "grouping_name":
-        return "groupings.name" + desc;
+        return "lower(groupings.name)" + desc;
     case "duration_time":
         return "tracks.duration_time" + desc;
     case "year":
@@ -522,6 +522,8 @@ overload maybeObject(x: Nothing) = nil();
 
 alias TrackIdsPboardType
     = NSString(#"com.duriansoftware.Vinyl.pasteboard.track_ids");
+alias TrackPositionsPboardType
+    = NSString(#"com.duriansoftware.Vinyl.pasteboard.track_positions");
 alias PlaylistIdsPboardType
     = NSString(#"com.duriansoftware.Vinyl.pasteboard.playlist_ids");
 
@@ -576,12 +578,14 @@ record PlaylistDataSource = newClass(NSObject,
         (#"tableView:writeRowsWithIndexes:toPasteboard:", (self, tableView, rowIndexes, pasteboard) => {
             var filenames = NSMutableArray.array();
             var trackIds = NSMutableArray.array();
+            var trackPositions = NSMutableArray.array();
 
             var rows = indexSetIndices(rowIndexes);
 
             for (row in rows) {
                 filenames.addObject(self^.tracks[row].filename);
                 trackIds.addObject(self^.tracks[row].track_id);
+                trackPositions.addObject(row);
             }
 
             var localMask = match(self^.libraryView,
@@ -600,11 +604,12 @@ record PlaylistDataSource = newClass(NSObject,
             );
 
             pasteboard.declareTypes_owner(
-                makeNSArray(NSFilenamesPboardType, TrackIdsPboardType),
+                makeNSArray(NSFilenamesPboardType, TrackIdsPboardType, TrackPositionsPboardType),
                 self
             );
             pasteboard.setPropertyList_forType(filenames, NSFilenamesPboardType);
             pasteboard.setPropertyList_forType(trackIds, TrackIdsPboardType);
+            pasteboard.setPropertyList_forType(trackPositions, TrackPositionsPboardType);
 
             return true;
         }),
@@ -618,7 +623,7 @@ record PlaylistDataSource = newClass(NSObject,
             if (not allowDrop) return NSDragOperation(NSDragOperationNone);
 
             var pasteboard = info.draggingPasteboard();
-            var pasteboardType = pasteboard.availableTypeFromArray(makeNSArray(TrackIdsPboardType));
+            var pasteboardType = pasteboard.availableTypeFromArray(makeNSArray(TrackPositionsPboardType));
             if (nil?(pasteboardType))
                 return NSDragOperation(NSDragOperationNone);
 
@@ -644,18 +649,18 @@ record PlaylistDataSource = newClass(NSObject,
                 return false;
 
             var pasteboard = info.draggingPasteboard();
-            var pasteboardType = pasteboard.availableTypeFromArray(makeNSArray(TrackIdsPboardType));
+            var pasteboardType = pasteboard.availableTypeFromArray(makeNSArray(TrackPositionsPboardType));
             if (nil?(pasteboardType))
                 return false;
 
-            var trackIds = mapped(NSInteger, pasteboard.propertyListForType(pasteboardType));
-            var newPosition = moveLibraryPlaylistTracks(self^.library^, playlistId, trackIds, row);
+            var trackPositions = mapped(NSInteger, pasteboard.propertyListForType(pasteboardType));
+            var newPosition = moveLibraryPlaylistTracks(self^.library^, playlistId, trackPositions, row);
             refreshPlaylistDataSource(self);
             tableView.reloadData();
 
             tableView.selectRowIndexes_byExtendingSelection(
                 NSIndexSet.indexSetWithIndexesInRange(
-                    NSMakeRange(NSUInteger(newPosition), NSUInteger(size(trackIds)))
+                    NSMakeRange(NSUInteger(newPosition), NSUInteger(size(trackPositions)))
                 ),
                 false
             );

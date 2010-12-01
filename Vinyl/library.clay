@@ -279,9 +279,9 @@ insertLibraryPlaylistTracks(library: Library, playlistId, trackIds) {
 }
 
 // XXX should move positions, not track ids
-moveLibraryPlaylistTracks(library: Library, playlistId, trackIds, position) {
+moveLibraryPlaylistTracks(library: Library, playlistId, trackPositions, position) {
     return withTransaction(library.db, () ref=> {
-        var trackIdSetSQL = "(" + join(", ", mapped(printString, trackIds)) + ")";
+        var trackPositionSetSQL = "(" + join(", ", mapped(printString, trackPositions)) + ")";
 
         runStatement(library.db,
             "create temporary table new_playlist_track_positions as select
@@ -291,18 +291,24 @@ moveLibraryPlaylistTracks(library: Library, playlistId, trackIds, position) {
             where
                 playlist_id = ?
                 and position < ?
-                and track_id not in " + trackIdSetSQL + "
+                and position not in " + trackPositionSetSQL + "
             order by
                 position
             ", playlistId, position
         );
         var newPosition = statementValue(NSInteger, library.db, "select count(1) from new_playlist_track_positions");
-        for (trackId in trackIds) {
-            runStatement(library.db,
-                "insert into new_playlist_track_positions (track_id) values (?)",
-                trackId
-            );
-        }
+
+        runStatement(library.db,
+            "insert into new_playlist_track_positions (track_id) select
+                track_id
+            from
+                playlist_tracks
+            where
+                playlist_id = ?
+                and position in " + trackPositionSetSQL
+            , playlistId,
+        );
+        
         runStatement(library.db,
             "insert into new_playlist_track_positions (track_id) select
                 track_id
@@ -311,11 +317,12 @@ moveLibraryPlaylistTracks(library: Library, playlistId, trackIds, position) {
             where
                 playlist_id = ?
                 and position >= ?
-                and track_id not in " + trackIdSetSQL + "
+                and position not in " + trackPositionSetSQL + "
             order by
                 position
             ", playlistId, position
         );
+
         runStatement(library.db,
             "delete from playlist_tracks where playlist_id = ?",
             playlistId
