@@ -1,5 +1,6 @@
 import cocoa.*;
 import cocoa.appkit.*;
+import cocoa.corefoundation.*;
 import Vinyl.appdelegate.*;
 import Vinyl.library.*;
 import Vinyl.library.datasources.*;
@@ -229,8 +230,18 @@ updateStatus(self: MainController) {
     // XXX more inappropriate touching
     ref tracks = self^.playlistDataSource^.tracks;
     var trackCount = size(tracks);
-    var trackTime = reduce(add, 0.0, mapped(x => x.duration_time, tracks));
-    self^.statusField.setStringValue(NSString.stringWithFormat(#"%lu tracks, %@ total time", trackCount, timeFormat(trackTime)));
+    if (trackCount > 0) {
+        var trackTime = reduce(add, 0.0, mapped(x => x.duration_time, tracks));
+        var numberFormatter = NSNumberFormatter.alloc().init().autorelease();
+        numberFormatter.setNumberStyle(NSUInteger(kCFNumberFormatterDecimalStyle));
+        var tracksString = if (trackCount == 1) NSString(#"track") else NSString(#"tracks");
+        self^.statusField.setStringValue(NSString.stringWithFormat(#"%@ %@, %@ total time",
+            numberFormatter.stringFromNumber(trackCount), tracksString,
+            timeFormat(trackTime)
+        ));
+    } else {
+        self^.statusField.setStringValue(#"");
+    }
 }
 
 enum PlayButtonMode { PlayButton, ResumeButton, StopButton, PauseButton }
