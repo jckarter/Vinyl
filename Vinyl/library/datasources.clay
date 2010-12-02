@@ -550,7 +550,7 @@ record PlaylistDataSource = newClass(NSObject,
         tracks: Vector[PlaylistTrack],
         libraryView: LibraryView,
         searchString: Retained[NSString],
-        playingTrackId: Maybe[NSInteger],
+        playingTrackRow: Maybe[NSInteger],
         playingMode: PlaylistMode,
     ),
     ClassMethods(),
@@ -561,7 +561,7 @@ record PlaylistDataSource = newClass(NSObject,
                 self^.tracks <-- Vector[PlaylistTrack]();
                 self^.searchString <-- Retained(nil(NSString));
                 self^.libraryView <-- LibraryView(SortedView(sortDescriptors));
-                self^.playingTrackId <-- nothing(NSInteger);
+                self^.playingTrackRow <-- nothing(NSInteger);
                 self^.playingMode <-- Paused;
                 refreshPlaylistDataSource(self);
                 return self;
@@ -571,9 +571,9 @@ record PlaylistDataSource = newClass(NSObject,
         (#"numberOfRowsInTableView:", (self, tableView) => NSInteger(size(self^.tracks))),
         (#"tableView:objectValueForTableColumn:row:", (self, tableView, tableColumn, rowIndex) =>
             if (tableColumn.identifier() == "playing_p")
-                maybe(self^.playingTrackId,
-                    trackId =>
-                        if (trackId == self^.tracks[rowIndex].track_id)
+                maybe(self^.playingTrackRow,
+                    trackRow =>
+                        if (rowIndex == trackRow)
                             (if (self^.playingMode == Paused) Id(#"||") else Id(#">"))
                         else
                             nil(),

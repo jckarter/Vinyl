@@ -141,6 +141,7 @@ overload selector(static #"repeatMode") = RepeatMode;
 overload selector(static #"setRepeatMode:") = Void, RepeatMode;
 overload selector(static #"playerState") = Pointer[PlayerState];
 overload selector(static #"currentTrack") = Pointer[PlaylistTrack];
+overload selector(static #"currentTrackNumber") = NSInteger;
 overload selector(static #"setCurrentTrackTime:") = Void, NSTimeInterval;
 overload selector(static #"currentTrackTime") = NSTimeInterval;
 overload selector(static #"updateTimeTimer:") = Void, NSTimer;
@@ -441,6 +442,11 @@ record Player = newClass(NSObject,
                 var realTrackNumber = playlistState.trackOrder[playlistState.trackNumber];
                 return &playlistState.tracks[realTrackNumber];
             },
+        )),
+
+        (#"currentTrackNumber", self => match(self^.state,
+            StoppedState,  stopped       => NSInteger(-1),
+            PlaylistState, playlistState => NSInteger(playlistState.trackOrder[playlistState.trackNumber]),
         ))
     ),
 );

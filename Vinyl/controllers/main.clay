@@ -136,7 +136,7 @@ updatePlayControls(self: MainController) {
             );
             self^.playMenuItem.setTitle("Play");
             // XXX bad touch
-            self^.playlistDataSource^.playingTrackId = nothing(NSInteger);
+            self^.playlistDataSource^.playingTrackRow = nothing(NSInteger);
         },
         PlaylistState, playlistState => {
             playControls.setEnabled_forSegment(
@@ -181,7 +181,7 @@ updatePlayControls(self: MainController) {
             }
             
             // XXX bad touch
-            self^.playlistDataSource^.playingTrackId = Maybe(self^.player.currentTrack()^.track_id);
+            self^.playlistDataSource^.playingTrackRow = Maybe(self^.player.currentTrackNumber());
             self^.playlistDataSource^.playingMode = playlistState.mode;
         }
     );
