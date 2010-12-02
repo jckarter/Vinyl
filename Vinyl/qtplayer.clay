@@ -62,7 +62,7 @@ record PlaylistState (
 );
 
 [I | Integer?(I)]
-overload PlaylistState(mode: PlaylistMode, trackId: I, library: Pointer[Library], view: LibraryView, shuffle?: Bool)
+overload PlaylistState(mode: PlaylistMode, trackViewId: I, library: Pointer[Library], view: LibraryView, shuffle?: Bool)
 {
     var returned = PlaylistState(
         mode,
@@ -74,7 +74,7 @@ overload PlaylistState(mode: PlaylistMode, trackId: I, library: Pointer[Library]
         Vector[PlaylistTrack]()
     );
 
-    _changeLibraryView(returned, view, trackId, shuffle?);
+    _changeLibraryView(returned, view, trackViewId, shuffle?);
 
     return move(returned);
 }
@@ -92,13 +92,13 @@ setShuffledTrackOrder(ps: PlaylistState) {
 
 changeLibraryView(ps: PlaylistState, view: LibraryView) {
     var realTrackNumber = ps.trackOrder[ps.trackNumber];
-    var trackId = ps.tracks[realTrackNumber].track_id;
+    var trackViewId = ps.tracks[realTrackNumber].track_view_id;
     var shuffle? = variantIs?(ps.trackOrder, Vector[SizeT]);
     ps.libraryView = view;
-    return _changeLibraryView(ps, view, trackId, shuffle?);
+    return _changeLibraryView(ps, view, trackViewId, shuffle?);
 }
 
-_changeLibraryView(ps: PlaylistState, view: LibraryView, trackId: NSInteger, shuffle?: Bool) {
+_changeLibraryView(ps: PlaylistState, view: LibraryView, trackViewId: NSInteger, shuffle?: Bool) {
     var i = SizeT(0);
     var currentTrack? = false;
     clear(ps.tracks);
@@ -106,7 +106,7 @@ _changeLibraryView(ps: PlaylistState, view: LibraryView, trackId: NSInteger, shu
     for (row in libraryViewStatement(ps.library^.db, String(), view)) {
         var track = rowRecord(row, PlaylistTrack);
         push(ps.tracks, track);
-        if (track.track_id == trackId) {
+        if (track.track_view_id == trackViewId) {
             ps.trackNumber = i;
             currentTrack? = true;
         }
@@ -128,7 +128,7 @@ overload selector(static #"setState:") = Void, PlayerState;
 overload selector(static #"handleMovieDidEndNotification:") = Void, NSNotification;
 overload selector(static #"handleMovieLoadStateDidChangeNotification:") = Void, NSNotification;
 overload selector(static #"handleMovieTimeDidChangeNotification:") = Void, NSNotification;
-overload selector(static #"playLibrary:view:trackId:") = Void, Pointer[Library], LibraryView, NSInteger;
+overload selector(static #"playLibrary:view:trackViewId:") = Void, Pointer[Library], LibraryView, NSInteger;
 overload selector(static #"changeView:") = Void, LibraryView;
 overload selector(static #"resume") = Void;
 overload selector(static #"pause") = Void;
@@ -255,10 +255,10 @@ record Player = newClass(NSObject,
             );
         }),
 
-        (#"playLibrary:view:trackId:", (self, library, libraryView, trackId) => {
+        (#"playLibrary:view:trackViewId:", (self, library, libraryView, trackViewId) => {
             self.stop();
             self^.state = PlayerState(
-                PlaylistState(Paused, trackId, library, libraryView, self^.shuffle)
+                PlaylistState(Paused, trackViewId, library, libraryView, self^.shuffle)
             );
             self.resume();
         }),

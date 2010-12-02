@@ -425,6 +425,7 @@ overload SortedView(sortDescriptors: O) {
 overload LibraryView() = LibraryView(SortedView());
 
 record PlaylistTrack (
+    track_view_id: NSInteger,
     track_id: NSInteger,
     filename: String,
     name: String,
@@ -455,6 +456,7 @@ record PlaylistTrack (
 );
 
 overload PlaylistTrack() = PlaylistTrack(
+    NSInteger(-1),
     NSInteger(0),
     String(),
     String(),
@@ -550,7 +552,7 @@ record PlaylistDataSource = newClass(NSObject,
         tracks: Vector[PlaylistTrack],
         libraryView: LibraryView,
         searchString: Retained[NSString],
-        playingTrackRow: Maybe[NSInteger],
+        playingTrackViewId: Maybe[NSInteger],
         playingMode: PlaylistMode,
     ),
     ClassMethods(),
@@ -561,7 +563,7 @@ record PlaylistDataSource = newClass(NSObject,
                 self^.tracks <-- Vector[PlaylistTrack]();
                 self^.searchString <-- Retained(nil(NSString));
                 self^.libraryView <-- LibraryView(SortedView(sortDescriptors));
-                self^.playingTrackRow <-- nothing(NSInteger);
+                self^.playingTrackViewId <-- nothing(NSInteger);
                 self^.playingMode <-- Paused;
                 refreshPlaylistDataSource(self);
                 return self;
@@ -571,9 +573,9 @@ record PlaylistDataSource = newClass(NSObject,
         (#"numberOfRowsInTableView:", (self, tableView) => NSInteger(size(self^.tracks))),
         (#"tableView:objectValueForTableColumn:row:", (self, tableView, tableColumn, rowIndex) =>
             if (tableColumn.identifier() == "playing_p")
-                maybe(self^.playingTrackRow,
-                    trackRow =>
-                        if (rowIndex == trackRow)
+                maybe(self^.playingTrackViewId,
+                    trackViewId =>
+                        if (self^.tracks[rowIndex].track_view_id == trackViewId)
                             (if (self^.playingMode == Paused) Id(#"||") else Id(#">"))
                         else
                             nil(),
@@ -731,8 +733,74 @@ record PlaylistDataSource = newClass(NSObject,
     ),
 );
 
-private alias basePlaylistSelectClause = "
+private basePlaylistSelectClause(view: SortedView) = "
     select
+        tracks.track_id as track_view_id,
+        tracks.track_id as track_id,
+        tracks.filename as filename,
+        tracks.display_name as name,
+        tracks.sort_name as sort_name,
+        albums.display_name as album_name,
+        albums.sort_name as album_sort_name,
+        album_artists.display_name as album_artist_name,
+        album_artists.sort_name as album_artist_sort_name,
+        albums.compilation_p as album_compilation_p,
+        coalesce(track_artists.display_name, album_artists.display_name) as track_artist_name,
+        coalesce(track_artists.sort_name,    album_artists.sort_name)    as track_artist_sort_name,
+        genres.name as genre_name,
+        composers.display_name as composer_name,
+        composers.sort_name as composer_sort_name,
+        groupings.name as grouping_name,
+        tracks.side_number as side_number,
+        albums.sides_count as sides_count,
+        tracks.track_number as track_number,
+        album_sides.tracks_count as tracks_count,
+        tracks.duration_time as duration_time,
+        tracks.year as year,
+        tracks.comments as comments,
+        coalesce(track_options.enabled_p, 1) as enabled_p,
+        track_options.play_count as play_count,
+        track_options.added_date as added_date,
+        track_options.modified_date as modified_date,
+        track_options.played_date as played_date
+    ";
+
+overload basePlaylistSelectClause(view: PlaylistView) = "
+    select
+        playlist_tracks.position as track_view_id,
+        tracks.track_id as track_id,
+        tracks.filename as filename,
+        tracks.display_name as name,
+        tracks.sort_name as sort_name,
+        albums.display_name as album_name,
+        albums.sort_name as album_sort_name,
+        album_artists.display_name as album_artist_name,
+        album_artists.sort_name as album_artist_sort_name,
+        albums.compilation_p as album_compilation_p,
+        coalesce(track_artists.display_name, album_artists.display_name) as track_artist_name,
+        coalesce(track_artists.sort_name,    album_artists.sort_name)    as track_artist_sort_name,
+        genres.name as genre_name,
+        composers.display_name as composer_name,
+        composers.sort_name as composer_sort_name,
+        groupings.name as grouping_name,
+        tracks.side_number as side_number,
+        albums.sides_count as sides_count,
+        tracks.track_number as track_number,
+        album_sides.tracks_count as tracks_count,
+        tracks.duration_time as duration_time,
+        tracks.year as year,
+        tracks.comments as comments,
+        coalesce(track_options.enabled_p, 1) as enabled_p,
+        track_options.play_count as play_count,
+        track_options.added_date as added_date,
+        track_options.modified_date as modified_date,
+        track_options.played_date as played_date
+    ";
+
+// XXX hack: assumes fewer than 100,000 tracks per playlist
+overload basePlaylistSelectClause(view: PlaylistFolderView) = "
+    select
+        100000 * playlists.position + playlist_tracks.position as track_view_id,
         tracks.track_id as track_id,
         tracks.filename as filename,
         tracks.display_name as name,
@@ -833,7 +901,7 @@ overload bindViewParameters(stmt: SqliteStatement, view: PlaylistFolderView) {
 
 libraryViewStatement(db: SqliteDB, search: String, view: LibraryView) {
     var searching? = not empty?(search);
-    var stmtString = String(basePlaylistSelectClause);
+    var stmtString = String(basePlaylistSelectClause(*view));
     if (searching?)
         stmtString += searchPlaylistFromClause;
     else

@@ -77,11 +77,11 @@ setStatusField(self, ...contents) {
     self^.statusField.setStringValue(printString(...contents));
 }
 
-playTrackId(self: MainController, trackId: NSInteger) {
-    self^.player.playLibrary_view_trackId(
+playTrackViewId(self: MainController, trackViewId: NSInteger) {
+    self^.player.playLibrary_view_trackViewId(
         &self^.library,
         self^.playlistDataSource.libraryView()^,
-        trackId
+        trackViewId
     );
 }
 
@@ -135,8 +135,6 @@ updatePlayControls(self: MainController) {
                 NSInteger(PlayControlsForwardTag)
             );
             self^.playMenuItem.setTitle("Play");
-            // XXX bad touch
-            self^.playlistDataSource^.playingTrackRow = nothing(NSInteger);
         },
         PlaylistState, playlistState => {
             playControls.setEnabled_forSegment(
@@ -180,14 +178,29 @@ updatePlayControls(self: MainController) {
                 break;
             }
             
-            // XXX bad touch
-            self^.playlistDataSource^.playingTrackRow = Maybe(self^.player.currentTrackNumber());
-            self^.playlistDataSource^.playingMode = playlistState.mode;
         }
     );
     self^.playlistView.reloadData();
 
+    updatePlayIndicator(self);
     updatePlayInfo(self);
+}
+
+updatePlayIndicator(self: MainController) {
+    match(self^.player.playerState()^,
+        StoppedState,  stopped => {
+            self^.playlistDataSource^.playingTrackViewId = nothing(NSInteger);
+        },
+        PlaylistState, playlistState => {
+            if (playlistState.libraryView == self^.playlistDataSource.libraryView()^) {
+                self^.playlistDataSource^.playingTrackViewId
+                    = Maybe(self^.player.currentTrack()^.track_view_id);
+                self^.playlistDataSource^.playingMode = playlistState.mode;
+            } else {
+                self^.playlistDataSource^.playingTrackViewId = nothing(NSInteger);
+            }
+        },
+    );
 }
 
 updatePlayInfo(self: MainController) {
@@ -230,8 +243,8 @@ playButton(self: MainController) {
                 selection = 0;
             // XXX inappropriate touch
             if (selection < size(self^.playlistDataSource^.tracks)) {
-                var trackId = self^.playlistDataSource^.tracks[selection].track_id;
-                playTrackId(self, trackId);
+                var trackViewId = self^.playlistDataSource^.tracks[selection].track_view_id;
+                playTrackViewId(self, trackViewId);
             }
         }
         break;
@@ -357,8 +370,8 @@ record MainController = newClass(#VinylMainController, NSObject,
                 if (rowNumber < 0 or rowNumber >= size(self^.playlistDataSource^.tracks))
                     return;
                 // XXX inappropriate touch
-                var trackId = self^.playlistDataSource^.tracks[rowNumber].track_id;
-                playTrackId(self, trackId);
+                var trackViewId = self^.playlistDataSource^.tracks[rowNumber].track_view_id;
+                playTrackViewId(self, trackViewId);
             }),
             (#"performVolumeUpdate:", (self, sender) => {
                 var volume = sender.doubleValue();
@@ -613,7 +626,7 @@ record MainController = newClass(#VinylMainController, NSObject,
             updatePlayTime(self);
         }),
         (#"handleSelectPlaylist:", (self, notification) => {
-            // XXX preserve selection and search for each view
+            // XXX preserve selection for each view
 
             self^.playlistView.selectRowIndexes_byExtendingSelection(
                 NSIndexSet.indexSet(),
@@ -635,8 +648,10 @@ record MainController = newClass(#VinylMainController, NSObject,
                     LibraryView(SortedView(self^.playlistView.sortDescriptors()))
                 );
 
+            // XXX preserve search for each view
             self^.searchField.setStringValue(NSString(#""));
             self^.playlistDataSource.setSearchString(NSString(#""));
+
             self^.playlistView.reloadData();
 
             updatePlayControls(self);
