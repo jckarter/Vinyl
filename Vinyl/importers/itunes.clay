@@ -10,8 +10,11 @@ import destructors.*;
 record ItunesImportCancelled ();
 instance Exception = ItunesImportCancelled;
 
-record ItunesXMLParserError (code: Int, message: CStringRef);
+record ItunesXMLParserError (code: Int, message: String, line: SizeT, column: SizeT);
 instance Exception = ItunesXMLParserError;
+
+record ItunesInvalidLibraryError ();
+instance Exception = ItunesInvalidLibraryError;
 
 enum ItunesParseStage { ReadItunesLibrary, MergeVinylLibrary }
 
@@ -24,7 +27,12 @@ parseXMLFrom(parser: XML_Parser, stream, size, progressCallback) {
     while (readSize > 0) {
         if (XML_ParseBuffer(parser, Int(readSize), Int(XML_FALSE)) == 0) {
             var code = XML_GetErrorCode(parser);
-            throw ItunesXMLParserError(code, CStringRef(XML_ErrorString(code)));
+            throw ItunesXMLParserError(
+                code,
+                String(CStringRef(XML_ErrorString(code))),
+                XML_GetCurrentLineNumber(parser),
+                XML_GetCurrentColumnNumber(parser),
+            );
         }
         totalRead += readSize;
         if (not progressCallback(ReadItunesLibrary, totalRead, size))
@@ -74,6 +82,7 @@ record ItunesParseState (
     item: ItunesItem,
     itemDepth: SizeT,
     playlistCount: Int,
+    valid?: Bool,
 );
 
 itunesAddToValue(item: Nothing, state: ItunesParseState, type: String, value: String) {}
@@ -259,6 +268,8 @@ itunesStartElementHandler(
     attrs: Pointer[Pointer[XML_Char]]
 ) {
     ref state = Pointer[ItunesParseState](stateP)^;
+    if (not state.valid?) return;
+
     var name = CStringRef(nameC);
 
     push(state.tagPath, String(name));
@@ -286,12 +297,16 @@ itunesStartElementHandler(
 
 itunesEndElementHandler(stateP: RawPointer, nameC: Pointer[XML_Char]) {
     ref state = Pointer[ItunesParseState](stateP)^;
+    if (not state.valid?) return;
+
     var name = CStringRef(nameC);
     var closedName = pop(state.tagPath);
     var depth = size(state.keyPath);
 
-    if (name != closedName)
-        error("unmatched ", closedName, " with ", name);
+    if (name != closedName) {
+        state.valid? = false;
+        return;
+    }
 
     switch (name) {
     case "key":
@@ -332,10 +347,13 @@ itunesEndElementHandler(stateP: RawPointer, nameC: Pointer[XML_Char]) {
 
 itunesCharacterDataHandler(stateP: RawPointer, s: Pointer[XML_Char], len: Int) {
     ref state = Pointer[ItunesParseState](stateP)^;
+    if (not state.valid?) return;
+
     push(state.tagContents, mapped(Char, coordinateRange(s, s + len)));
 }
 
 importFromItunesTable(db: SqliteDB, progressCallback) {
+    // NB: should already be in transaction
     alias MERGE_STAGE_COUNT = 10;
 
     if (not progressCallback(MergeVinylLibrary, 0, MERGE_STAGE_COUNT)) throw ItunesImportCancelled();
@@ -582,7 +600,10 @@ importFromItunesTable(db: SqliteDB, progressCallback) {
             playlist_folder_id
     ");
 
-    runStatement(db, "insert into playlists (name, playlist_folder_id, position) select
+    var basePlaylistId = statementValue(Int, db, "select max(playlist_id) from playlists");
+
+    runStatement(db, "insert into playlists (playlist_id, name, playlist_folder_id, position) select
+            new_playlists.rowid + ?,
             new_playlists.name,
             new_playlists.playlist_folder_id,
             new_playlists.rowid
@@ -597,12 +618,12 @@ importFromItunesTable(db: SqliteDB, progressCallback) {
             inner join min_new_playlist_positions
                 on coalesce(new_playlists.playlist_folder_id, -1)
                     = coalesce(min_new_playlist_positions.playlist_folder_id, -1)
-    ");
+    ", basePlaylistId);
 
     if (not progressCallback(MergeVinylLibrary, 9, MERGE_STAGE_COUNT)) throw ItunesImportCancelled();
     
     runStatement(db, "insert into playlist_tracks (playlist_id, track_id, position) select
-            max(playlists.playlist_id) as playlist_id,
+            playlists.playlist_id as playlist_id,
             max(tracks.track_id) as track_id,
             ipt.position as position
         from
@@ -610,16 +631,16 @@ importFromItunesTable(db: SqliteDB, progressCallback) {
             inner join new_playlists
                 on ipt.itunes_playlist_id = new_playlists.itunes_playlist_id
             inner join playlists
-                on new_playlists.name = playlists.name
+                on new_playlists.rowid + ? = playlists.playlist_id
             inner join itunes_imported_tracks it
                 on ipt.itunes_track_id = it.itunes_track_id
             inner join tracks
                 on it.filename = tracks.filename
         group by
-            playlists.name,
+            playlists.playlist_id,
             tracks.filename,
             ipt.position
-    ");
+    ", basePlaylistId);
 
     runStatement(db, "drop table max_playlist_positions");
     runStatement(db, "drop table new_playlists");
@@ -724,6 +745,7 @@ importItunes(library: Library, itunesLibraryFilename: String, progressCallback) 
             ItunesItem(Nothing()),
             SizeT(0),
             0,
+            true,
         );
         var parser = DestroyedBy(XML_ParserCreate(null(CChar)), XML_ParserFree);
 
@@ -741,6 +763,10 @@ importItunes(library: Library, itunesLibraryFilename: String, progressCallback) 
         var file = RawFile(itunesLibraryFilename);
 
         parseXMLFrom(parser^, file, fileSize(file), progressCallback);
+
+        if (not state.valid?)
+            throw ItunesInvalidLibraryError();
+
         importFromItunesTable(library.db, progressCallback);
 
         runStatement(library.db, "drop table itunes_imported_tracks");

@@ -51,6 +51,8 @@ overload selector(static #"handlePlayerUpdateTimeNotification:")
 overload selector(static #"handleSelectPlaylist:") = Void, NSNotification;
 overload selector(static #"handleSelectTrack:") = Void, NSNotification;
 overload selector(static #"handlePlaylistDidChange:") = Void, NSNotification;
+overload selector(static #"handleItunesImportError:") = Void, NSNotification;
+overload selector(static #"itunesImportErrorAlertDidEnd:returnCode:contextInfo:") = Void, NSAlert, NSInteger, RawPointer;
 
 var columnMenuItemOrder = [
     "name",
@@ -73,27 +75,6 @@ var columnMenuItemOrder = [
 
 setStatusField(self, ...contents) {
     self^.statusField.setStringValue(printString(...contents));
-}
-
-performImportItunesLibrary(self: MainController, itunesLibrary: NSString) {
-    if (nil?(itunesLibrary)) {
-        // XXX error reporting
-        NSLog(NSString(#"itunes library not found"));
-    } else {
-        var importController = ItunesImportController.alloc().init();
-
-        if (nil?(importController))
-            // XXX
-            NSLog(NSString(#"couldn't create controller"));
-        else
-            importController.importItunesLibrary_modalForWindow_modalDelegate_didEndSelector_contextInfo(
-                itunesLibrary,
-                self^.mainWindow,
-                self,
-                selectorHandle(#"_itunesSheetDidEnd:returnCode:contextInfo:"),
-                RawPointer(importController)
-            );
-    }
 }
 
 playTrackId(self: MainController, trackId: NSInteger) {
@@ -248,8 +229,10 @@ playButton(self: MainController) {
             if (selection == NSNotFound)
                 selection = 0;
             // XXX inappropriate touch
-            var trackId = self^.playlistDataSource^.tracks[selection].track_id;
-            playTrackId(self, trackId);
+            if (selection < size(self^.playlistDataSource^.tracks)) {
+                var trackId = self^.playlistDataSource^.tracks[selection].track_id;
+                playTrackId(self, trackId);
+            }
         }
         break;
     case ResumeButton:
@@ -371,7 +354,7 @@ record MainController = newClass(#VinylMainController, NSObject,
             }),
             (#"performDoubleClickTrack:", (self, sender) => {
                 var rowNumber = sender.clickedRow();
-                if (rowNumber < 0)
+                if (rowNumber < 0 or rowNumber >= size(self^.playlistDataSource^.tracks))
                     return;
                 // XXX inappropriate touch
                 var trackId = self^.playlistDataSource^.tracks[rowNumber].track_id;
@@ -575,6 +558,12 @@ record MainController = newClass(#VinylMainController, NSObject,
                 PlaylistDidChangeNotification,
                 self^.playlistDataSource
             );
+            notiCenter.addObserver_selector_name_object(
+                self,
+                selectorHandle(#"handleItunesImportError:"),
+                ItunesImportErrorNotification,
+                nil()
+            );
 
             self^.columns <-- Retained(NSMutableDictionary.alloc().init());
             var columnMenu = self^.firstViewColumnMenuItem.menu();
@@ -665,6 +654,23 @@ record MainController = newClass(#VinylMainController, NSObject,
                 }
             );
             updateStatus(self);
+        }),
+        (#"handleItunesImportError:", (self, notification) => {
+            NSAlert.alertWithMessageText_defaultButton_alternateButton_otherButton_informativeTextWithFormat(
+                notification.userInfo()[ItunesImportErrorMessageKey],
+                #"OK",
+                nil(),
+                nil(),
+                #"%@", notification.userInfo()[ItunesImportErrorDetailKey],
+            ).beginSheetModalForWindow_modalDelegate_didEndSelector_contextInfo(
+                self^.mainWindow,
+                self,
+                selectorHandle(#"itunesImportErrorAlertDidEnd:returnCode:contextInfo:"),
+                RawPointer(0),
+            );
+        }),
+        (#"itunesImportErrorAlertDidEnd:returnCode:contextInfo:", (self, alert, returnCode, context) => {
+            alert.window().orderOut(self);
         }),
     ),
 );

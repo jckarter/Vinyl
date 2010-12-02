@@ -3,12 +3,36 @@ import cocoa.appkit.*;
 import Vinyl.library.*;
 import Vinyl.controllers.main.*;
 import Vinyl.importers.itunes.*;
+import sqlite.*;
 
 overload selector(static #"importItunesLibrary:modalForWindow:modalDelegate:didEndSelector:contextInfo:")
     = Void, NSString, NSWindow, Id, SelectorHandle, RawPointer;
 overload selector(static #"cancel:") = Void, Id;
 overload selector(static #"setProgressIndicatorValue:") = Void, NSNumber;
 overload selector(static #"_importThread:") = Void, Id;
+overload selector(static #"reportImportError:") = Void, NSDictionary;
+
+alias ItunesImportErrorNotification = NSString(#"VinylItunesImportErrorNotification");
+alias ItunesImportErrorMessageKey = NSString(#"VinylItunesImportErrorMessage");
+alias ItunesImportErrorDetailKey = NSString(#"VinylItunesImportErrorDetail");
+
+itunesErrorMessage(x) = Id(#"Importing the iTunes library failed.");
+itunesErrorDetail(x) = Id(printString(x));
+
+overload itunesErrorDetail(x: ItunesXMLParserError)
+    = Id(printString(
+        "The XML parser encountered an error.\nCode: ", x.code,
+        "\nDescription: ", x.message,
+        "\nLine number: ", x.line,
+        "\nColumn: ", x.column,
+    ));
+overload itunesErrorDetail(x: ItunesInvalidLibraryError)
+    = Id(#"The library file appears to be improperly formatted.");
+overload itunesErrorDetail(x: SqliteError)
+    = Id(printString(
+        "There was an error updating the Vinyl library database.\nCode: ", x.code,
+        "\nDescription: ", x.message,
+    ));
 
 findItunesLibrary() {
     var fm = NSFileManager.defaultManager();
@@ -21,7 +45,40 @@ findItunesLibrary() {
         return nil(NSString);
 }
 
-// XXX must send messages to main thread!
+performImportItunesLibrary(self: MainController, itunesLibrary: NSString) {
+    if (nil?(itunesLibrary)) {
+        NSNotificationCenter.defaultCenter().postNotificationName_object_userInfo(
+            ItunesImportErrorNotification,
+            self,
+            makeNSDictionary(
+                ItunesImportErrorMessageKey, #"The iTunes library file could not be found.",
+                ItunesImportErrorDetailKey, #"Check that the \"iTunes Music Library.xml\" file is available in in the \"Music/iTunes\" folder under your home folder.",
+            ),
+        );
+    } else {
+        var importController = ItunesImportController.alloc().init();
+
+        if (nil?(importController))
+            NSNotificationCenter.defaultCenter().postNotificationName_object_userInfo(
+                ItunesImportErrorNotification,
+                self,
+                makeNSDictionary(
+                    ItunesImportErrorMessageKey, #"The iTunes importer failed to start.",
+                    ItunesImportErrorDetailKey, #"Please report this error.",
+                ),
+            );
+        else
+            importController.importItunesLibrary_modalForWindow_modalDelegate_didEndSelector_contextInfo(
+                itunesLibrary,
+                self^.mainWindow,
+                self,
+                selectorHandle(#"_itunesSheetDidEnd:returnCode:contextInfo:"),
+                RawPointer(importController)
+            );
+    }
+}
+
+// NB: must send messages to main thread!
 private updateProgressCallback(self, stage, distance, goal) {
     alias READ_STAGE_LENGTH = 80.0;
     alias MERGE_STAGE_LENGTH = 20.0;
@@ -89,7 +146,6 @@ record ItunesImportController = newClass(#VinylItunesImportController, NSObject,
         ...IBActions(
             (#"cancel:", (self, sender) => {
                 self^.cancelled = true;
-                // XXX cancel
             }),
         ),
 
@@ -114,12 +170,24 @@ record ItunesImportController = newClass(#VinylItunesImportController, NSObject,
                         (stage, distance, goal) =>
                             updateProgressCallback(self, stage, distance, goal)
                     );
+                } catch (cancel: ItunesImportCancelled) {
+                    // do nothing
                 } catch (ex) {
-                    // XXX error reporting
-                    NSLog(NSString(#"error importing: %@"), NSString(printString(ex)));
+                    NSApp.performSelectorOnMainThread_withObject_waitUntilDone(
+                        selectorHandle(#"endSheet:"),
+                        self^.sheet,
+                        true,
+                    );
+                    self.performSelectorOnMainThread_withObject_waitUntilDone(
+                        selectorHandle(#"reportImportError:"),
+                        makeNSDictionary(
+                            ItunesImportErrorMessageKey, itunesErrorMessage(*ex),
+                            ItunesImportErrorDetailKey,  itunesErrorDetail(*ex),
+                        ),
+                        false,
+                    );
+                    return;
                 }
-
-                NSLog(NSString(#"done"));
 
                 NSApp.performSelectorOnMainThread_withObject_waitUntilDone(
                     selectorHandle(#"endSheet:"),
@@ -131,6 +199,11 @@ record ItunesImportController = newClass(#VinylItunesImportController, NSObject,
 
         (#"setProgressIndicatorValue:", (self, value) => {
             self^.progressIndicator.setDoubleValue(value.doubleValue());
+        }),
+        (#"reportImportError:", (self, info) => {
+            NSNotificationCenter.defaultCenter().postNotificationName_object_userInfo(
+                ItunesImportErrorNotification, self, info
+            );
         }),
 
         DeallocInstanceMethod(),
