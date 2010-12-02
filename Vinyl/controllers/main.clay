@@ -650,7 +650,6 @@ record MainController = newClass(#VinylMainController, NSObject,
 
             // XXX preserve search for each view
             self^.searchField.setStringValue(NSString(#""));
-            self^.playlistDataSource.setSearchString(NSString(#""));
 
             self^.playlistView.reloadData();
 

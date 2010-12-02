@@ -721,6 +721,9 @@ record PlaylistDataSource = newClass(NSObject,
         (#"libraryView", self => &self^.libraryView),
         (#"setLibraryView:", (self, view) => {
             self^.libraryView = view;
+            // XXX preserve search for each view
+            self^.searchString = Retained(nil(NSString));
+
             refreshPlaylistDataSource(self);
         }),
         (#"searchString", self => self^.searchString),
@@ -931,6 +934,14 @@ refreshPlaylistDataSource(self: PlaylistDataSource) {
 
     var stmt = libraryViewStatement(self^.library^.db, search, self^.libraryView);
 
-    for (row in stmt)
+    var first? = true;
+    NSLog(NSString(#"data source: beginning statement"));
+    for (row in stmt) {
+        if (first?) {
+            NSLog(NSString(#"loaded first row"));
+            first? = false;
+        }
         push(self^.tracks, rowRecord(row, PlaylistTrack));
+    }
+    NSLog(NSString(#"loaded last row"));
 }

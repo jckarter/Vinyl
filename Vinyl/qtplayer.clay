@@ -103,7 +103,14 @@ _changeLibraryView(ps: PlaylistState, view: LibraryView, trackViewId: NSInteger,
     var currentTrack? = false;
     clear(ps.tracks);
     ps.trackNumber = 0;
+
+    var first? = true;
+    NSLog(NSString(#"player: beginning statement"));
     for (row in libraryViewStatement(ps.library^.db, String(), view)) {
+        if (first?) {
+            NSLog(NSString(#"loaded first row"));
+            first? = false;
+        }
         var track = rowRecord(row, PlaylistTrack);
         push(ps.tracks, track);
         if (track.track_view_id == trackViewId) {
@@ -112,12 +119,14 @@ _changeLibraryView(ps: PlaylistState, view: LibraryView, trackViewId: NSInteger,
         }
         inc(i);
     }
+    NSLog(NSString(#"loaded last row"));
 
     if (shuffle?) {
         ps.trackOrder = shuffledTrackOrder(i, ps.trackNumber);
         ps.trackNumber = 0;
     } else
         ps.trackOrder = sequentialTrackOrder(i);
+    NSLog(NSString(#"created play order"));
     return currentTrack?;
 }
 
