@@ -334,10 +334,6 @@ private desc?(ascending?) = if (ascending?) "" else " desc";
 sortSQL(sortColumn: String, ascending?: Bool) {
     var desc = desc?(ascending?);
     switch (sortColumn) {
-    case "filename":
-    case "name":
-    case "sort_name":
-        return "lower(tracks.sort_name)" + desc;
     case "album_name":
     case "album_sort_name":
     case "track_number":
@@ -347,8 +343,10 @@ sortSQL(sortColumn: String, ascending?: Bool) {
     case "track_number":
     case "tracks_count":
         return printString(
-            "lower(albums.sort_name)", desc,
+            "albums.sort_name is null",
+            ", lower(albums.sort_name)", desc,
             ", not albums.compilation_p", desc,
+            ", coalesce(album_artists.sort_name, track_artists.sort_name) is null",
             ", lower(coalesce(album_artists.sort_name, track_artists.sort_name))", desc,
             ", tracks.side_number", desc,
             ", tracks.track_number", desc,
@@ -356,7 +354,9 @@ sortSQL(sortColumn: String, ascending?: Bool) {
     case "album_artist_name":
     case "album_artist_sort_name":
         return printString(
-            "lower(coalesce(album_artists.sort_name, track_artists.sort_name))", desc,
+            "coalesce(album_artists.sort_name, track_artists.sort_name) is null",
+            ", lower(coalesce(album_artists.sort_name, track_artists.sort_name))", desc,
+            ", albums.sort_name is null",
             ", lower(albums.sort_name)", desc,
             ", not albums.compilation_p", desc,
             ", tracks.side_number", desc,
@@ -365,17 +365,19 @@ sortSQL(sortColumn: String, ascending?: Bool) {
     case "track_artist_name":
     case "track_artist_sort_name":
         return printString(
-            "lower(coalesce(track_artists.sort_name, album_artists.sort_name))", desc,
+            "coalesce(track_artists.sort_name, album_artists.sort_name) is null",
+            ", lower(coalesce(track_artists.sort_name, album_artists.sort_name))", desc,
+            ", albums.sort_name is null",
             ", lower(albums.sort_name)", desc,
             ", not albums.compilation_p", desc,
             ", tracks.side_number", desc,
             ", tracks.track_number", desc,
         );
     case "genre_name":
-        return "lower(genres.name)" + desc;
+        return "genres.name is null, lower(genres.name)" + desc;
     case "composer_name":
     case "composer_sort_name":
-        return "lower(composers.sort_name)" + desc;
+        return "composers.sort_name is null, lower(composers.sort_name)" + desc;
     case "grouping_name":
         return "lower(groupings.name)" + desc;
     case "duration_time":
@@ -383,7 +385,7 @@ sortSQL(sortColumn: String, ascending?: Bool) {
     case "year":
         return "cast(tracks.year as integer)" + desc;
     case "comments":
-        return "tracks.comments" + desc;
+        return "tracks.comments is null, lower(tracks.comments)" + desc;
     case "enabled_p":
         return "not enabled_p" + desc;
     case "play_count":
@@ -394,11 +396,9 @@ sortSQL(sortColumn: String, ascending?: Bool) {
         return "track_options.modified_date" + desc;
     case "played_date":
         return "track_options.played_date" + desc;
-    case "track_id":
-        return "tracks.track_id" + desc;
 
     default:
-        return "tracks.track_id" + desc;
+        return "lower(tracks.sort_name)" + desc;
     }
 }
 record PlaylistFolderView (id: Int);
