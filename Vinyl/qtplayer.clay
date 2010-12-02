@@ -152,6 +152,26 @@ alias PlayerUpdateTimeNotification = NSString(#"VinylPlayerUpdateTimeNotificatio
 
 alias UPDATE_TIME_INTERVAL = 0.5;
 
+startUpdateTimeTimer(self: Player) {
+    if (nil?(self^.updateTimeTimer)) {
+        self^.updateTimeTimer = NSTimer.timerWithTimeInterval_target_selector_userInfo_repeats(
+            UPDATE_TIME_INTERVAL,
+            self,
+            selectorHandle(#"updateTimeTimer:"),
+            nil(),
+            true,
+        );
+        NSRunLoop.currentRunLoop().addTimer_forMode(
+            self^.updateTimeTimer,
+            NSDefaultRunLoopMode,
+        );
+    }
+}
+stopUpdateTimeTimer(self: Player) {
+    self^.updateTimeTimer.invalidate();
+    self^.updateTimeTimer = nil();
+}
+
 record Player = newClass(NSObject,
     InstanceVars(
         state: PlayerState,
@@ -269,17 +289,7 @@ record Player = newClass(NSObject,
                         NSNotificationCenter.defaultCenter().postNotificationName_object(
                             PlayerStateDidChangeNotification, self
                         );
-                        self^.updateTimeTimer = NSTimer.timerWithTimeInterval_target_selector_userInfo_repeats(
-                            UPDATE_TIME_INTERVAL,
-                            self,
-                            selectorHandle(#"updateTimeTimer:"),
-                            nil(),
-                            true,
-                        );
-                        NSRunLoop.currentRunLoop().addTimer_forMode(
-                            self^.updateTimeTimer,
-                            NSDefaultRunLoopMode,
-                        );
+                        startUpdateTimeTimer(self);
                     } else
                         self.stop();
                 }
@@ -295,8 +305,7 @@ record Player = newClass(NSObject,
                     NSNotificationCenter.defaultCenter().postNotificationName_object(
                         PlayerStateDidChangeNotification, self
                     );
-                    self^.updateTimeTimer.invalidate();
-                    self^.updateTimeTimer = nil();
+                    stopUpdateTimeTimer(self);
                 }
             );
         }),
@@ -310,8 +319,7 @@ record Player = newClass(NSObject,
                     NSNotificationCenter.defaultCenter().postNotificationName_object(
                         PlayerStateDidChangeNotification, self
                     );
-                    self^.updateTimeTimer.invalidate();
-                    self^.updateTimeTimer = nil();
+                    stopUpdateTimeTimer(self);
                 }
             );
         }),
