@@ -1,0 +1,172 @@
+Topic
+- [ ] next version
+    - [ ] better incremental updating of FTS table
+    - [ ] dock menu
+    - [ ] drag playlist contents into another playlist
+    - [ ] nested folders
+    - [ ] browser view
+    - [ ] natural language ordering
+    - [ ] library database maintenance
+    - [ ] tag editing
+    - [ ] mini player
+    - [ ] support for media keys
+    - [ ] generate default sort names using itunes-like heuristics
+    - [ ] gapless playback
+    - [ ] drag to reorder playlists
+    - [ ] derive new playlist name from common attribute of dragged
+          tracks
+    - [ ] preserve each playlist's selection
+    - [ ] use aliases to reference files
+    - [ ] indicators in playlist view for currently playing/paused
+          song, playlist
+    - [ ] make search per-playlist
+    - [ ] maintain selection as best as possible when searching
+    - [ ] make sure NSInteger is consistently used for
+          playlist/playlist folder ids
+    - [ ] handle Delete drag operation
+    - [ ] stars for ratings
+        - [ ] Apple Symbol font
+        - [ ] filled star: +U2605
+        - [ ] empty star: +U2606
+        - [ ] click to update
+    - [ ] locale-aware sorting
+    - [ ] per-playlist settings
+        - [ ] repeat/shuffle
+        - [ ] show/hide columns
+        - [ ] sort headers
+- [ ] graphics
+    - [ ] app icon
+        - [ ] base icon
+        - [ ] icon with current play state badge
+        - [ ] or turntable icon with moving needle
+    - [ ] playlist icon
+    - [ ] folder icon
+    - [ ] play/pause/stop/rew/ff
+    - [ ] speaker off/on (for volume control, playing indicator)
+    - [ ] library icon
+    - [ ] add/shuffle/repeat/repeat1 buttons
+    - [ ] "playing" badge for library/folder/playlist icons
+- [ ] play from search list
+- [ ] schema migration mechanism
+- [ ] sorting playlist (edits playlist)
+- [ ] undo/redo of library modifications
+- [ ] dock menu
+- [-] performance improvements
+    - [ ] disable update timer if vinyl window isn't visible
+    - [-] improve performance showing large library view
+          2010-12-02 17:51:10.976 Vinyl[55699:a0b] creating statement
+          2010-12-02 17:51:10.979 Vinyl[55699:a0b] beginning statement
+          2010-12-02 17:51:11.603 Vinyl[55699:a0b] loaded first row
+          2010-12-02 17:51:11.847 Vinyl[55699:a0b] loaded last row
+        - [ ] optimize query performance (0.65 s)
+        - [ ] use sqlite sequence to minimize memory/time overhead of
+              loading rows (0.2 s)
+        - [+] avoid double-update due to search string change
+- [+] itunes-style clickthrough behavior
+- [+] select playlist close to deleted playlist
+- [+] save current view in preferences
+- [ ] import individual songs
+    - [ ] figure out metadata situation
+    - [ ] by menu
+    - [ ] by drag and drop
+    - [ ] by paste files
+    - [ ] delete songs from library
+- [+] blank or "No tracks" status bar when empty view
+- [+] localized formatting of "99999 tracks" count in status bar
+- [-] sort library view
+    - [ ] update player state so it assumes new order
+    - [+] update view
+- [-] handle missing/unplayable files
+    - [ ] mark them with a (!) like itunes
+    - [+] check for other possible qtkit failure modes
+    - [+] continue playing after they fail
+- [-] import itunes library
+    - [ ] only import music files
+    - [ ] import track and album options
+    - [-] error handling
+        - [+] parser errors
+        - [ ] exceptions thrown during callbacks
+    - [+] backend
+    - [+] UI
+    - [+] playlists
+- [-] playlist updates
+    - [ ] cut, copy and paste tracks
+    - [+] update database
+    - [+] update selection
+    - [+] deletion from playlist
+- [-] bugs
+    - [ ] sidebar shouldn't resize with window
+    - [ ] make spacebar actually play/pause/stop
+    - [ ] prevent "library" from being editable
+    - [ ] outline view persistence doesn't work
+    - [ ] can we resume after sleep?
+    - [ ] play slider stops moving when menu is open
+    - [ ] jittery progress bar animation during itunes import
+    - [ ] strange crash when deleting playlist
+    - [ ] bogus track durations for tracks in Funkadelic/Music for your
+          Mother (1 of 2)
+    - [+] ks's mystery crash
+    - [+] playing track indicator doesn't appear in search
+    - [+] playing track indicator shows in same row of all views
+    - [+] wrong instance of track plays when multiple instances in
+          playlist
+    - [+] playing indicator shows multiple times when same track is in
+          playlist
+    - [+] stuttering time slider update
+    - [+] 10% CPU?!
+    - [+] sort null/empty to bottom
+    - [+] doug's constraint failure during itunes import
+    - [+] crash when click "play" in initial state
+    - [+] changing current track display breaks when album/artist
+          missing
+    - [+] artist sorting should be artist-name, album-name, album sort
+          logic
+    - [+] fix album sorting to be album-name-first
+    - [+] case insensitive sorting
+    - [+] duplicate tracks in playlist get coalesced when dragging
+    - [+] dragging time slider starts current track again even if it
+          wasn't playing
+    - [+] clear search when switching playlists
+    - [+] update player when current playlist/view is modified
+    - [+] playing from search plays wrong track—by row# rather than
+          track id
+    - [+] need to update position numbers after tracks are deleted
+    - [+] clear playlist view selection when library view has new
+          selection
+    - [+] playlist view doesn't update in response to keyboard controls
+          in library view
+    - [+] move selection somewhere useful when playlist is deleted
+    - [+] don't allow playlist to be renamed to empty string
+- [+] rename playlists
+    - [+] implement it
+- [+] custom view cells for album data
+    - [+] track/side #: "<number> of <count>"
+    - [+] time notation for time/date columns
+- [+] bring back main window if hidden when dock icon clicked
+- [+] play status view
+- [+] move playlists among folders
+- [+] search
+    - [+] implementation
+    - [+] performance problems
+- [+] add playlist folders
+- [+] playlist statistics in status bar
+- [+] volume control
+- [+] update play control visuals/behavior based on current state
+    - [+] playing with current playlist visible: pause button
+    - [+] playing with other playlist visible: stop button
+    - [+] not playing: play button, disable prev/next
+- [+] prev track skips to beginning of current track, or goes back if
+      close enough to beginning already
+- [+] add playlists
+    - [+] dumb implementation
+    - [+] add playlist to same folder as selected playlist
+    - [+] persist outline view state after updates
+    - [+] select new playlist and edit its name
+- [+] delete playlists
+- [+] delete playlist folders
+- [+] rename playlist folders
+- [+] reopen main window
+- [+] double-click to play song
+- [+] drag to add tracks to playlist
+- [+] catch and report itunes importer bugs
+- [+] better default table column widths, order
