@@ -387,7 +387,7 @@ sortSQL(sortColumn: String, ascending?: Bool) {
     case "comments":
         return "tracks.comments is null, lower(tracks.comments)" + desc;
     case "enabled_p":
-        return "not enabled_p" + desc;
+        return "not track_options.enabled_p" + desc;
     case "play_count":
         return "track_options.play_count" + desc;
     case "added_date":
@@ -833,9 +833,7 @@ overload basePlaylistSelectClause(view: PlaylistFolderView) = "
         track_options.played_date as played_date
     ";
 
-private alias basePlaylistFromClause = "
-    from
-        tracks
+private alias playlistFromClauseLeftJoins = "
         left join albums on tracks.album_id = albums.album_id
         left join album_sides
             on tracks.album_id = album_sides.album_id
@@ -846,6 +844,11 @@ private alias basePlaylistFromClause = "
         left join composers on tracks.composer_id = composers.composer_id
         left join groupings on tracks.grouping_id = groupings.grouping_id
         left join track_options on tracks.track_id = track_options.track_id
+    ";
+
+private alias basePlaylistFromClause = "
+    from
+        tracks
     ";
 
 private alias searchPlaylistFromClause = "
@@ -853,24 +856,14 @@ private alias searchPlaylistFromClause = "
         tracks
         inner join tracks_fts
             on tracks_fts.docid = tracks.track_id
-        left join albums on tracks.album_id = albums.album_id
-        left join album_sides
-            on tracks.album_id = album_sides.album_id
-            and tracks.side_number = album_sides.side_number
-        left join artists as album_artists on albums.album_artist_id = album_artists.artist_id
-        left join artists as track_artists on tracks.track_artist_id = track_artists.artist_id
-        left join genres on tracks.genre_id = genres.genre_id
-        left join composers on tracks.composer_id = composers.composer_id
-        left join groupings on tracks.grouping_id = groupings.grouping_id
-        left join track_options on tracks.track_id = track_options.track_id
     ";
 
-private  viewFromClauseAddition(view: SortedView) = "";
-overload viewFromClauseAddition(view: PlaylistView) = "
+private  viewFromClauseInnerJoins(view: SortedView) = "";
+overload viewFromClauseInnerJoins(view: PlaylistView) = "
         inner join playlist_tracks
             on tracks.track_id = playlist_tracks.track_id
     ";
-overload viewFromClauseAddition(view: PlaylistFolderView) = "
+overload viewFromClauseInnerJoins(view: PlaylistFolderView) = "
         inner join playlist_tracks
             on tracks.track_id = playlist_tracks.track_id
         inner join playlists
@@ -909,7 +902,8 @@ libraryViewStatement(db: SqliteDB, search: String, view: LibraryView) {
         stmtString += searchPlaylistFromClause;
     else
         stmtString += basePlaylistFromClause;
-    stmtString += viewFromClauseAddition(*view);
+    stmtString += viewFromClauseInnerJoins(*view);
+    stmtString += playlistFromClauseLeftJoins;
     stmtString += " where ";
     if (searching?)
         stmtString += sortWhereClause + " and ";
@@ -917,7 +911,7 @@ libraryViewStatement(db: SqliteDB, search: String, view: LibraryView) {
     stmtString += " order by ";
     stmtString += viewOrderByClause(*view);
 
-    var stmt = SqliteStatement(db, stmtString);
+    var stmt = SqliteStatement(db, observe(stmtString));
     if (searching?)
         bindStatement(stmt, ":search", search);
     bindViewParameters(stmt, *view);
