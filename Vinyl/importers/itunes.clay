@@ -82,7 +82,7 @@ record ItunesParseState (
     item: ItunesItem,
     itemDepth: SizeT,
     playlistCount: Int,
-    valid?: Bool,
+    exception: Maybe[Exception],
 );
 
 itunesAddToValue(item: Nothing, state: ItunesParseState, type: String, value: String) {}
@@ -268,7 +268,7 @@ itunesStartElementHandler(
     attrs: Pointer[Pointer[XML_Char]]
 ) {
     ref state = Pointer[ItunesParseState](stateP)^;
-    if (not state.valid?) return;
+    if (just?(state.exception)) return;
 
     var name = CStringRef(nameC);
 
@@ -297,14 +297,14 @@ itunesStartElementHandler(
 
 itunesEndElementHandler(stateP: RawPointer, nameC: Pointer[XML_Char]) {
     ref state = Pointer[ItunesParseState](stateP)^;
-    if (not state.valid?) return;
+    if (just?(state.exception)) return;
 
     var name = CStringRef(nameC);
     var closedName = pop(state.tagPath);
     var depth = size(state.keyPath);
 
     if (name != closedName) {
-        state.valid? = false;
+        state.exception = Maybe(Exception(ItunesInvalidLibraryError()));
         return;
     }
 
@@ -315,7 +315,11 @@ itunesEndElementHandler(stateP: RawPointer, nameC: Pointer[XML_Char]) {
         
     case "dict":
         if (depth == state.itemDepth) {
-            itunesFinishValue(*state.item, state);
+            try {
+                itunesFinishValue(*state.item, state);
+            } catch (ex) {
+                state.exception = Maybe(ex);
+            }
             state.item = ItunesItem(Nothing());
             state.itemDepth = 0;
         }
@@ -347,7 +351,7 @@ itunesEndElementHandler(stateP: RawPointer, nameC: Pointer[XML_Char]) {
 
 itunesCharacterDataHandler(stateP: RawPointer, s: Pointer[XML_Char], len: Int) {
     ref state = Pointer[ItunesParseState](stateP)^;
-    if (not state.valid?) return;
+    if (just?(state.exception)) return;
 
     push(state.tagContents, mapped(Char, coordinateRange(s, s + len)));
 }
@@ -652,6 +656,7 @@ importFromItunesTable(db: SqliteDB, progressCallback) {
 importItunes(library: Library, itunesLibraryFilename: String, progressCallback) {
     withTransaction(library.db, () ref=> {
         runStatement(library.db, "create temporary table itunes_imported_tracks (
+            itunes_track_view_id integer,
             itunes_track_id integer primary key,
             filename text not null,
             name text not null,
@@ -724,6 +729,7 @@ importItunes(library: Library, itunesLibraryFilename: String, progressCallback) 
                 ?,
                 ?,
                 ?,
+                ?,
                 ?
             )"),
             SqliteStatement(library.db, "insert into itunes_imported_playlists values (
@@ -745,7 +751,7 @@ importItunes(library: Library, itunesLibraryFilename: String, progressCallback) 
             ItunesItem(Nothing()),
             SizeT(0),
             0,
-            true,
+            nothing(Exception),
         );
         var parser = DestroyedBy(XML_ParserCreate(null(CChar)), XML_ParserFree);
 
@@ -764,8 +770,7 @@ importItunes(library: Library, itunesLibraryFilename: String, progressCallback) 
 
         parseXMLFrom(parser^, file, fileSize(file), progressCallback);
 
-        if (not state.valid?)
-            throw ItunesInvalidLibraryError();
+        maybe(state.exception, ex => { throw ex; });
 
         importFromItunesTable(library.db, progressCallback);
 
