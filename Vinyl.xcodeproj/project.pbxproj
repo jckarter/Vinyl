@@ -17,6 +17,22 @@
 		D828F990129512FF005CE8ED /* shell.c in Sources */ = {isa = PBXBuildFile; fileRef = D828F97A12951232005CE8ED /* shell.c */; };
 		D8444395128AC32400ACB9D5 /* QTKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D8444394128AC32400ACB9D5 /* QTKit.framework */; };
 		D8492B6D12A68C2400005C44 /* Vinyl.icns in Resources */ = {isa = PBXBuildFile; fileRef = D8492B6C12A68C2400005C44 /* Vinyl.icns */; };
+		D8492D0812A8EA6F00005C44 /* libicudata.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D8492D0112A8EA6F00005C44 /* libicudata.a */; };
+		D8492D0912A8EA6F00005C44 /* libicui18n.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D8492D0212A8EA6F00005C44 /* libicui18n.a */; };
+		D8492D0A12A8EA6F00005C44 /* libicuio.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D8492D0312A8EA6F00005C44 /* libicuio.a */; };
+		D8492D0B12A8EA6F00005C44 /* libicule.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D8492D0412A8EA6F00005C44 /* libicule.a */; };
+		D8492D0C12A8EA6F00005C44 /* libiculx.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D8492D0512A8EA6F00005C44 /* libiculx.a */; };
+		D8492D0D12A8EA6F00005C44 /* libicutu.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D8492D0612A8EA6F00005C44 /* libicutu.a */; };
+		D8492D0E12A8EA6F00005C44 /* libicuuc.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D8492D0712A8EA6F00005C44 /* libicuuc.a */; };
+		D8492D0F12A8EA7C00005C44 /* libicudata.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D8492D0112A8EA6F00005C44 /* libicudata.a */; };
+		D8492D1012A8EA7D00005C44 /* libicutu.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D8492D0612A8EA6F00005C44 /* libicutu.a */; };
+		D8492D1112A8EA7F00005C44 /* libicuuc.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D8492D0712A8EA6F00005C44 /* libicuuc.a */; };
+		D8492D1212A8EA8000005C44 /* libiculx.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D8492D0512A8EA6F00005C44 /* libiculx.a */; };
+		D8492D1312A8EA8000005C44 /* libicuio.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D8492D0312A8EA6F00005C44 /* libicuio.a */; };
+		D8492D1412A8EA8100005C44 /* libicui18n.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D8492D0212A8EA6F00005C44 /* libicui18n.a */; };
+		D8492D1512A8EA8200005C44 /* libicule.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D8492D0412A8EA6F00005C44 /* libicule.a */; };
+		D8492D1D12A8EB5100005C44 /* libstdc++.6.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = D8492D1C12A8EB5100005C44 /* libstdc++.6.dylib */; };
+		D8492D2012A8EBE500005C44 /* libstdc++.6.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = D8492D1C12A8EB5100005C44 /* libstdc++.6.dylib */; };
 		D851B2E0127AA5C800C08AC9 /* main.clay in Sources */ = {isa = PBXBuildFile; fileRef = D851B2DC127AA5C800C08AC9 /* main.clay */; };
 /* End PBXBuildFile section */
 
@@ -54,6 +70,14 @@
 		D8444257127FD84700ACB9D5 /* libsqlite3.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libsqlite3.dylib; path = usr/lib/libsqlite3.dylib; sourceTree = SDKROOT; };
 		D8444394128AC32400ACB9D5 /* QTKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QTKit.framework; path = System/Library/Frameworks/QTKit.framework; sourceTree = SDKROOT; };
 		D8492B6C12A68C2400005C44 /* Vinyl.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = Vinyl.icns; sourceTree = "<group>"; };
+		D8492D0112A8EA6F00005C44 /* libicudata.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libicudata.a; path = icu/libicudata.a; sourceTree = "<group>"; };
+		D8492D0212A8EA6F00005C44 /* libicui18n.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libicui18n.a; path = icu/libicui18n.a; sourceTree = "<group>"; };
+		D8492D0312A8EA6F00005C44 /* libicuio.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libicuio.a; path = icu/libicuio.a; sourceTree = "<group>"; };
+		D8492D0412A8EA6F00005C44 /* libicule.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libicule.a; path = icu/libicule.a; sourceTree = "<group>"; };
+		D8492D0512A8EA6F00005C44 /* libiculx.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libiculx.a; path = icu/libiculx.a; sourceTree = "<group>"; };
+		D8492D0612A8EA6F00005C44 /* libicutu.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libicutu.a; path = icu/libicutu.a; sourceTree = "<group>"; };
+		D8492D0712A8EA6F00005C44 /* libicuuc.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libicuuc.a; path = icu/libicuuc.a; sourceTree = "<group>"; };
+		D8492D1C12A8EB5100005C44 /* libstdc++.6.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = "libstdc++.6.dylib"; path = "usr/lib/libstdc++.6.dylib"; sourceTree = SDKROOT; };
 		D851B2DC127AA5C800C08AC9 /* main.clay */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = main.clay; sourceTree = "<group>"; };
 		D851B2DD127AA5C800C08AC9 /* Vinyl */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Vinyl; sourceTree = "<group>"; };
 		D851B2E2127AA66C00C08AC9 /* NibInterfaces.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = NibInterfaces.h; sourceTree = "<group>"; };
@@ -67,6 +91,14 @@
 				8D11072F0486CEB800E47090 /* Cocoa.framework in Frameworks */,
 				D8444395128AC32400ACB9D5 /* QTKit.framework in Frameworks */,
 				D828F8CB12918BCF005CE8ED /* libexpat.dylib in Frameworks */,
+				D8492D0812A8EA6F00005C44 /* libicudata.a in Frameworks */,
+				D8492D0912A8EA6F00005C44 /* libicui18n.a in Frameworks */,
+				D8492D0A12A8EA6F00005C44 /* libicuio.a in Frameworks */,
+				D8492D0B12A8EA6F00005C44 /* libicule.a in Frameworks */,
+				D8492D0C12A8EA6F00005C44 /* libiculx.a in Frameworks */,
+				D8492D0D12A8EA6F00005C44 /* libicutu.a in Frameworks */,
+				D8492D0E12A8EA6F00005C44 /* libicuuc.a in Frameworks */,
+				D8492D2012A8EBE500005C44 /* libstdc++.6.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -74,6 +106,14 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D8492D0F12A8EA7C00005C44 /* libicudata.a in Frameworks */,
+				D8492D1012A8EA7D00005C44 /* libicutu.a in Frameworks */,
+				D8492D1112A8EA7F00005C44 /* libicuuc.a in Frameworks */,
+				D8492D1212A8EA8000005C44 /* libiculx.a in Frameworks */,
+				D8492D1312A8EA8000005C44 /* libicuio.a in Frameworks */,
+				D8492D1412A8EA8100005C44 /* libicui18n.a in Frameworks */,
+				D8492D1512A8EA8200005C44 /* libicule.a in Frameworks */,
+				D8492D1D12A8EB5100005C44 /* libstdc++.6.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -83,9 +123,17 @@
 		1058C7A0FEA54F0111CA2CBB /* Linked Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				D8492D0112A8EA6F00005C44 /* libicudata.a */,
+				D8492D0212A8EA6F00005C44 /* libicui18n.a */,
+				D8492D0312A8EA6F00005C44 /* libicuio.a */,
+				D8492D0412A8EA6F00005C44 /* libicule.a */,
+				D8492D0512A8EA6F00005C44 /* libiculx.a */,
+				D8492D0612A8EA6F00005C44 /* libicutu.a */,
+				D8492D0712A8EA6F00005C44 /* libicuuc.a */,
 				1058C7A1FEA54F0111CA2CBB /* Cocoa.framework */,
 				D8444394128AC32400ACB9D5 /* QTKit.framework */,
 				D828F8CA12918BCF005CE8ED /* libexpat.dylib */,
+				D8492D1C12A8EB5100005C44 /* libstdc++.6.dylib */,
 			);
 			name = "Linked Frameworks";
 			sourceTree = "<group>";
@@ -303,11 +351,20 @@
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
+					SQLITE_ENABLE_ICU,
 					SQLITE_ENABLE_FTS3_PARENTHESIS,
 					SQLITE_ENABLE_FTS3,
 				);
+				HEADER_SEARCH_PATHS = (
+					sqlite,
+					icu,
+				);
 				INFOPLIST_FILE = "Vinyl-Info.plist";
 				INSTALL_PATH = "$(HOME)/Applications";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"$(SRCROOT)/icu\"",
+				);
 				PRODUCT_NAME = Vinyl;
 			};
 			name = Debug;
@@ -321,11 +378,20 @@
 				GCC_MODEL_TUNING = G5;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
+					SQLITE_ENABLE_ICU,
 					SQLITE_ENABLE_FTS3_PARENTHESIS,
 					SQLITE_ENABLE_FTS3,
 				);
+				HEADER_SEARCH_PATHS = (
+					sqlite,
+					icu,
+				);
 				INFOPLIST_FILE = "Vinyl-Info.plist";
 				INSTALL_PATH = "$(HOME)/Applications";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"$(SRCROOT)/icu\"",
+				);
 				PRODUCT_NAME = Vinyl;
 			};
 			name = Release;
@@ -366,11 +432,19 @@
 				GCC_MODEL_TUNING = G5;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_PREPROCESSOR_DEFINITIONS = (
+					SQLITE_ENABLE_ICU,
 					SQLITE_ENABLE_FTS3_PARENTHESIS,
 					SQLITE_ENABLE_FTS3,
 				);
-				HEADER_SEARCH_PATHS = sqlite;
+				HEADER_SEARCH_PATHS = (
+					icu,
+					sqlite,
+				);
 				INSTALL_PATH = /usr/local/bin;
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"$(SRCROOT)/icu\"",
+				);
 				PREBINDING = NO;
 				PRODUCT_NAME = sqlite3;
 			};
@@ -385,11 +459,19 @@
 				GCC_ENABLE_FIX_AND_CONTINUE = NO;
 				GCC_MODEL_TUNING = G5;
 				GCC_PREPROCESSOR_DEFINITIONS = (
+					SQLITE_ENABLE_ICU,
 					SQLITE_ENABLE_FTS3_PARENTHESIS,
 					SQLITE_ENABLE_FTS3,
 				);
-				HEADER_SEARCH_PATHS = sqlite;
+				HEADER_SEARCH_PATHS = (
+					icu,
+					sqlite,
+				);
 				INSTALL_PATH = /usr/local/bin;
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"$(SRCROOT)/icu\"",
+				);
 				PREBINDING = NO;
 				PRODUCT_NAME = sqlite3;
 				ZERO_LINK = NO;
