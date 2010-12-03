@@ -86,6 +86,20 @@ create table if not exists track_options (
     played_date integer
 );
 
+create index if not exists albums_sort_name on albums (sort_name);
+create index if not exists albums_compilation_p on albums (compilation_p);
+create index if not exists artists_sort_name on artists (sort_name);
+create index if not exists tracks_sort_name on tracks (sort_name);
+create index if not exists composers_sort_name on composers (sort_name);
+create index if not exists tracks_duration_time on tracks (duration_time);
+create index if not exists tracks_year on tracks (year);
+create index if not exists tracks_comments on tracks (comments);
+create index if not exists track_options_enabled_p on track_options (enabled_p);
+create index if not exists track_options_play_count on track_options (play_count);
+create index if not exists track_options_added_date on track_options (added_date);
+create index if not exists track_options_modified_date on track_options (modified_date);
+create index if not exists track_options_played_date on track_options (played_date);
+
 -- uses column names without "_name" so "album:foo" queries work
 create virtual table tracks_fts using fts3(
     filename, -- filename

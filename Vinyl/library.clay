@@ -106,6 +106,20 @@ createLibraryDatabase(db: SqliteDB) {
             modified_date integer,
             played_date integer
         )");
+        runStatement(db, "create index if not exists albums_sort_name on albums (sort_name)");
+        runStatement(db, "create index if not exists albums_compilation_p on albums (compilation_p)");
+        runStatement(db, "create index if not exists artists_sort_name on artists (sort_name)");
+        runStatement(db, "create index if not exists tracks_sort_name on tracks (sort_name)");
+        runStatement(db, "create index if not exists composers_sort_name on composers (sort_name)");
+        runStatement(db, "create index if not exists tracks_duration_time on tracks (duration_time)");
+        runStatement(db, "create index if not exists tracks_year on tracks (year)");
+        runStatement(db, "create index if not exists tracks_comments on tracks (comments)");
+        runStatement(db, "create index if not exists track_options_enabled_p on track_options (enabled_p)");
+        runStatement(db, "create index if not exists track_options_play_count on track_options (play_count)");
+        runStatement(db, "create index if not exists track_options_added_date on track_options (added_date)");
+        runStatement(db, "create index if not exists track_options_modified_date on track_options (modified_date)");
+        runStatement(db, "create index if not exists track_options_played_date on track_options (played_date)");
+
         if (not statementValue?(db, "select name from sqlite_master where name = 'tracks_fts'"))
             runStatement(db, "create virtual table tracks_fts using fts3(
                 filename, -- filename
