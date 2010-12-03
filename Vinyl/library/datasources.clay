@@ -847,12 +847,10 @@ private alias playlistFromClauseLeftJoins = "
     ";
 
 private alias basePlaylistFromClause = "
-    from
         tracks
     ";
 
 private alias searchPlaylistFromClause = "
-    from
         tracks
         inner join tracks_fts
             on tracks_fts.docid = tracks.track_id
@@ -898,11 +896,13 @@ overload bindViewParameters(stmt: SqliteStatement, view: PlaylistFolderView) {
 libraryViewStatement(db: SqliteDB, search: String, view: LibraryView) {
     var searching? = not empty?(search);
     var stmtString = String(basePlaylistSelectClause(*view));
+    stmtString += " from (";
     if (searching?)
         stmtString += searchPlaylistFromClause;
     else
         stmtString += basePlaylistFromClause;
     stmtString += viewFromClauseInnerJoins(*view);
+    stmtString += ") ";
     stmtString += playlistFromClauseLeftJoins;
     stmtString += " where ";
     if (searching?)
