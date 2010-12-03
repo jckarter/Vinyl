@@ -375,49 +375,49 @@ sortSQL(sortColumn: String, ascending?: Bool) {
     case "track_number":
     case "tracks_count":
         return printString(
-            "albums.sort_name is null",
-            ", lower(albums.sort_name)", desc,
-            ", not albums.compilation_p", desc,
-            ", coalesce(album_artists.sort_name, track_artists.sort_name) is null",
-            ", lower(coalesce(album_artists.sort_name, track_artists.sort_name))", desc,
+            "tracks.album_id is null",
+            ", albums.sort_name", desc,
+            ", albums.compilation_p", desc,
+            ", albums.album_artist_id is null",
+            ", album_artists.sort_name", desc, //XXX coalesce with track artist
             ", tracks.side_number", desc,
             ", tracks.track_number", desc,
         );
     case "album_artist_name":
     case "album_artist_sort_name":
         return printString(
-            "coalesce(album_artists.sort_name, track_artists.sort_name) is null",
-            ", lower(coalesce(album_artists.sort_name, track_artists.sort_name))", desc,
-            ", albums.sort_name is null",
-            ", lower(albums.sort_name)", desc,
-            ", not albums.compilation_p", desc,
+            "albums.album_artist_id is null",
+            ", album_artists.sort_name", desc, //XXX coalesce with track artist
+            ", tracks.album_id is null",
+            ", albums.sort_name", desc,
+            ", albums.compilation_p", desc,
             ", tracks.side_number", desc,
             ", tracks.track_number", desc,
         );
     case "track_artist_name":
     case "track_artist_sort_name":
         return printString(
-            "coalesce(track_artists.sort_name, album_artists.sort_name) is null",
-            ", lower(coalesce(track_artists.sort_name, album_artists.sort_name))", desc,
-            ", albums.sort_name is null",
-            ", lower(albums.sort_name)", desc,
-            ", not albums.compilation_p", desc,
+            "tracks.track_artist_id is null",
+            ", track_artists.sort_name", desc,
+            ", tracks.album_id is null",
+            ", albums.sort_name", desc,
+            ", albums.compilation_p", desc,
             ", tracks.side_number", desc,
             ", tracks.track_number", desc,
         );
     case "genre_name":
-        return "genres.name is null, lower(genres.name)" + desc;
+        return "tracks.genre_id is null, genres.name" + desc;
     case "composer_name":
     case "composer_sort_name":
-        return "composers.sort_name is null, lower(composers.sort_name)" + desc;
+        return "tracks.composer_id is null, composers.sort_name" + desc;
     case "grouping_name":
-        return "lower(groupings.name)" + desc;
+        return "tracks.grouping_id is null, groupings.name" + desc;
     case "duration_time":
         return "tracks.duration_time" + desc;
     case "year":
-        return "cast(tracks.year as integer)" + desc;
+        return "tracks.year" + desc;
     case "comments":
-        return "tracks.comments is null, lower(tracks.comments)" + desc;
+        return "tracks.comments is null, tracks.comments" + desc;
     case "enabled_p":
         return "not track_options.enabled_p" + desc;
     case "play_count":
@@ -430,7 +430,7 @@ sortSQL(sortColumn: String, ascending?: Bool) {
         return "track_options.played_date" + desc;
 
     default:
-        return "lower(tracks.sort_name)" + desc;
+        return "tracks.sort_name" + desc;
     }
 }
 // XXX use NSInteger

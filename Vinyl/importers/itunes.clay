@@ -659,26 +659,26 @@ importItunes(library: Library, itunesLibraryFilename: String, progressCallback) 
             itunes_track_view_id integer,
             itunes_track_id integer primary key,
             filename text not null,
-            name text not null,
-            sort_name text,
-            album_name text,
-            album_sort_name text,
-            album_artist_name text,
-            album_artist_sort_name text,
+            name text not null collate nocase,
+            sort_name text collate nocase,
+            album_name text collate nocase,
+            album_sort_name text collate nocase,
+            album_artist_name text collate nocase,
+            album_artist_sort_name text collate nocase,
             album_compilation_p integer,
-            track_artist_name text,
-            track_artist_sort_name text,
-            genre_name text,
-            composer_name text,
-            composer_sort_name text,
-            grouping_name text,
+            track_artist_name text collate nocase,
+            track_artist_sort_name text collate nocase,
+            genre_name text collate nocase,
+            composer_name text collate nocase,
+            composer_sort_name text collate nocase,
+            grouping_name text collate nocase,
             side_number integer,
             sides_count integer,
             track_number integer,
             tracks_count integer,
             duration_time real not null,
-            year text,
-            comments text,
+            year text collate nocase,
+            comments text collate nocase,
             enabled_p integer,
             play_count integer,
             added_date integer,
@@ -780,6 +780,7 @@ importItunes(library: Library, itunesLibraryFilename: String, progressCallback) 
 
         updateLibraryFTS(library);
     });
+    runStatement(library.db, "analyze");
 }
 
 overload importItunes(library: Library, itunesLibraryFilename: String) {

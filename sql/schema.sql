@@ -3,12 +3,12 @@ begin;
 create table if not exists artists (
     artist_id integer primary key,
     display_name text not null unique,
-    sort_name text not null
+    sort_name text not null collate nocase
 );
 create table if not exists albums (
     album_id integer primary key,
     display_name text not null,
-    sort_name text not null,
+    sort_name text not null collate nocase,
     album_artist_id integer references artists (artist_id),
     sides_count integer,
     compilation_p integer not null default 0,
@@ -22,22 +22,22 @@ create table if not exists album_sides (
 );
 create table if not exists genres (
     genre_id integer primary key,
-    name text not null unique
+    name text not null unique collate nocase
 );
 create table if not exists composers (
     composer_id integer primary key,
     display_name text not null unique,
-    sort_name text not null
+    sort_name text not null collate nocase
 );
 create table if not exists groupings (
     grouping_id integer primary key,
-    name text not null unique
+    name text not null unique collate nocase
 );
 create table if not exists tracks (
     track_id integer primary key,
     filename text not null unique,
     display_name text not null,
-    sort_name text not null,
+    sort_name text not null collate nocase,
     album_id integer references albums (album_id),
     track_artist_id integer references artist (artist_id),
     genre_id integer references genres (genre_id),
@@ -47,7 +47,7 @@ create table if not exists tracks (
     track_number integer,
     duration_time real not null,
     year text,
-    comments text
+    comments text collate nocase
 );
 
 create table if not exists playlist_folders (
@@ -87,11 +87,20 @@ create table if not exists track_options (
 );
 
 create index if not exists albums_sort_name on albums (sort_name);
+create index if not exists albums_album_artist_id on albums (album_artist_id);
 create index if not exists albums_compilation_p on albums (compilation_p);
 create index if not exists artists_sort_name on artists (sort_name);
-create index if not exists tracks_sort_name on tracks (sort_name);
+create index if not exists genres_name on genres (name);
 create index if not exists composers_sort_name on composers (sort_name);
+create index if not exists groupings_name on groupings (name);
+create index if not exists tracks_sort_name on tracks (sort_name);
+create index if not exists tracks_album_id on tracks (album_id);
+create index if not exists tracks_track_artist_id on tracks (track_artist_id);
+create index if not exists tracks_genre_id on tracks (genre_id);
+create index if not exists tracks_composer_id on tracks (composer_id);
+create index if not exists tracks_grouping_id on tracks (grouping_id);
 create index if not exists tracks_duration_time on tracks (duration_time);
+create index if not exists tracks_side_track_number on tracks (side_number, track_number);
 create index if not exists tracks_year on tracks (year);
 create index if not exists tracks_comments on tracks (comments);
 create index if not exists track_options_enabled_p on track_options (enabled_p);
