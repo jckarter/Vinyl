@@ -17,6 +17,8 @@ overload selector(static #"insertPlaylistWithName:parentItem:")
     = Id, NSString, Id;
 overload selector(static #"insertPlaylistFolderWithName:")
     = Id, NSString;
+overload selector(static #"libraryView:selectView:")
+    = Id, NSOutlineView, LibraryView;
 
 libraryDataSourceItemCount(self: LibraryDataSource)
     = NSInteger(
@@ -42,6 +44,37 @@ record LibraryDataSource = newClass(NSObject,
             return self;
         })),
         DeallocInstanceMethod(),
+        (#"libraryView:selectView:", (self, outlineView, libraryView) => {
+            var row = NSUInteger(0);
+            match(libraryView,
+                PlaylistView, v ref=> {
+                    for (folder in self^.folders)
+                        for (playlist in folder["playlists"])
+                            if (playlist["id"] == v.id) {
+                                outlineView.expandItem(folder);
+                                row = outlineView.rowForItem(playlist);
+                                return;
+                            }
+                    for (playlist in self^.playlists)
+                        if (playlist["id"] == v.id) {
+                            row = outlineView.rowForItem(playlist);
+                            return;
+                        }
+                },
+                PlaylistFolderView, v ref=> {
+                    for (folder in self^.folders)
+                        if (folder["id"] == v.id) {
+                            row = outlineView.rowForItem(folder);
+                            return;
+                        }
+                },
+                SortedView, v ref=> { row = 0; }
+            );
+            outlineView.selectRowIndexes_byExtendingSelection(
+                NSIndexSet.indexSetWithIndex(NSUInteger(row)),
+                false
+            );
+        }),
         (#"outlineView:numberOfChildrenOfItem:", (self, outlineView, item) =>
             if (nil?(item))
                 libraryDataSourceItemCount(self)
@@ -54,7 +87,7 @@ record LibraryDataSource = newClass(NSObject,
         (#"outlineView:child:ofItem:", (self, outlineView, index, item) => {
             if (nil?(item)) {
                 if (index == 0)
-                    return Id(NSString(#"Library"));
+                    return Id(#"Library");
                 else {
                     var numFolders = self^.folders.count();
                     if (index - 1 < numFolders)
@@ -102,6 +135,7 @@ record LibraryDataSource = newClass(NSObject,
         (#"outlineView:deleteItem:", (self, outlineView, item) => {
             if (item.isKindOfClass(NSString))
                 return;
+            var oldRow = outlineView.rowForItem(item);
             var parentItem = outlineView.parentForItem(item);
 
             if (itemIsFolder?(item)) {
@@ -115,18 +149,16 @@ record LibraryDataSource = newClass(NSObject,
             }
 
             outlineView.reloadData();
-            if (nil?(parentItem))
+            if (oldRow < outlineView.numberOfRows())
                 outlineView.selectRowIndexes_byExtendingSelection(
-                    NSIndexSet.indexSetWithIndex(NSUInteger(0)),
+                    NSIndexSet.indexSetWithIndex(NSUInteger(oldRow)),
                     false
                 );
-            else {
-                var parentRow = outlineView.rowForItem(parentItem);
+            else
                 outlineView.selectRowIndexes_byExtendingSelection(
-                    NSIndexSet.indexSetWithIndex(NSUInteger(parentRow)),
+                    NSIndexSet.indexSetWithIndex(NSUInteger(outlineView.numberOfRows() - 1)),
                     false
                 );
-            }
         }),
 
         (#"outlineView:writeItems:toPasteboard:", (self, outlineView, items, pasteboard) => {
@@ -401,6 +433,7 @@ sortSQL(sortColumn: String, ascending?: Bool) {
         return "lower(tracks.sort_name)" + desc;
     }
 }
+// XXX use NSInteger
 record PlaylistFolderView (id: Int);
 record PlaylistView (id: Int);
 record SortedView (sort: String);
@@ -423,6 +456,34 @@ overload SortedView(sortDescriptors: O) {
 }
 
 overload LibraryView() = LibraryView(SortedView());
+
+libraryViewPlist(view: LibraryView) = libraryViewPlist(*view);
+overload libraryViewPlist(view: PlaylistFolderView) = makeNSArray(#"PlaylistFolder", view.id);
+overload libraryViewPlist(view: PlaylistView) = makeNSArray(#"Playlist", view.id);
+overload libraryViewPlist(view: SortedView) = makeNSArray(#"Library");
+
+[O | ObjectRef?(O)]
+overload LibraryView(plist: O, defaultView) {
+    if (plist.isKindOfClass(NSArray)) {
+        switch(plist[0]) {
+        case "PlaylistFolder":
+            if (plist.count() >= 2)
+                return LibraryView(PlaylistFolderView(Int(plist[1])));
+            else
+                goto defaultPlist;
+        case "Playlist":
+            if (plist.count() >= 2)
+                return LibraryView(PlaylistView(Int(plist[1])));
+            else
+                goto defaultPlist;
+        default:
+            goto defaultPlist;
+        }
+    }
+
+defaultPlist:
+    return LibraryView(defaultView);
+}
 
 record PlaylistTrack (
     track_view_id: NSInteger,
@@ -526,7 +587,7 @@ formattedFieldByName(r, fn, str) {
     }
 }
 
-overload selector(static #"initWithLibrary:sortDescriptors:") = Void, Pointer[Library], NSArray;
+overload selector(static #"initWithLibrary:viewPlist:sortDescriptors:") = Void, Pointer[Library], Id, NSArray;
 overload selector(static #"setLibraryView:") = Void, LibraryView;
 overload selector(static #"libraryView") = Pointer[LibraryView];
 overload selector(static #"setSearchString:") = Void, NSString;
@@ -557,12 +618,12 @@ record PlaylistDataSource = newClass(NSObject,
     ),
     ClassMethods(),
     InstanceMethods(
-        (#"initWithLibrary:sortDescriptors:", (self, library, sortDescriptors) =>
+        (#"initWithLibrary:viewPlist:sortDescriptors:", (self, library, viewPlist, sortDescriptors) =>
             initObjectWith(self, #"init", self => {
                 self^.library = library;
                 self^.tracks <-- Vector[PlaylistTrack]();
                 self^.searchString <-- Retained(nil(NSString));
-                self^.libraryView <-- LibraryView(SortedView(sortDescriptors));
+                self^.libraryView <-- LibraryView(viewPlist, SortedView(sortDescriptors));
                 self^.playingTrackViewId <-- nothing(NSInteger);
                 self^.playingMode <-- Paused;
                 refreshPlaylistDataSource(self);

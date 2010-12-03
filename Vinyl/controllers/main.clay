@@ -506,6 +506,17 @@ record MainController = newClass(#VinylMainController, NSObject,
         (#"awakeFromNib", self => {
             libc.srandomdev();
 
+            var defaults = NSUserDefaults.standardUserDefaults();
+            defaults.registerDefaults(makeNSDictionary(
+                #"Volume", 1.0,
+                #"Shuffle", false,
+                #"Repeat", Int(NoRepeat),
+                #"Columns", defaultColumnsDict(),
+                #"Playlist View", makeNSArray(#"Library"),
+            ));
+
+            var defaultLibraryView = defaults.arrayForKey(#"Playlist View");
+
             self^.library <-- Library();
             updateLibraryFTS(self^.library);
 
@@ -522,21 +533,19 @@ record MainController = newClass(#VinylMainController, NSObject,
             self^.playlistView.setDoubleAction(selectorHandle(#"performDoubleClickTrack:"));
 
             self^.playlistDataSource
-                = Retained(PlaylistDataSource.alloc().initWithLibrary_sortDescriptors(
+                = Retained(PlaylistDataSource.alloc().initWithLibrary_viewPlist_sortDescriptors(
                     &self^.library,
+                    defaultLibraryView,
                     self^.playlistView.sortDescriptors(),
                 ));
             self^.playlistView.setDataSource(self^.playlistDataSource);
 
-            self^.player = Retained(Player.alloc().init());
+            self^.libraryDataSource.libraryView_selectView(
+                self^.libraryView,
+                self^.playlistDataSource.libraryView()^
+            );
 
-            var defaults = NSUserDefaults.standardUserDefaults();
-            defaults.registerDefaults(makeNSDictionary(
-                #"Volume", 1.0,
-                #"Shuffle", false,
-                #"Repeat", Int(NoRepeat),
-                #"Columns", defaultColumnsDict(),
-            ));
+            self^.player = Retained(Player.alloc().init());
 
             var volume = defaults.doubleForKey(#"Volume");
             var shuffle = defaults.boolForKey(#"Shuffle");
@@ -646,18 +655,20 @@ record MainController = newClass(#VinylMainController, NSObject,
 
             var libView = self^.libraryView;
             var item = libView.itemAtRow(libView.selectedRow());
-            if (itemIsFolder?(item))
-                self^.playlistDataSource.setLibraryView(
+
+            var newView
+                = if (itemIsFolder?(item))
                     LibraryView(PlaylistFolderView(Int(item["id"])))
-                );
-            else if (itemIsPlaylist?(item))
-                self^.playlistDataSource.setLibraryView(
+                else if (itemIsPlaylist?(item))
                     LibraryView(PlaylistView(Int(item["id"])))
-                );
-            else
-                self^.playlistDataSource.setLibraryView(
-                    LibraryView(SortedView(self^.playlistView.sortDescriptors()))
-                );
+                else
+                    LibraryView(SortedView(self^.playlistView.sortDescriptors()));
+
+            self^.playlistDataSource.setLibraryView(newView);
+            NSUserDefaults.standardUserDefaults().setObject_forKey(
+                libraryViewPlist(newView),
+                #"Playlist View",
+            );
 
             // XXX preserve search for each view
             self^.searchField.setStringValue(NSString(#""));
