@@ -1,0 +1,36 @@
+import sqlite.*;
+
+private record SqliteLazySequenceState[T] (
+    rows: Vector[T],
+    si: SqliteStatementIterator, // NB: order dependency
+    stmt: SqliteStatement,
+    siHasNext?: Bool, 
+);
+
+[T] sqliteLazySequence(static T, rvalue stmt: SqliteStatement, size: SizeT)
+    = mapped(
+        SqliteLazySequenceState[T](Vector[T](), iterator(stmt), move(stmt), true),
+        range(size)
+    );
+
+SqliteLazySequence(T) = Type(sqliteLazySequence(T, typeToRValue(SqliteStatement), SizeT(0)));
+
+[T, I | Integer?(I)]
+overload call(seq: SqliteLazySequenceState[T], n: I) {
+    if (n >= size(seq.rows))
+        forceRows(seq, n);
+    return seq.rows[n];
+}
+
+[T, I | Integer?(I)]
+private forceRows(seq: SqliteLazySequenceState[T], upto: I) {
+    seq.siHasNext? = hasNext?(seq.si);
+    while(seq.siHasNext?) {
+        push(seq.rows, rowRecord(next(seq.si), T));
+        if (upto < size(seq.rows))
+            break;
+        seq.siHasNext? = hasNext?(seq.si);
+    }
+}
+
+
