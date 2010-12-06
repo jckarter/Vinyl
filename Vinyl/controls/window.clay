@@ -1,0 +1,20 @@
+import cocoa.*;
+import cocoa.appkit.*;
+import Vinyl.controllers.main.*;
+
+record VinylWindow = newClass(#VinylWindow, NSWindow,
+    InstanceVars(
+        IBOutlets(
+            mainController: MainController,
+        ),
+    ),
+    ClassMethods(),
+    InstanceMethods(
+        (#"keyDown:", (self, event) => {
+            if (event.charactersIgnoringModifiers() == " ")
+                self^.mainController.performPlay(self);
+            else
+                super(self).keyDown(event);
+        }),
+    ),
+);
