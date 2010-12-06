@@ -1,3 +1,11 @@
+Vinyl's source code is available under the GNU General Public License
+version 2 (and version 2 only), presented below. The included 
+SQLite sources in the sqlite/ directory and ICU sources in the icu/
+directory are provided unaltered under their original licenses as
+indicated in their respective source code.
+
+------------------------------------------------------------------------------
+
                     GNU GENERAL PUBLIC LICENSE
                        Version 2, June 1991
 
