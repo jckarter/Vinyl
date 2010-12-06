@@ -5,6 +5,7 @@ import Vinyl.controllers.itunesimport.*;
 import Vinyl.controls.deletingtableview.*;
 import Vinyl.controls.playinfoview.*;
 import Vinyl.controls.window.*;
+import Vinyl.controls.application.*;
 
 main() = appKitMain(
     AppDelegate,
@@ -14,4 +15,5 @@ main() = appKitMain(
     DeletingOutlineView,
     PlayInfoView,
     VinylWindow,
+    VinylApplication,
 );
