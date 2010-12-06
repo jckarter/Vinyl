@@ -247,7 +247,7 @@ updatePlaylistLibraryView(self) {
     var item = libView.itemAtRow(libView.selectedRow());
 
     var newView = self^.libraryDataSource.selectedViewForLibraryView_playlistView(libView, plView);
-    self^.playlistDataSource.setLibraryView(newView);
+    self^.playlistDataSource.setLibraryView_tableView(newView, plView);
 
     NSUserDefaults.standardUserDefaults().setObject_forKey(
         libraryViewPlist(newView^),
@@ -526,9 +526,15 @@ record MainController = newClass(#VinylMainController, NSObject,
                 #"Playlist View", makeNSArray(#"Library"),
             ));
 
+            var defaultSortDescriptors = self^.playlistView.sortDescriptors();
+            if (defaultSortDescriptors.count() == 0)
+                defaultSortDescriptors = makeNSArray(
+                    NSSortDescriptor.sortDescriptorWithKey_ascending(#"name", true),
+                );
+            
             var defaultLibraryView = LibraryView(
                 defaults.arrayForKey(#"Playlist View"),
-                SortedView(self^.playlistView.sortDescriptors())
+                SortedView(defaultSortDescriptors)
             );
 
             self^.library <-- Library();
@@ -552,13 +558,20 @@ record MainController = newClass(#VinylMainController, NSObject,
             self^.playlistView.setDoubleAction(selectorHandle(#"performDoubleClickTrack:"));
 
             self^.playlistDataSource
-                = Retained(PlaylistDataSource.alloc().initWithLibrary_view(
+                = Retained(PlaylistDataSource.alloc().initWithLibrary_view_sortDescriptors(
                     &self^.library,
                     self^.libraryDataSource.selectedViewForLibraryView_playlistView(
                         self^.libraryView,
                         self^.playlistView
-                    )
+                    ),
+                    defaultSortDescriptors,
                 ));
+
+            if (variantIs?(self^.playlistDataSource.libraryView()^, SortedView))
+                self^.playlistView.setSortDescriptors(defaultSortDescriptors);
+            else
+                self^.playlistView.setSortDescriptors(NSArray.array());
+
             self^.playlistView.setDataSource(self^.playlistDataSource);
 
             self^.player = Retained(Player.alloc().init());

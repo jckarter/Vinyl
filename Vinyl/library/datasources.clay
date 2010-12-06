@@ -603,8 +603,8 @@ formattedFieldByName(r, fn, str) {
     }
 }
 
-overload selector(static #"initWithLibrary:view:") = Void, Pointer[Library], Pointer[LibraryView];
-overload selector(static #"setLibraryView:") = Void, Pointer[LibraryView];
+overload selector(static #"initWithLibrary:view:sortDescriptors:") = Void, Pointer[Library], Pointer[LibraryView], NSArray;
+overload selector(static #"setLibraryView:tableView:") = Void, Pointer[LibraryView], NSTableView;
 overload selector(static #"libraryView") = Pointer[LibraryView];
 overload selector(static #"setSearchString:") = Void, NSString;
 overload selector(static #"searchString") = NSString;
@@ -632,13 +632,13 @@ record PlaylistDataSource = newClass(NSObject,
         playingTrackViewId: Maybe[NSInteger],
         playingMode: PlaylistMode,
         tracks: SqliteLazySequence(PlaylistTrack),
+        librarySort: Retained[NSArray],
     ),
     ClassMethods(),
     InstanceMethods(
-        (#"initWithLibrary:view:", (self, library, view) =>
+        (#"initWithLibrary:view:sortDescriptors:", (self, library, view, sortDescriptors) =>
             initObjectWith(self, #"init", self => {
                 self^.library = library;
-                self^.searchString <-- Retained(nil(NSString));
                 self^.libraryView <-- view^;
                 self^.playingTrackViewId <-- nothing(NSInteger);
                 self^.playingMode <-- Paused;
@@ -647,6 +647,7 @@ record PlaylistDataSource = newClass(NSObject,
                     String(), // search string
                     self^.libraryView
                 );
+                self^.librarySort = sortDescriptors;
                 refreshPlaylistDataSource(self);
                 return self;
             })
@@ -789,20 +790,26 @@ record PlaylistDataSource = newClass(NSObject,
         (#"tableView:sortDescriptorsDidChange:", (self, tableView, oldDescriptors) => {
             match(self^.libraryView,
                 SortedView,   v => {
-                    var sortDescriptors = tableView.sortDescriptors();
-                    self^.libraryView = LibraryView(SortedView(sortDescriptors));
+                    self^.librarySort = tableView.sortDescriptors();
+                    self^.libraryView = LibraryView(SortedView(self^.librarySort));
                     refreshPlaylistDataSource(self);
                     tableView.reloadData();
                 },
                 MatchDefault, v => {
-                    
-                },
+                    if (tableView.sortDescriptors().count() > 0) {
+                        tableView.setSortDescriptors(NSArray.array());
+                    }
+                }
             );
         }),
 
         (#"libraryView", self => &self^.libraryView),
-        (#"setLibraryView:", (self, view) => {
+        (#"setLibraryView:tableView:", (self, view, tableView) => {
             self^.libraryView = view^;
+            match(self^.libraryView,
+                SortedView,  v => { tableView.setSortDescriptors(self^.librarySort); },
+                MatchDefault, v => { tableView.setSortDescriptors(NSArray.array()); }
+            );
             // XXX preserve search for each view
             self^.searchString = Retained(nil(NSString));
 
