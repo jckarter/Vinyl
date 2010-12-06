@@ -6,6 +6,7 @@ import Vinyl.library.*;
 import Vinyl.controls.deletingtableview.*;
 import Vinyl.formatting.*;
 import Vinyl.qtplayer.*;
+import Vinyl.util.sqlitelazysequence.*;
 
 
 //
@@ -18,7 +19,9 @@ overload selector(static #"insertPlaylistWithName:parentItem:")
 overload selector(static #"insertPlaylistFolderWithName:")
     = Id, NSString;
 overload selector(static #"libraryView:selectView:")
-    = Id, NSOutlineView, LibraryView;
+    = Id, NSOutlineView, Pointer[LibraryView];
+overload selector(static #"selectedViewForLibraryView:playlistView:")
+    = Pointer[LibraryView], NSOutlineView, NSTableView;
 
 libraryDataSourceItemCount(self: LibraryDataSource)
     = NSInteger(
@@ -32,6 +35,7 @@ record LibraryDataSource = newClass(NSObject,
         (#library, Pointer[Library]),
         (#folders, Retained[NSMutableArray]),
         (#playlists, Retained[NSMutableArray]),
+        (#libraryView, LibraryView),
     ),
     ClassMethods(
     ),
@@ -40,13 +44,14 @@ record LibraryDataSource = newClass(NSObject,
             self^.library = library;
             self^.folders = NSMutableArray.array();
             self^.playlists = NSMutableArray.array();
+            self^.libraryView = LibraryView();
             refreshLibraryDataSource(self);
             return self;
         })),
         DeallocInstanceMethod(),
         (#"libraryView:selectView:", (self, outlineView, libraryView) => {
             var row = NSUInteger(0);
-            match(libraryView,
+            match(libraryView^,
                 PlaylistView, v ref=> {
                     for (folder in self^.folders)
                         for (playlist in folder["playlists"])
@@ -74,6 +79,17 @@ record LibraryDataSource = newClass(NSObject,
                 NSIndexSet.indexSetWithIndex(NSUInteger(row)),
                 false
             );
+        }),
+        (#"selectedViewForLibraryView:playlistView:", (self, outlineView, playlistView) => {
+            var item = outlineView.itemAtRow(outlineView.selectedRow());
+
+            self^.libraryView = if (itemIsFolder?(item))
+                    LibraryView(PlaylistFolderView(Int(item["id"])))
+                else if (itemIsPlaylist?(item))
+                    LibraryView(PlaylistView(Int(item["id"])))
+                else
+                    LibraryView(SortedView(playlistView.sortDescriptors()));
+            return &self^.libraryView;
         }),
         (#"outlineView:numberOfChildrenOfItem:", (self, outlineView, item) =>
             if (nil?(item))
@@ -587,8 +603,8 @@ formattedFieldByName(r, fn, str) {
     }
 }
 
-overload selector(static #"initWithLibrary:viewPlist:sortDescriptors:") = Void, Pointer[Library], Id, NSArray;
-overload selector(static #"setLibraryView:") = Void, LibraryView;
+overload selector(static #"initWithLibrary:view:") = Void, Pointer[Library], Pointer[LibraryView];
+overload selector(static #"setLibraryView:") = Void, Pointer[LibraryView];
 overload selector(static #"libraryView") = Pointer[LibraryView];
 overload selector(static #"setSearchString:") = Void, NSString;
 overload selector(static #"searchString") = NSString;
@@ -610,22 +626,26 @@ alias PlaylistIDKey = NSString(#"VinylPlaylistID");
 record PlaylistDataSource = newClass(NSObject,
     InstanceVars(
         library: Pointer[Library],
-        tracks: Vector[PlaylistTrack],
         libraryView: LibraryView,
         searchString: Retained[NSString],
         playingTrackViewId: Maybe[NSInteger],
         playingMode: PlaylistMode,
+        tracks: SqliteLazySequence(PlaylistTrack),
     ),
     ClassMethods(),
     InstanceMethods(
-        (#"initWithLibrary:viewPlist:sortDescriptors:", (self, library, viewPlist, sortDescriptors) =>
+        (#"initWithLibrary:view:", (self, library, view) =>
             initObjectWith(self, #"init", self => {
                 self^.library = library;
-                self^.tracks <-- Vector[PlaylistTrack]();
                 self^.searchString <-- Retained(nil(NSString));
-                self^.libraryView <-- LibraryView(viewPlist, SortedView(sortDescriptors));
+                self^.libraryView <-- view^;
                 self^.playingTrackViewId <-- nothing(NSInteger);
                 self^.playingMode <-- Paused;
+                self^.tracks <-- libraryViewStatementSequence(
+                    self^.library^.db, 
+                    String(), // search string
+                    self^.libraryView
+                );
                 refreshPlaylistDataSource(self);
                 return self;
             })
@@ -781,7 +801,7 @@ record PlaylistDataSource = newClass(NSObject,
 
         (#"libraryView", self => &self^.libraryView),
         (#"setLibraryView:", (self, view) => {
-            self^.libraryView = view;
+            self^.libraryView = view^;
             // XXX preserve search for each view
             self^.searchString = Retained(nil(NSString));
 
@@ -793,7 +813,6 @@ record PlaylistDataSource = newClass(NSObject,
                 = if (s.length() == 0) Retained(nil(NSString)) else Retained(s.copy());
             refreshPlaylistDataSource(self);
         }),
-        (#"tracks", self => &self^.tracks, Pointer[Vector[PlaylistTrack]]),
     ),
 );
 
@@ -954,10 +973,9 @@ overload bindViewParameters(stmt: SqliteStatement, view: PlaylistFolderView) {
     bindStatement(stmt, ":playlist_folder_id", view.id);
 }
 
-libraryViewStatement(db: SqliteDB, search: String, view: LibraryView) {
+libraryViewStatementFromClause(db: SqliteDB, search: String, view: LibraryView) {
     var searching? = not empty?(search);
-    var stmtString = String(basePlaylistSelectClause(*view));
-    stmtString += " from (";
+    var stmtString = String(" from (");
     if (searching?)
         stmtString += searchPlaylistFromClause;
     else
@@ -969,6 +987,25 @@ libraryViewStatement(db: SqliteDB, search: String, view: LibraryView) {
     if (searching?)
         stmtString += sortWhereClause + " and ";
     stmtString += viewWhereClause(*view);
+    return stmtString;
+}
+
+libraryViewSize(db: SqliteDB, search: String, view: LibraryView) {
+    var searching? = not empty?(search);
+    var stmtString = "select count(1) "
+        + libraryViewStatementFromClause(db, search, view);
+
+    var stmt = SqliteStatement(db, stmtString);
+    if (searching?)
+        bindStatement(stmt, ":search", search);
+    bindViewParameters(stmt, *view);
+    return statementValue(SizeT, stmt);
+}
+
+libraryViewStatement(db: SqliteDB, search: String, view: LibraryView) {
+    var searching? = not empty?(search);
+    var stmtString = basePlaylistSelectClause(*view)
+        + libraryViewStatementFromClause(db, search, view);
     stmtString += " order by ";
     stmtString += viewOrderByClause(*view);
 
@@ -979,24 +1016,20 @@ libraryViewStatement(db: SqliteDB, search: String, view: LibraryView) {
     return move(stmt);
 }
 
-refreshPlaylistDataSource(self: PlaylistDataSource) {
-    clear(self^.tracks);
+libraryViewStatementSequence(db: SqliteDB, search: String, view: LibraryView) {
+    var size = libraryViewSize(db, search, view);
+    return sqliteLazySequence(
+        PlaylistTrack,
+        libraryViewStatement(db, search, view), 
+        size
+    );
+}
 
+refreshPlaylistDataSource(self: PlaylistDataSource) {
     var search = if (nil?(self^.searchString))
             String()
         else
             String(self^.searchString) + "*";
 
-    var stmt = libraryViewStatement(self^.library^.db, search, self^.libraryView);
-
-    var first? = true;
-    NSLog(NSString(#"data source: beginning statement"));
-    for (row in stmt) {
-        if (first?) {
-            NSLog(NSString(#"loaded first row"));
-            first? = false;
-        }
-        push(self^.tracks, rowRecord(row, PlaylistTrack));
-    }
-    NSLog(NSString(#"loaded last row"));
+    self^.tracks = libraryViewStatementSequence(self^.library^.db, search, self^.libraryView);
 }

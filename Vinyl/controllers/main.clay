@@ -230,18 +230,33 @@ updateStatus(self: MainController) {
     // XXX more inappropriate touching
     ref tracks = self^.playlistDataSource^.tracks;
     var trackCount = size(tracks);
-    if (trackCount > 0) {
-        var trackTime = reduce(add, 0.0, mapped(x => x.duration_time, tracks));
-        var numberFormatter = NSNumberFormatter.alloc().init().autorelease();
-        numberFormatter.setNumberStyle(NSUInteger(kCFNumberFormatterDecimalStyle));
-        var tracksString = if (trackCount == 1) NSString(#"track") else NSString(#"tracks");
-        self^.statusField.setStringValue(NSString.stringWithFormat(#"%@ %@, %@ total time",
-            numberFormatter.stringFromNumber(trackCount), tracksString,
-            timeFormat(trackTime)
-        ));
-    } else {
+    // XXX status field
+    //if (trackCount > 0) {
+    //    var trackTime = reduce(add, 0.0, mapped(x => x.duration_time, tracks));
+    //    var numberFormatter = NSNumberFormatter.alloc().init().autorelease();
+    //    numberFormatter.setNumberStyle(NSUInteger(kCFNumberFormatterDecimalStyle));
+    //    var tracksString = if (trackCount == 1) NSString(#"track") else NSString(#"tracks");
+    //    self^.statusField.setStringValue(NSString.stringWithFormat(#"%@ %@, %@ total time",
+    //        numberFormatter.stringFromNumber(trackCount), tracksString,
+    //        timeFormat(trackTime)
+    //    ));
+    //} else {
         self^.statusField.setStringValue(#"");
-    }
+    //}
+}
+
+updatePlaylistLibraryView(self) {
+    var libView = self^.libraryView;
+    var plView = self^.playlistView;
+    var item = libView.itemAtRow(libView.selectedRow());
+
+    var newView = self^.libraryDataSource.selectedViewForLibraryView_playlistView(libView, plView);
+    self^.playlistDataSource.setLibraryView(newView);
+
+    NSUserDefaults.standardUserDefaults().setObject_forKey(
+        libraryViewPlist(newView^),
+        #"Playlist View",
+    );
 }
 
 enum PlayButtonMode { PlayButton, ResumeButton, StopButton, PauseButton }
@@ -515,7 +530,10 @@ record MainController = newClass(#VinylMainController, NSObject,
                 #"Playlist View", makeNSArray(#"Library"),
             ));
 
-            var defaultLibraryView = defaults.arrayForKey(#"Playlist View");
+            var defaultLibraryView = LibraryView(
+                defaults.arrayForKey(#"Playlist View"),
+                SortedView(self^.playlistView.sortDescriptors())
+            );
 
             self^.library <-- Library();
             updateLibraryFTS(self^.library);
@@ -527,23 +545,25 @@ record MainController = newClass(#VinylMainController, NSObject,
             self^.libraryView.setTarget(self);
             self^.libraryView.setDoubleAction(selectorHandle(#"performDoubleClickPlaylist:"));
             self^.libraryView.registerForDraggedTypes(makeNSArray(PlaylistIdsPboardType, TrackIdsPboardType));
+            self^.libraryDataSource.libraryView_selectView(
+                self^.libraryView,
+                &defaultLibraryView
+            );
+
             self^.playlistView.registerForDraggedTypes(makeNSArray(TrackIdsPboardType));
 
             self^.playlistView.setTarget(self);
             self^.playlistView.setDoubleAction(selectorHandle(#"performDoubleClickTrack:"));
 
             self^.playlistDataSource
-                = Retained(PlaylistDataSource.alloc().initWithLibrary_viewPlist_sortDescriptors(
+                = Retained(PlaylistDataSource.alloc().initWithLibrary_view(
                     &self^.library,
-                    defaultLibraryView,
-                    self^.playlistView.sortDescriptors(),
+                    self^.libraryDataSource.selectedViewForLibraryView_playlistView(
+                        self^.libraryView,
+                        self^.playlistView
+                    )
                 ));
             self^.playlistView.setDataSource(self^.playlistDataSource);
-
-            self^.libraryDataSource.libraryView_selectView(
-                self^.libraryView,
-                self^.playlistDataSource.libraryView()^
-            );
 
             self^.player = Retained(Player.alloc().init());
 
@@ -653,23 +673,7 @@ record MainController = newClass(#VinylMainController, NSObject,
                 false
             );
 
-            var libView = self^.libraryView;
-            var item = libView.itemAtRow(libView.selectedRow());
-
-            var newView
-                = if (itemIsFolder?(item))
-                    LibraryView(PlaylistFolderView(Int(item["id"])))
-                else if (itemIsPlaylist?(item))
-                    LibraryView(PlaylistView(Int(item["id"])))
-                else
-                    LibraryView(SortedView(self^.playlistView.sortDescriptors()));
-
-            self^.playlistDataSource.setLibraryView(newView);
-            NSUserDefaults.standardUserDefaults().setObject_forKey(
-                libraryViewPlist(newView),
-                #"Playlist View",
-            );
-
+            updatePlaylistLibraryView(self);
             // XXX preserve search for each view
             self^.searchField.setStringValue(NSString(#""));
 
