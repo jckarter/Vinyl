@@ -608,6 +608,7 @@ overload selector(static #"setLibraryView:") = Void, Pointer[LibraryView];
 overload selector(static #"libraryView") = Pointer[LibraryView];
 overload selector(static #"setSearchString:") = Void, NSString;
 overload selector(static #"searchString") = NSString;
+overload selector(static #"playlistStatus") = PlaylistStatus;
 
 maybeObject(x) = Id(x);
 overload maybeObject(x: Nothing) = nil();
@@ -813,6 +814,12 @@ record PlaylistDataSource = newClass(NSObject,
                 = if (s.length() == 0) Retained(nil(NSString)) else Retained(s.copy());
             refreshPlaylistDataSource(self);
         }),
+
+        (#"playlistStatus", self => libraryViewStatus(
+            self^.library^.db,
+            if (nil?(self^.searchString)) String() else String(self^.searchString),
+            self^.libraryView,
+        )),
     ),
 );
 
@@ -1000,6 +1007,20 @@ libraryViewSize(db: SqliteDB, search: String, view: LibraryView) {
         bindStatement(stmt, ":search", search);
     bindViewParameters(stmt, *view);
     return statementValue(SizeT, stmt);
+}
+
+record PlaylistStatus (size: SizeT, duration: Double); 
+
+libraryViewStatus(db: SqliteDB, search: String, view: LibraryView) {
+    var searching? = not empty?(search);
+    var stmtString = "select count(1) as size, sum(duration_time) as duration "
+        + libraryViewStatementFromClause(db, search, view);
+
+    var stmt = SqliteStatement(db, stmtString);
+    if (searching?)
+        bindStatement(stmt, ":search", search);
+    bindViewParameters(stmt, *view);
+    return rowRecord(statementSingleRow(stmt), PlaylistStatus);
 }
 
 libraryViewStatement(db: SqliteDB, search: String, view: LibraryView) {

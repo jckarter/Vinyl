@@ -227,22 +227,18 @@ updatePlayTime(self: MainController) {
 }
 
 updateStatus(self: MainController) {
-    // XXX more inappropriate touching
-    ref tracks = self^.playlistDataSource^.tracks;
-    var trackCount = size(tracks);
-    // XXX status field
-    //if (trackCount > 0) {
-    //    var trackTime = reduce(add, 0.0, mapped(x => x.duration_time, tracks));
-    //    var numberFormatter = NSNumberFormatter.alloc().init().autorelease();
-    //    numberFormatter.setNumberStyle(NSUInteger(kCFNumberFormatterDecimalStyle));
-    //    var tracksString = if (trackCount == 1) NSString(#"track") else NSString(#"tracks");
-    //    self^.statusField.setStringValue(NSString.stringWithFormat(#"%@ %@, %@ total time",
-    //        numberFormatter.stringFromNumber(trackCount), tracksString,
-    //        timeFormat(trackTime)
-    //    ));
-    //} else {
+    var playlistStatus = self^.playlistDataSource.playlistStatus();
+    if (playlistStatus.size > 0) {
+        var numberFormatter = NSNumberFormatter.alloc().init().autorelease();
+        numberFormatter.setNumberStyle(NSUInteger(kCFNumberFormatterDecimalStyle));
+        var tracksString = if (playlistStatus.size == 1) NSString(#"track") else NSString(#"tracks");
+        self^.statusField.setStringValue(NSString.stringWithFormat(#"%@ %@, %@ total time",
+            numberFormatter.stringFromNumber(playlistStatus.size), tracksString,
+            timeFormat(playlistStatus.duration)
+        ));
+    } else {
         self^.statusField.setStringValue(#"");
-    //}
+    }
 }
 
 updatePlaylistLibraryView(self) {
