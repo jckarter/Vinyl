@@ -698,7 +698,14 @@ record MainController = newClass(#VinylMainController, NSObject,
                 StoppedState,  stopped => {},
                 PlaylistState, playlistState => {
                     if (playlistState.libraryFilter == self^.playlistDataSource.libraryFilter()^) {
-                        self^.player.changeFilter(self^.playlistDataSource.libraryFilter()^);
+                        var newTrackViewIdNumber = notification.userInfo()[PlaylistNewTrackViewId];
+                        if (nil?(newTrackViewIdNumber))
+                            self^.player.changeFilter(self^.playlistDataSource.libraryFilter()^);
+                        else
+                            self^.player.changeFilter_trackViewId(
+                                self^.playlistDataSource.libraryFilter()^,
+                                NSInteger(newTrackViewIdNumber),
+                            );
                     }
                 }
             );

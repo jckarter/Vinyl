@@ -90,12 +90,16 @@ setShuffledTrackOrder(ps: PlaylistState) {
     ps.trackNumber = 0;
 }
 
-changeLibraryFilter(ps: PlaylistState, filter: LibraryFilter) {
-    var realTrackNumber = ps.trackOrder[ps.trackNumber];
-    var trackViewId = ps.tracks[realTrackNumber].track_view_id;
+changeLibraryFilter(ps: PlaylistState, filter: LibraryFilter, trackViewId: NSInteger) {
     var shuffle? = variantIs?(ps.trackOrder, Vector[SizeT]);
     ps.libraryFilter = filter;
     return _changeLibraryFilter(ps, filter, trackViewId, shuffle?);
+}
+
+overload changeLibraryFilter(ps: PlaylistState, filter: LibraryFilter) {
+    var realTrackNumber = ps.trackOrder[ps.trackNumber];
+    var trackViewId = ps.tracks[realTrackNumber].track_view_id;
+    return changeLibraryFilter(ps, filter, trackViewId);
 }
 
 _changeLibraryFilter(ps: PlaylistState, filter: LibraryFilter, trackViewId: NSInteger, shuffle?: Bool) {
@@ -139,6 +143,7 @@ overload selector(static #"handleMovieLoadStateDidChangeNotification:") = Void, 
 overload selector(static #"handleMovieTimeDidChangeNotification:") = Void, NSNotification;
 overload selector(static #"playLibrary:filter:trackViewId:") = Void, Pointer[Library], LibraryFilter, NSInteger;
 overload selector(static #"changeFilter:") = Void, LibraryFilter;
+overload selector(static #"changeFilter:trackViewId:") = Void, LibraryFilter, NSInteger;
 overload selector(static #"resume") = Void;
 overload selector(static #"pause") = Void;
 overload selector(static #"stop") = Void;
@@ -277,6 +282,17 @@ record Player = newClass(NSObject,
                 StoppedState,  stopped => {},
                 PlaylistState, playlistState => {
                     var currentTrack? = changeLibraryFilter(playlistState, libraryFilter);
+                    if (not currentTrack?)
+                        self.stop();
+                },
+            );
+        }),
+
+        (#"changeFilter:trackViewId:", (self, libraryFilter, trackViewId) => {
+            match(self^.state,
+                StoppedState,  stopped => {},
+                PlaylistState, playlistState => {
+                    var currentTrack? = changeLibraryFilter(playlistState, libraryFilter, trackViewId);
                     if (not currentTrack?)
                         self.stop();
                 },

@@ -84,9 +84,9 @@ record LibraryDataSource = newClass(NSObject,
             var item = outlineView.itemAtRow(outlineView.selectedRow());
 
             self^.libraryFilter = if (itemIsFolder?(item))
-                    LibraryFilter(PlaylistFolderFilter(Int(item["id"])))
+                    LibraryFilter(PlaylistFolderFilter(NSInteger(item["id"])))
                 else if (itemIsPlaylist?(item))
-                    LibraryFilter(PlaylistFilter(Int(item["id"])))
+                    LibraryFilter(PlaylistFilter(NSInteger(item["id"])))
                 else
                     LibraryFilter(SortedFilter(playlistView.sortDescriptors()));
             return &self^.libraryFilter;
@@ -143,9 +143,9 @@ record LibraryDataSource = newClass(NSObject,
             else {
                 item.setObject_forKey(value.description(), "name");
                 if (itemIsFolder?(item))
-                    updateLibraryFolderName(self^.library^, Int(item["id"]), String(value));
+                    updateLibraryFolderName(self^.library^, NSInteger(item["id"]), String(value));
                 else
-                    updateLibraryPlaylistName(self^.library^, Int(item["id"]), String(value));
+                    updateLibraryPlaylistName(self^.library^, NSInteger(item["id"]), String(value));
             }
         }),
         (#"outlineView:deleteItem:", (self, outlineView, item) => {
@@ -155,10 +155,10 @@ record LibraryDataSource = newClass(NSObject,
             var parentItem = outlineView.parentForItem(item);
 
             if (itemIsFolder?(item)) {
-                deleteLibraryFolder(self^.library^, Int(item["id"]));
+                deleteLibraryFolder(self^.library^, NSInteger(item["id"]));
                 self^.folders.removeObject(item);
             } else {
-                deleteLibraryPlaylist(self^.library^, Int(item["id"]));
+                deleteLibraryPlaylist(self^.library^, NSInteger(item["id"]));
                 self^.playlists.removeObject(item);
                 for (folder in self^.folders)
                     folder["playlists"].removeObject(item);
@@ -348,7 +348,7 @@ refreshLibraryDataSource(self: LibraryDataSource) {
     )) {
         folderPositions[row[0, NSUInteger]] = size(self^.folders);
         self^.folders.addObject(makeNSMutableDictionary(
-            "id", row[0, Int],
+            "id", row[0, NSInteger],
             "name", row[1],
             "playlists", NSMutableArray.array()
         ));
@@ -368,7 +368,7 @@ refreshLibraryDataSource(self: LibraryDataSource) {
         }
 
         folder.addObject(makeNSMutableDictionary(
-            "id", row[0, Int],
+            "id", row[0, NSInteger],
             "name", row[1]
         ));
     }
@@ -462,9 +462,8 @@ overload sortSQL(sortDescriptors: O) {
     return sortSQL(key, ascending?);
 }
 
-// XXX use NSInteger
-record PlaylistFolderFilter (id: Int);
-record PlaylistFilter (id: Int);
+record PlaylistFolderFilter (id: NSInteger);
+record PlaylistFilter (id: NSInteger);
 record SortedFilter (sort: String);
 variant LibraryFilter = PlaylistFolderFilter | PlaylistFilter | SortedFilter;
 
@@ -490,12 +489,12 @@ overload LibraryFilter(plist: O, defaultFilter) {
         switch(plist[0]) {
         case "PlaylistFolder":
             if (plist.count() >= 2)
-                return LibraryFilter(PlaylistFolderFilter(Int(plist[1])));
+                return LibraryFilter(PlaylistFolderFilter(NSInteger(plist[1])));
             else
                 goto defaultPlist;
         case "Playlist":
             if (plist.count() >= 2)
-                return LibraryFilter(PlaylistFilter(Int(plist[1])));
+                return LibraryFilter(PlaylistFilter(NSInteger(plist[1])));
             else
                 goto defaultPlist;
         default:
@@ -629,6 +628,7 @@ alias PlaylistIdsPboardType
 
 alias PlaylistDidChangeNotification = NSString(#"VinylPlaylistDidChangeNotification");
 alias PlaylistIDKey = NSString(#"VinylPlaylistID");
+alias PlaylistNewTrackViewId = NSString(#"VinylPlaylistNewTrackViewId");
 
 record PlaylistDataSource = newClass(NSObject,
     InstanceVars(
@@ -807,13 +807,32 @@ record PlaylistDataSource = newClass(NSObject,
                         // everywhere that might need to update the database with a query open
                         invalidatePlaylistDataSource(self);
                         try {
-                            sortLibraryPlaylist(self^.library^, v.id, sortSQL(tableView.sortDescriptors()));
+                            self^.playingTrackViewId = sortLibraryPlaylist(
+                                self^.library^,
+                                NSInteger(v.id),
+                                self^.playingTrackViewId,
+                                sortSQL(tableView.sortDescriptors())
+                            );
                         } catch (ex) {
                             refreshPlaylistDataSource(self);
                             throw ex;
                         }
                         refreshPlaylistDataSource(self);
                         tableView.reloadData();
+                        var notificationInfo = maybe(self^.playingTrackViewId,
+                            trackViewId => makeNSDictionary(
+                                PlaylistIDKey, v.id,
+                                PlaylistNewTrackViewId, trackViewId,
+                            ),
+                            () => makeNSDictionary(
+                                PlaylistIDKey, v.id,
+                            )
+                        );
+                        NSNotificationCenter.defaultCenter().postNotificationName_object_userInfo(
+                            PlaylistDidChangeNotification,
+                            self,
+                            notificationInfo
+                        );
                     }
                 },
                 PlaylistFolderFilter, v => {
@@ -1089,15 +1108,23 @@ refreshPlaylistDataSource(self: PlaylistDataSource) {
 }
 
 // XXX this and its dependencies should be in Vinyl.library
-sortLibraryPlaylist(library: Library, playlistId, sortSQL) {
-    withTransaction(library.db, () ref=> {
+sortLibraryPlaylist(
+    library: Library,
+    playlistId: NSInteger,
+    playingTrackViewId: Maybe[NSInteger],
+    sortSQL
+) {
+    return withTransaction(library.db, () ref=> {
         var playlistFilter = LibraryFilter(PlaylistFilter(playlistId));
-        var stmtString = "create temporary table new_playlist_track_positions as select tracks.track_id "
-            + libraryFilterStatementFromClause(library.db, String(), playlistFilter);
+        var stmtString = "create temporary table new_playlist_track_positions as select
+                tracks.track_id,
+                playlist_tracks.position = :playing_track_view_id as playing_p
+            " + libraryFilterStatementFromClause(library.db, String(), playlistFilter);
         stmtString += " order by " + sortSQL;
 
         var stmt = SqliteStatement(library.db, observe(stmtString));
         bindFilterParameters(stmt, *playlistFilter);
+        bindStatement(stmt, ":playing_track_view_id", playingTrackViewId);
 
         runStatement(stmt);
 
@@ -1112,6 +1139,10 @@ sortLibraryPlaylist(library: Library, playlistId, sortSQL) {
             ", playlistId
         );
 
+        var newPlayingTrackViewId = maybeStatementValue(NSInteger, library.db, "select rowid - 1 from new_playlist_track_positions where playing_p");
+
         runStatement(library.db, "drop table new_playlist_track_positions");
+
+        return newPlayingTrackViewId;
     });
 }
