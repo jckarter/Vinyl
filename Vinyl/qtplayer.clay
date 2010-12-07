@@ -187,6 +187,13 @@ stopUpdateTimeTimer(self: Player) {
     self^.updateTimeTimer = nil();
 }
 
+ifPlaying(state, fn) {
+    match(state,
+        StoppedState,  stopped => { },
+        PlaylistState, fn,
+    );
+}
+
 record Player = newClass(NSObject,
     InstanceVars(
         state: PlayerState,
@@ -227,35 +234,29 @@ record Player = newClass(NSObject,
         ...PropertyInstanceMethods(#state, PlayerState),
 
         (#"handleMovieDidEndNotification:", (self, notification) => {
-            match(self^.state,
-                StoppedState,  stopped => { },
-                PlaylistState, playlistState => {
-                    if (is?(playlistState.movie, notification.object())) {
-                        if (self^.repeatMode == RepeatOne) {
-                            playlistState.movie.stop();
-                            playlistState.movie = nil();
-                            self.resume();
-                        } else
-                            self.nextTrack();
-                    }
+            ifPlaying(self^.state, playlistState => {
+                if (is?(playlistState.movie, notification.object())) {
+                    if (self^.repeatMode == RepeatOne) {
+                        playlistState.movie.stop();
+                        playlistState.movie = nil();
+                        self.resume();
+                    } else
+                        self.nextTrack();
                 }
-            );
+            });
         }),
         (#"handleMovieLoadStateDidChangeNotification:", (self, notification) => {
-            match(self^.state,
-                StoppedState,  stopped => { },
-                PlaylistState, playlistState => {
-                    if (is?(playlistState.movie, notification.object())
-                        and playlistState.movie.attributeForKey(QTMovieLoadStateAttribute)
-                            == QTMovieLoadStateError
-                    ) {
-                        if (self^.repeatMode == RepeatOne)
-                            self.stop();
-                        else
-                            self.nextTrack();
-                    }
+            ifPlaying(self^.state, playlistState => {
+                if (is?(playlistState.movie, notification.object())
+                    and playlistState.movie.attributeForKey(QTMovieLoadStateAttribute)
+                        == QTMovieLoadStateError
+                ) {
+                    if (self^.repeatMode == RepeatOne)
+                        self.stop();
+                    else
+                        self.nextTrack();
                 }
-            );
+            });
         }),
         (#"handleMovieTimeDidChangeNotification:", (self, notification) => {
             NSNotificationCenter.defaultCenter().postNotificationName_object(
@@ -278,138 +279,114 @@ record Player = newClass(NSObject,
         }),
 
         (#"changeFilter:", (self, libraryFilter) => {
-            match(self^.state,
-                StoppedState,  stopped => {},
-                PlaylistState, playlistState => {
-                    var currentTrack? = changeLibraryFilter(playlistState, libraryFilter);
-                    if (not currentTrack?)
-                        self.stop();
-                },
-            );
+            ifPlaying(self^.state, playlistState => {
+                var currentTrack? = changeLibraryFilter(playlistState, libraryFilter);
+                if (not currentTrack?)
+                    self.stop();
+            });
         }),
 
         (#"changeFilter:trackViewId:", (self, libraryFilter, trackViewId) => {
-            match(self^.state,
-                StoppedState,  stopped => {},
-                PlaylistState, playlistState => {
-                    var currentTrack? = changeLibraryFilter(playlistState, libraryFilter, trackViewId);
-                    if (not currentTrack?)
-                        self.stop();
-                },
-            );
+            ifPlaying(self^.state, playlistState => {
+                var currentTrack? = changeLibraryFilter(playlistState, libraryFilter, trackViewId);
+                if (not currentTrack?)
+                    self.stop();
+            });
         }),
 
         (#"resume", self => {
-            match(self^.state,
-                StoppedState,  stopped => { },
-                PlaylistState, playlistState => {
-                    if (playlistState.trackNumber < size(playlistState.tracks)) {
-                        var realTrackNumber = playlistState.trackOrder[playlistState.trackNumber];
-                        if (nil?(playlistState.movie))
-                            playlistState.movie = movieForFileName(
-                                self,
-                                playlistState.tracks[realTrackNumber].filename
-                            );
-                        playlistState.movie.autoplay();
-                        playlistState.mode = Playing;
-                        NSNotificationCenter.defaultCenter().postNotificationName_object(
-                            PlayerStateDidChangeNotification, self
+            ifPlaying(self^.state, playlistState => {
+                if (playlistState.trackNumber < size(playlistState.tracks)) {
+                    var realTrackNumber = playlistState.trackOrder[playlistState.trackNumber];
+                    if (nil?(playlistState.movie))
+                        playlistState.movie = movieForFileName(
+                            self,
+                            playlistState.tracks[realTrackNumber].filename
                         );
-                        startUpdateTimeTimer(self);
-                    } else
-                        self.stop();
-                }
-            );
+                    playlistState.movie.autoplay();
+                    playlistState.mode = Playing;
+                    NSNotificationCenter.defaultCenter().postNotificationName_object(
+                        PlayerStateDidChangeNotification, self
+                    );
+                    startUpdateTimeTimer(self);
+                } else
+                    self.stop();
+            });
         }),
 
         (#"pause", self => {
-            match(self^.state,
-                StoppedState,  stopped => { },
-                PlaylistState, playlistState => {
-                    playlistState.movie.stop();
-                    playlistState.mode = Paused;
-                    NSNotificationCenter.defaultCenter().postNotificationName_object(
-                        PlayerStateDidChangeNotification, self
-                    );
-                    stopUpdateTimeTimer(self);
-                }
-            );
+            ifPlaying(self^.state, playlistState => {
+                playlistState.movie.stop();
+                playlistState.mode = Paused;
+                NSNotificationCenter.defaultCenter().postNotificationName_object(
+                    PlayerStateDidChangeNotification, self
+                );
+                stopUpdateTimeTimer(self);
+            });
         }),
 
         (#"stop", self => {
-            match(self^.state,
-                StoppedState,  stopped => { },
-                PlaylistState, playlistState => {
-                    playlistState.movie.stop();
-                    self^.state = PlayerState(StoppedState());
-                    NSNotificationCenter.defaultCenter().postNotificationName_object(
-                        PlayerStateDidChangeNotification, self
-                    );
-                    stopUpdateTimeTimer(self);
-                }
-            );
+            ifPlaying(self^.state, playlistState => {
+                playlistState.movie.stop();
+                self^.state = PlayerState(StoppedState());
+                NSNotificationCenter.defaultCenter().postNotificationName_object(
+                    PlayerStateDidChangeNotification, self
+                );
+                stopUpdateTimeTimer(self);
+            });
         }),
 
         (#"previousTrack", self => {
-            match(self^.state,
-                StoppedState,  stopped => { },
-                PlaylistState, playlistState => {
-                    var currentTime = playlistState.movie.currentTime();
-                    if (currentTime.timeValue < currentTime.timeScale * 2) {
-                        // in the first two seconds? then jump back a track
-                        playlistState.movie.stop();
-                        playlistState.movie = nil();
-                        if (playlistState.trackNumber > 0) {
-                            playlistState.trackNumber -= 1;
-                            self.resume();
-                        } else if (self^.repeatMode == RepeatAll) {
-                            playlistState.trackNumber = size(playlistState.tracks) - 1;
-                            self.resume();
-                        } else
-                            self.stop();
-                    } else {
-                        // else restart from the beginning
-                        self.setCurrentTrackTime(0.0);
-                    }
-                }
-            );
-        }),
-
-        (#"nextTrack", self => {
-            match(self^.state,
-                StoppedState,  stopped => { },
-                PlaylistState, playlistState => {
+            ifPlaying(self^.state, playlistState => {
+                var currentTime = playlistState.movie.currentTime();
+                if (currentTime.timeValue < currentTime.timeScale * 2) {
+                    // in the first two seconds? then jump back a track
                     playlistState.movie.stop();
                     playlistState.movie = nil();
-                    if (playlistState.trackNumber < size(playlistState.tracks) - 1) {
-                        playlistState.trackNumber += 1;
+                    if (playlistState.trackNumber > 0) {
+                        playlistState.trackNumber -= 1;
                         self.resume();
                     } else if (self^.repeatMode == RepeatAll) {
-                        playlistState.trackNumber = 0;
+                        playlistState.trackNumber = size(playlistState.tracks) - 1;
                         self.resume();
                     } else
                         self.stop();
+                } else {
+                    // else restart from the beginning
+                    self.setCurrentTrackTime(0.0);
                 }
-            );
+            });
+        }),
+
+        (#"nextTrack", self => {
+            ifPlaying(self^.state, playlistState => {
+                playlistState.movie.stop();
+                playlistState.movie = nil();
+                if (playlistState.trackNumber < size(playlistState.tracks) - 1) {
+                    playlistState.trackNumber += 1;
+                    self.resume();
+                } else if (self^.repeatMode == RepeatAll) {
+                    playlistState.trackNumber = 0;
+                    self.resume();
+                } else
+                    self.stop();
+            });
         }),
 
         (#"setCurrentTrackTime:", (self, time) => {
-            match(self^.state,
-                StoppedState,  stopped => { },
-                PlaylistState, playlistState => {
-                    // XXX using NSInvocation to hack around x86-64 abi bugs
-                    var invocation = NSInvocation.invocationWithMethodSignature(
-                        playlistState.movie.methodSignatureForSelector(
-                            selectorHandle(#"setCurrentTime:")
-                        )
-                    );
-                    invocation.setTarget(playlistState.movie);
-                    invocation.setSelector(selectorHandle(#"setCurrentTime:"));
-                    var qttime = QTMakeTime(CLong(time * 1000.0), CLong(1000));
-                    invocation.setArgument_atIndex(RawPointer(&qttime), NSInteger(2));
-                    invocation.invoke();
-                }
-            );
+            ifPlaying(self^.state, playlistState => {
+                // XXX using NSInvocation to hack around x86-64 abi bugs
+                var invocation = NSInvocation.invocationWithMethodSignature(
+                    playlistState.movie.methodSignatureForSelector(
+                        selectorHandle(#"setCurrentTime:")
+                    )
+                );
+                invocation.setTarget(playlistState.movie);
+                invocation.setSelector(selectorHandle(#"setCurrentTime:"));
+                var qttime = QTMakeTime(CLong(time * 1000.0), CLong(1000));
+                invocation.setArgument_atIndex(RawPointer(&qttime), NSInteger(2));
+                invocation.invoke();
+            });
         }),
 
         (#"currentTrackTime", self => match(self^.state,
@@ -433,28 +410,22 @@ record Player = newClass(NSObject,
         
         (#"setVolume:", (self, volume) => {
             self^.volume = volume;
-            match(self^.state,
-                StoppedState,  stopped => { },
-                PlaylistState, playlistState => {
-                    if (not nil?(playlistState.movie))
-                        playlistState.movie.setVolume(Float(volume));
-                }
-            );
+            ifPlaying(self^.state, playlistState => {
+                if (not nil?(playlistState.movie))
+                    playlistState.movie.setVolume(Float(volume));
+            });
         }),
 
         ReaderInstanceMethod(#shuffle, Bool),
         (#"setShuffle:", (self, shuffle) => {
             self^.shuffle = shuffle;
-            match(self^.state,
-                StoppedState,  stopped => { },
-                PlaylistState, playlistState => {
-                    var trackNumber = playlistState.trackOrder[playlistState.trackNumber];
-                    if (shuffle)
-                        setShuffledTrackOrder(playlistState);
-                    else
-                        setSequentialTrackOrder(playlistState);
-                }
-            );
+            ifPlaying(self^.state, playlistState => {
+                var trackNumber = playlistState.trackOrder[playlistState.trackNumber];
+                if (shuffle)
+                    setShuffledTrackOrder(playlistState);
+                else
+                    setSequentialTrackOrder(playlistState);
+            });
         }),
 
         ...PropertyInstanceMethods(#repeatMode, RepeatMode),

@@ -702,21 +702,18 @@ record MainController = newClass(#VinylMainController, NSObject,
         (#"handleSelectTrack:", (self, notification) => {
         }),
         (#"handlePlaylistDidChange:", (self, notification) => {
-            match(self^.player.playerState()^,
-                StoppedState,  stopped => {},
-                PlaylistState, playlistState => {
-                    if (playlistState.libraryFilter == self^.playlistDataSource.libraryFilter()^) {
-                        var newTrackViewIdNumber = notification.userInfo()[PlaylistNewTrackViewId];
-                        if (nil?(newTrackViewIdNumber))
-                            self^.player.changeFilter(self^.playlistDataSource.libraryFilter()^);
-                        else
-                            self^.player.changeFilter_trackViewId(
-                                self^.playlistDataSource.libraryFilter()^,
-                                NSInteger(newTrackViewIdNumber),
-                            );
-                    }
+            ifPlaying(self^.player.playerState()^, playlistState => {
+                if (playlistState.libraryFilter == self^.playlistDataSource.libraryFilter()^) {
+                    var newTrackViewIdNumber = notification.userInfo()[PlaylistNewTrackViewId];
+                    if (nil?(newTrackViewIdNumber))
+                        self^.player.changeFilter(self^.playlistDataSource.libraryFilter()^);
+                    else
+                        self^.player.changeFilter_trackViewId(
+                            self^.playlistDataSource.libraryFilter()^,
+                            NSInteger(newTrackViewIdNumber),
+                        );
                 }
-            );
+            });
             updateStatus(self);
         }),
         (#"handleItunesImportError:", (self, notification) => {
