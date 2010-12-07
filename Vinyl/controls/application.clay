@@ -1,0 +1,54 @@
+import cocoa.*;
+import cocoa.appkit.*;
+import Vinyl.controllers.main.*;
+
+// media key constants from IOKit.framework
+alias NX_SUBTYPE_AUX_CONTROL_BUTTONS = 8;
+alias NX_KEYTYPE_PLAY   = 16;
+alias NX_KEYTYPE_FAST   = 19;
+alias NX_KEYTYPE_REWIND = 20;
+
+overload selector(static #"mediaKeyEvent:state:repeat:") = Void, NSInteger, Bool, Bool;
+
+record VinylApplication = newClass(#VinylApplication, NSApplication,
+    InstanceVars(
+        IBOutlets(
+            mainController: MainController,
+        ),
+    ),
+    ClassMethods(),
+    InstanceMethods(
+        (#"sendEvent:", (self, event) => {
+            // media keys
+            // http://stackoverflow.com/questions/3885302/make-my-cocoa-app-respond-to-the-keyboard-play-pause-key
+            if (event.type() == NSSystemDefined and event.subtype() == NX_SUBTYPE_AUX_CONTROL_BUTTONS) {
+                var keycode = shiftRight(bitwiseAnd(event.data1(), 0xFFFF0000), 16);
+                var keyflags = bitwiseAnd(event.data1(), 0xFFFF);
+                var keydown? = bitwiseAnd(keyflags, 0xFF00) == 0xA00;
+                var keyrepeat? = bitwiseAnd(keyflags, 0x1) == 1;
+                self.mediaKeyEvent_state_repeat(keycode, keydown?, keyrepeat?);
+            } else
+                super(self).sendEvent(event);
+        }),
+        (#"mediaKeyEvent:state:repeat:", (self, keycode, keydown?, keyrepeat?) => {
+            if (not nil?(self^.mainController)) {
+                switch (keycode) {
+                case NX_KEYTYPE_PLAY:
+                    if (not keydown?)
+                        self^.mainController.performPlay(self);
+                    break;
+                case NX_KEYTYPE_FAST:
+                    if (keydown?)
+                        self^.mainController.performForward(self);
+                    break;
+                case NX_KEYTYPE_REWIND:
+                    if (keydown?)
+                        self^.mainController.performBack(self);
+                    break;
+                default:
+                    break;
+                }
+            }
+        }),
+    ),
+);

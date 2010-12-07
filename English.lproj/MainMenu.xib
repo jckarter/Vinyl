@@ -27,13 +27,13 @@
 		<object class="NSMutableArray" key="IBDocument.RootObjects" id="1048">
 			<bool key="EncodedWithXMLCoder">YES</bool>
 			<object class="NSCustomObject" id="1021">
-				<string key="NSClassName">NSApplication</string>
+				<string key="NSClassName">VinylApplication</string>
 			</object>
 			<object class="NSCustomObject" id="1014">
 				<string key="NSClassName">FirstResponder</string>
 			</object>
 			<object class="NSCustomObject" id="1050">
-				<string key="NSClassName">NSApplication</string>
+				<string key="NSClassName">VinylApplication</string>
 			</object>
 			<object class="NSMenu" id="649796088">
 				<string key="NSTitle">AMainMenu</string>
@@ -1979,28 +1979,28 @@ eQpUaGUgQmVhdGxlcyDigJQgVGhlIEJlYXRsZXM</string>
 			<object class="NSCustomObject" id="45671344">
 				<string key="NSClassName">VinylMainController</string>
 			</object>
-			<object class="NSMenu" id="58344722">
+			<object class="NSMenu" id="48881918">
 				<string key="NSTitle"/>
 				<object class="NSMutableArray" key="NSMenuItems">
 					<bool key="EncodedWithXMLCoder">YES</bool>
-					<object class="NSMenuItem" id="243830206">
-						<reference key="NSMenu" ref="58344722"/>
+					<object class="NSMenuItem" id="734880405">
+						<reference key="NSMenu" ref="48881918"/>
 						<string key="NSTitle">Play</string>
 						<string key="NSKeyEquiv"/>
 						<int key="NSMnemonicLoc">2147483647</int>
 						<reference key="NSOnImage" ref="35465992"/>
 						<reference key="NSMixedImage" ref="502551668"/>
 					</object>
-					<object class="NSMenuItem" id="370798951">
-						<reference key="NSMenu" ref="58344722"/>
+					<object class="NSMenuItem" id="1053377942">
+						<reference key="NSMenu" ref="48881918"/>
 						<string key="NSTitle">Back</string>
 						<string key="NSKeyEquiv"/>
 						<int key="NSMnemonicLoc">2147483647</int>
 						<reference key="NSOnImage" ref="35465992"/>
 						<reference key="NSMixedImage" ref="502551668"/>
 					</object>
-					<object class="NSMenuItem" id="671207480">
-						<reference key="NSMenu" ref="58344722"/>
+					<object class="NSMenuItem" id="1030462861">
+						<reference key="NSMenu" ref="48881918"/>
 						<string key="NSTitle">Forward</string>
 						<string key="NSKeyEquiv"/>
 						<int key="NSMnemonicLoc">2147483647</int>
@@ -2497,7 +2497,7 @@ eQpUaGUgQmVhdGxlcyDigJQgVGhlIEJlYXRsZXM</string>
 					<object class="IBOutletConnection" key="connection">
 						<string key="label">dockMenu</string>
 						<reference key="source" ref="1050"/>
-						<reference key="destination" ref="58344722"/>
+						<reference key="destination" ref="48881918"/>
 					</object>
 					<int key="connectionID">784</int>
 				</object>
@@ -2505,7 +2505,7 @@ eQpUaGUgQmVhdGxlcyDigJQgVGhlIEJlYXRsZXM</string>
 					<object class="IBActionConnection" key="connection">
 						<string key="label">performForward:</string>
 						<reference key="source" ref="45671344"/>
-						<reference key="destination" ref="671207480"/>
+						<reference key="destination" ref="1030462861"/>
 					</object>
 					<int key="connectionID">785</int>
 				</object>
@@ -2513,7 +2513,7 @@ eQpUaGUgQmVhdGxlcyDigJQgVGhlIEJlYXRsZXM</string>
 					<object class="IBActionConnection" key="connection">
 						<string key="label">performBack:</string>
 						<reference key="source" ref="45671344"/>
-						<reference key="destination" ref="370798951"/>
+						<reference key="destination" ref="1053377942"/>
 					</object>
 					<int key="connectionID">786</int>
 				</object>
@@ -2521,7 +2521,7 @@ eQpUaGUgQmVhdGxlcyDigJQgVGhlIEJlYXRsZXM</string>
 					<object class="IBActionConnection" key="connection">
 						<string key="label">performPlay:</string>
 						<reference key="source" ref="45671344"/>
-						<reference key="destination" ref="243830206"/>
+						<reference key="destination" ref="734880405"/>
 					</object>
 					<int key="connectionID">787</int>
 				</object>
@@ -2529,7 +2529,7 @@ eQpUaGUgQmVhdGxlcyDigJQgVGhlIEJlYXRsZXM</string>
 					<object class="IBOutletConnection" key="connection">
 						<string key="label">playDockMenuItem</string>
 						<reference key="source" ref="45671344"/>
-						<reference key="destination" ref="243830206"/>
+						<reference key="destination" ref="734880405"/>
 					</object>
 					<int key="connectionID">788</int>
 				</object>
@@ -3646,30 +3646,30 @@ eQpUaGUgQmVhdGxlcyDigJQgVGhlIEJlYXRsZXM</string>
 					</object>
 					<object class="IBObjectRecord">
 						<int key="objectID">780</int>
-						<reference key="object" ref="58344722"/>
+						<reference key="object" ref="48881918"/>
 						<object class="NSMutableArray" key="children">
 							<bool key="EncodedWithXMLCoder">YES</bool>
-							<reference ref="243830206"/>
-							<reference ref="370798951"/>
-							<reference ref="671207480"/>
+							<reference ref="734880405"/>
+							<reference ref="1053377942"/>
+							<reference ref="1030462861"/>
 						</object>
 						<reference key="parent" ref="0"/>
 						<string key="objectName">Dock Menu</string>
 					</object>
 					<object class="IBObjectRecord">
 						<int key="objectID">781</int>
-						<reference key="object" ref="243830206"/>
-						<reference key="parent" ref="58344722"/>
+						<reference key="object" ref="734880405"/>
+						<reference key="parent" ref="48881918"/>
 					</object>
 					<object class="IBObjectRecord">
 						<int key="objectID">782</int>
-						<reference key="object" ref="370798951"/>
-						<reference key="parent" ref="58344722"/>
+						<reference key="object" ref="1053377942"/>
+						<reference key="parent" ref="48881918"/>
 					</object>
 					<object class="IBObjectRecord">
 						<int key="objectID">783</int>
-						<reference key="object" ref="671207480"/>
-						<reference key="parent" ref="58344722"/>
+						<reference key="object" ref="1030462861"/>
+						<reference key="parent" ref="48881918"/>
 					</object>
 				</object>
 			</object>
