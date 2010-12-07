@@ -304,6 +304,10 @@ foundPlaylistItem:
             return true;
         }),
 
+        (#"outlineView:shouldEditTableColumn:item:", (self, tableView, tableColumn, item) =>
+            observe(#shouldEdit, not item.isKindOfClass(NSString))
+        ),
+
         (#"insertPlaylistWithName:parentItem:", (self, name, parentItem) => {
             var parentId = if (itemIsFolder?(parentItem))
                 Maybe(NSInteger(parentItem["id"]))

@@ -543,6 +543,7 @@ record MainController = newClass(#VinylMainController, NSObject,
             self^.libraryDataSource
                 = Retained(LibraryDataSource.alloc().initWithLibrary(&self^.library));
             self^.libraryView.setDataSource(self^.libraryDataSource);
+            self^.libraryView.setDelegate(self^.libraryDataSource);
 
             self^.libraryView.setTarget(self);
             self^.libraryView.setDoubleAction(selectorHandle(#"performDoubleClickPlaylist:"));
