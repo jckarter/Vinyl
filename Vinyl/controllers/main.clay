@@ -8,6 +8,7 @@ import Vinyl.qtplayer.*;
 import Vinyl.controllers.itunesimport.*;
 import Vinyl.formatting.*;
 import Vinyl.controls.playinfoview.*;
+import Vinyl.controls.application.*;
 import libc;
 import maybe.*;
 
@@ -529,6 +530,7 @@ record MainController = newClass(#VinylMainController, NSObject,
                 #"Repeat", Int(NoRepeat),
                 #"Columns", defaultColumnsDict(),
                 #"Playlist View", makeNSArray(#"Library"),
+                #"MediaKeys", MediaKeysNeverRespond,
             ));
 
             var defaultSortDescriptors = self^.playlistView.sortDescriptors();

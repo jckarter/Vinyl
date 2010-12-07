@@ -10,6 +10,21 @@ alias NX_KEYTYPE_REWIND = 20;
 
 overload selector(static #"mediaKeyEvent:state:repeat:") = Void, NSInteger, Bool, Bool;
 
+alias MediaKeysNeverRespond = 0;
+alias MediaKeysActiveRespond = 1;
+alias MediaKeysAlwaysRespond = 2;
+
+shouldRespondToMediaKeys?(app: VinylApplication) {
+    switch (NSUserDefaults.standardUserDefaults().integerForKey(#"MediaKeys")) {
+    case MediaKeysActiveRespond:
+        return app.isActive();
+    case MediaKeysAlwaysRespond:
+        return true;
+    default:
+        return false;
+    }
+}
+
 record VinylApplication = newClass(#VinylApplication, NSApplication,
     InstanceVars(
         IBOutlets(
@@ -31,7 +46,7 @@ record VinylApplication = newClass(#VinylApplication, NSApplication,
                 super(self).sendEvent(event);
         }),
         (#"mediaKeyEvent:state:repeat:", (self, keycode, keydown?, keyrepeat?) => {
-            if (not nil?(self^.mainController)) {
+            if (shouldRespondToMediaKeys?(self) and not nil?(self^.mainController)) {
                 switch (keycode) {
                 case NX_KEYTYPE_PLAY:
                     if (not keydown?)
