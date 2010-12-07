@@ -56,25 +56,25 @@ record PlaylistState (
     trackOrder: TrackOrder,
     trackNumber: SizeT,
     library: Pointer[Library],
-    libraryView: LibraryView,
+    libraryFilter: LibraryFilter,
     movie: Retained[QTMovie],
     tracks: Vector[PlaylistTrack],
 );
 
 [I | Integer?(I)]
-overload PlaylistState(mode: PlaylistMode, trackViewId: I, library: Pointer[Library], view: LibraryView, shuffle?: Bool)
+overload PlaylistState(mode: PlaylistMode, trackViewId: I, library: Pointer[Library], filter: LibraryFilter, shuffle?: Bool)
 {
     var returned = PlaylistState(
         mode,
         sequentialTrackOrder(SizeT(0)),
         SizeT(),
         library,
-        view,
+        filter,
         Retained[QTMovie](),
         Vector[PlaylistTrack]()
     );
 
-    _changeLibraryView(returned, view, trackViewId, shuffle?);
+    _changeLibraryFilter(returned, filter, trackViewId, shuffle?);
 
     return move(returned);
 }
@@ -90,15 +90,15 @@ setShuffledTrackOrder(ps: PlaylistState) {
     ps.trackNumber = 0;
 }
 
-changeLibraryView(ps: PlaylistState, view: LibraryView) {
+changeLibraryFilter(ps: PlaylistState, filter: LibraryFilter) {
     var realTrackNumber = ps.trackOrder[ps.trackNumber];
     var trackViewId = ps.tracks[realTrackNumber].track_view_id;
     var shuffle? = variantIs?(ps.trackOrder, Vector[SizeT]);
-    ps.libraryView = view;
-    return _changeLibraryView(ps, view, trackViewId, shuffle?);
+    ps.libraryFilter = filter;
+    return _changeLibraryFilter(ps, filter, trackViewId, shuffle?);
 }
 
-_changeLibraryView(ps: PlaylistState, view: LibraryView, trackViewId: NSInteger, shuffle?: Bool) {
+_changeLibraryFilter(ps: PlaylistState, filter: LibraryFilter, trackViewId: NSInteger, shuffle?: Bool) {
     var i = SizeT(0);
     var currentTrack? = false;
     clear(ps.tracks);
@@ -106,7 +106,7 @@ _changeLibraryView(ps: PlaylistState, view: LibraryView, trackViewId: NSInteger,
 
     var first? = true;
     NSLog(NSString(#"player: beginning statement"));
-    for (row in libraryViewStatement(ps.library^.db, String(), view)) {
+    for (row in libraryFilterStatement(ps.library^.db, String(), filter)) {
         if (first?) {
             NSLog(NSString(#"loaded first row"));
             first? = false;
@@ -137,8 +137,8 @@ overload selector(static #"setState:") = Void, PlayerState;
 overload selector(static #"handleMovieDidEndNotification:") = Void, NSNotification;
 overload selector(static #"handleMovieLoadStateDidChangeNotification:") = Void, NSNotification;
 overload selector(static #"handleMovieTimeDidChangeNotification:") = Void, NSNotification;
-overload selector(static #"playLibrary:view:trackViewId:") = Void, Pointer[Library], LibraryView, NSInteger;
-overload selector(static #"changeView:") = Void, LibraryView;
+overload selector(static #"playLibrary:filter:trackViewId:") = Void, Pointer[Library], LibraryFilter, NSInteger;
+overload selector(static #"changeFilter:") = Void, LibraryFilter;
 overload selector(static #"resume") = Void;
 overload selector(static #"pause") = Void;
 overload selector(static #"stop") = Void;
@@ -264,19 +264,19 @@ record Player = newClass(NSObject,
             );
         }),
 
-        (#"playLibrary:view:trackViewId:", (self, library, libraryView, trackViewId) => {
+        (#"playLibrary:filter:trackViewId:", (self, library, libraryFilter, trackViewId) => {
             self.stop();
             self^.state = PlayerState(
-                PlaylistState(Paused, trackViewId, library, libraryView, self^.shuffle)
+                PlaylistState(Paused, trackViewId, library, libraryFilter, self^.shuffle)
             );
             self.resume();
         }),
 
-        (#"changeView:", (self, libraryView) => {
+        (#"changeFilter:", (self, libraryFilter) => {
             match(self^.state,
                 StoppedState,  stopped => {},
                 PlaylistState, playlistState => {
-                    var currentTrack? = changeLibraryView(playlistState, libraryView);
+                    var currentTrack? = changeLibraryFilter(playlistState, libraryFilter);
                     if (not currentTrack?)
                         self.stop();
                 },

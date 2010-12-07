@@ -79,9 +79,9 @@ setStatusField(self, ...contents) {
 }
 
 playTrackViewId(self: MainController, trackViewId: NSInteger) {
-    self^.player.playLibrary_view_trackViewId(
+    self^.player.playLibrary_filter_trackViewId(
         &self^.library,
-        self^.playlistDataSource.libraryView()^,
+        self^.playlistDataSource.libraryFilter()^,
         trackViewId
     );
 }
@@ -149,7 +149,7 @@ updatePlayControls(self: MainController) {
 
             switch (playlistState.mode) {
             case Playing:
-                if (playlistState.libraryView == self^.playlistDataSource.libraryView()^) {
+                if (playlistState.libraryFilter == self^.playlistDataSource.libraryFilter()^) {
                     self^.playButtonMode = PauseButton;
                     playControls.setLabel_forSegment(
                         #"||",
@@ -166,7 +166,7 @@ updatePlayControls(self: MainController) {
                 }
                 break;
             case Paused:
-                if (playlistState.libraryView == self^.playlistDataSource.libraryView()^)
+                if (playlistState.libraryFilter == self^.playlistDataSource.libraryFilter()^)
                     self^.playButtonMode = ResumeButton;
                 else
                     self^.playButtonMode = PlayButton;
@@ -193,7 +193,7 @@ updatePlayIndicator(self: MainController) {
             self^.playlistDataSource^.playingTrackViewId = nothing(NSInteger);
         },
         PlaylistState, playlistState => {
-            if (playlistState.libraryView == self^.playlistDataSource.libraryView()^) {
+            if (playlistState.libraryFilter == self^.playlistDataSource.libraryFilter()^) {
                 self^.playlistDataSource^.playingTrackViewId
                     = Maybe(self^.player.currentTrack()^.track_view_id);
                 self^.playlistDataSource^.playingMode = playlistState.mode;
@@ -241,16 +241,16 @@ updateStatus(self: MainController) {
     }
 }
 
-updatePlaylistLibraryView(self) {
+updatePlaylistLibraryFilter(self) {
     var libView = self^.libraryView;
     var plView = self^.playlistView;
     var item = libView.itemAtRow(libView.selectedRow());
 
-    var newView = self^.libraryDataSource.selectedViewForLibraryView_playlistView(libView, plView);
-    self^.playlistDataSource.setLibraryView_tableView(newView, plView);
+    var newFilter = self^.libraryDataSource.selectedFilterForLibraryView_playlistView(libView, plView);
+    self^.playlistDataSource.setLibraryFilter_tableView(newFilter, plView);
 
     NSUserDefaults.standardUserDefaults().setObject_forKey(
-        libraryViewPlist(newView^),
+        libraryFilterPlist(newFilter^),
         #"Playlist View",
     );
 }
@@ -532,9 +532,9 @@ record MainController = newClass(#VinylMainController, NSObject,
                     NSSortDescriptor.sortDescriptorWithKey_ascending(#"name", true),
                 );
             
-            var defaultLibraryView = LibraryView(
+            var defaultLibraryFilter = LibraryFilter(
                 defaults.arrayForKey(#"Playlist View"),
-                SortedView(defaultSortDescriptors)
+                SortedFilter(defaultSortDescriptors)
             );
 
             self^.library <-- Library();
@@ -547,9 +547,9 @@ record MainController = newClass(#VinylMainController, NSObject,
             self^.libraryView.setTarget(self);
             self^.libraryView.setDoubleAction(selectorHandle(#"performDoubleClickPlaylist:"));
             self^.libraryView.registerForDraggedTypes(makeNSArray(PlaylistIdsPboardType, TrackIdsPboardType));
-            self^.libraryDataSource.libraryView_selectView(
+            self^.libraryDataSource.libraryView_selectFilter(
                 self^.libraryView,
-                &defaultLibraryView
+                &defaultLibraryFilter
             );
 
             self^.playlistView.registerForDraggedTypes(makeNSArray(TrackIdsPboardType));
@@ -558,16 +558,16 @@ record MainController = newClass(#VinylMainController, NSObject,
             self^.playlistView.setDoubleAction(selectorHandle(#"performDoubleClickTrack:"));
 
             self^.playlistDataSource
-                = Retained(PlaylistDataSource.alloc().initWithLibrary_view_sortDescriptors(
+                = Retained(PlaylistDataSource.alloc().initWithLibrary_filter_sortDescriptors(
                     &self^.library,
-                    self^.libraryDataSource.selectedViewForLibraryView_playlistView(
+                    self^.libraryDataSource.selectedFilterForLibraryView_playlistView(
                         self^.libraryView,
                         self^.playlistView
                     ),
                     defaultSortDescriptors,
                 ));
 
-            if (variantIs?(self^.playlistDataSource.libraryView()^, SortedView))
+            if (variantIs?(self^.playlistDataSource.libraryFilter()^, SortedFilter))
                 self^.playlistView.setSortDescriptors(defaultSortDescriptors);
             else
                 self^.playlistView.setSortDescriptors(NSArray.array());
@@ -682,7 +682,7 @@ record MainController = newClass(#VinylMainController, NSObject,
                 false
             );
 
-            updatePlaylistLibraryView(self);
+            updatePlaylistLibraryFilter(self);
             // XXX preserve search for each view
             self^.searchField.setStringValue(NSString(#""));
 
@@ -697,8 +697,8 @@ record MainController = newClass(#VinylMainController, NSObject,
             match(self^.player.playerState()^,
                 StoppedState,  stopped => {},
                 PlaylistState, playlistState => {
-                    if (playlistState.libraryView == self^.playlistDataSource.libraryView()^) {
-                        self^.player.changeView(self^.playlistDataSource.libraryView()^);
+                    if (playlistState.libraryFilter == self^.playlistDataSource.libraryFilter()^) {
+                        self^.player.changeFilter(self^.playlistDataSource.libraryFilter()^);
                     }
                 }
             );

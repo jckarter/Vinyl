@@ -18,10 +18,10 @@ overload selector(static #"insertPlaylistWithName:parentItem:")
     = Id, NSString, Id;
 overload selector(static #"insertPlaylistFolderWithName:")
     = Id, NSString;
-overload selector(static #"libraryView:selectView:")
-    = Id, NSOutlineView, Pointer[LibraryView];
-overload selector(static #"selectedViewForLibraryView:playlistView:")
-    = Pointer[LibraryView], NSOutlineView, NSTableView;
+overload selector(static #"libraryView:selectFilter:")
+    = Id, NSOutlineView, Pointer[LibraryFilter];
+overload selector(static #"selectedFilterForLibraryView:playlistView:")
+    = Pointer[LibraryFilter], NSOutlineView, NSTableView;
 
 libraryDataSourceItemCount(self: LibraryDataSource)
     = NSInteger(
@@ -35,7 +35,7 @@ record LibraryDataSource = newClass(NSObject,
         (#library, Pointer[Library]),
         (#folders, Retained[NSMutableArray]),
         (#playlists, Retained[NSMutableArray]),
-        (#libraryView, LibraryView),
+        (#libraryFilter, LibraryFilter),
     ),
     ClassMethods(
     ),
@@ -44,15 +44,15 @@ record LibraryDataSource = newClass(NSObject,
             self^.library = library;
             self^.folders = NSMutableArray.array();
             self^.playlists = NSMutableArray.array();
-            self^.libraryView = LibraryView();
+            self^.libraryFilter = LibraryFilter();
             refreshLibraryDataSource(self);
             return self;
         })),
         DeallocInstanceMethod(),
-        (#"libraryView:selectView:", (self, outlineView, libraryView) => {
+        (#"libraryView:selectFilter:", (self, outlineView, libraryFilter) => {
             var row = NSUInteger(0);
-            match(libraryView^,
-                PlaylistView, v ref=> {
+            match(libraryFilter^,
+                PlaylistFilter, v ref=> {
                     for (folder in self^.folders)
                         for (playlist in folder["playlists"])
                             if (playlist["id"] == v.id) {
@@ -66,30 +66,30 @@ record LibraryDataSource = newClass(NSObject,
                             return;
                         }
                 },
-                PlaylistFolderView, v ref=> {
+                PlaylistFolderFilter, v ref=> {
                     for (folder in self^.folders)
                         if (folder["id"] == v.id) {
                             row = outlineView.rowForItem(folder);
                             return;
                         }
                 },
-                SortedView, v ref=> { row = 0; }
+                SortedFilter, v ref=> { row = 0; }
             );
             outlineView.selectRowIndexes_byExtendingSelection(
                 NSIndexSet.indexSetWithIndex(NSUInteger(row)),
                 false
             );
         }),
-        (#"selectedViewForLibraryView:playlistView:", (self, outlineView, playlistView) => {
+        (#"selectedFilterForLibraryView:playlistView:", (self, outlineView, playlistView) => {
             var item = outlineView.itemAtRow(outlineView.selectedRow());
 
-            self^.libraryView = if (itemIsFolder?(item))
-                    LibraryView(PlaylistFolderView(Int(item["id"])))
+            self^.libraryFilter = if (itemIsFolder?(item))
+                    LibraryFilter(PlaylistFolderFilter(Int(item["id"])))
                 else if (itemIsPlaylist?(item))
-                    LibraryView(PlaylistView(Int(item["id"])))
+                    LibraryFilter(PlaylistFilter(Int(item["id"])))
                 else
-                    LibraryView(SortedView(playlistView.sortDescriptors()));
-            return &self^.libraryView;
+                    LibraryFilter(SortedFilter(playlistView.sortDescriptors()));
+            return &self^.libraryFilter;
         }),
         (#"outlineView:numberOfChildrenOfItem:", (self, outlineView, item) =>
             if (nil?(item))
@@ -450,17 +450,17 @@ sortSQL(sortColumn: String, ascending?: Bool) {
     }
 }
 // XXX use NSInteger
-record PlaylistFolderView (id: Int);
-record PlaylistView (id: Int);
-record SortedView (sort: String);
-variant LibraryView = PlaylistFolderView | PlaylistView | SortedView;
+record PlaylistFolderFilter (id: Int);
+record PlaylistFilter (id: Int);
+record SortedFilter (sort: String);
+variant LibraryFilter = PlaylistFolderFilter | PlaylistFilter | SortedFilter;
 
 [S | String?(S) and S != String]
-overload SortedView(sort: S) = SortedView(String(sort));
-overload SortedView() = SortedView(sortSQL(String("name"), true));
+overload SortedFilter(sort: S) = SortedFilter(String(sort));
+overload SortedFilter() = SortedFilter(sortSQL(String("name"), true));
 
 [O | ObjectRef?(O)]
-overload SortedView(sortDescriptors: O) {
+overload SortedFilter(sortDescriptors: O) {
     var key = String("name");
     var ascending? = true;
     if (sortDescriptors.count() > 0) {
@@ -468,28 +468,28 @@ overload SortedView(sortDescriptors: O) {
         key = String(mainDescriptor.key());
         ascending? = mainDescriptor.ascending();
     }
-    return SortedView(sortSQL(key, ascending?));
+    return SortedFilter(sortSQL(key, ascending?));
 }
 
-overload LibraryView() = LibraryView(SortedView());
+overload LibraryFilter() = LibraryFilter(SortedFilter());
 
-libraryViewPlist(view: LibraryView) = libraryViewPlist(*view);
-overload libraryViewPlist(view: PlaylistFolderView) = makeNSArray(#"PlaylistFolder", view.id);
-overload libraryViewPlist(view: PlaylistView) = makeNSArray(#"Playlist", view.id);
-overload libraryViewPlist(view: SortedView) = makeNSArray(#"Library");
+libraryFilterPlist(view: LibraryFilter) = libraryFilterPlist(*view);
+overload libraryFilterPlist(view: PlaylistFolderFilter) = makeNSArray(#"PlaylistFolder", view.id);
+overload libraryFilterPlist(view: PlaylistFilter) = makeNSArray(#"Playlist", view.id);
+overload libraryFilterPlist(view: SortedFilter) = makeNSArray(#"Library");
 
 [O | ObjectRef?(O)]
-overload LibraryView(plist: O, defaultView) {
+overload LibraryFilter(plist: O, defaultFilter) {
     if (plist.isKindOfClass(NSArray)) {
         switch(plist[0]) {
         case "PlaylistFolder":
             if (plist.count() >= 2)
-                return LibraryView(PlaylistFolderView(Int(plist[1])));
+                return LibraryFilter(PlaylistFolderFilter(Int(plist[1])));
             else
                 goto defaultPlist;
         case "Playlist":
             if (plist.count() >= 2)
-                return LibraryView(PlaylistView(Int(plist[1])));
+                return LibraryFilter(PlaylistFilter(Int(plist[1])));
             else
                 goto defaultPlist;
         default:
@@ -498,7 +498,7 @@ overload LibraryView(plist: O, defaultView) {
     }
 
 defaultPlist:
-    return LibraryView(defaultView);
+    return LibraryFilter(defaultFilter);
 }
 
 record PlaylistTrack (
@@ -603,9 +603,9 @@ formattedFieldByName(r, fn, str) {
     }
 }
 
-overload selector(static #"initWithLibrary:view:sortDescriptors:") = Void, Pointer[Library], Pointer[LibraryView], NSArray;
-overload selector(static #"setLibraryView:tableView:") = Void, Pointer[LibraryView], NSTableView;
-overload selector(static #"libraryView") = Pointer[LibraryView];
+overload selector(static #"initWithLibrary:filter:sortDescriptors:") = Void, Pointer[Library], Pointer[LibraryFilter], NSArray;
+overload selector(static #"setLibraryFilter:tableView:") = Void, Pointer[LibraryFilter], NSTableView;
+overload selector(static #"libraryFilter") = Pointer[LibraryFilter];
 overload selector(static #"setSearchString:") = Void, NSString;
 overload selector(static #"searchString") = NSString;
 overload selector(static #"playlistStatus") = PlaylistStatus;
@@ -627,7 +627,7 @@ alias PlaylistIDKey = NSString(#"VinylPlaylistID");
 record PlaylistDataSource = newClass(NSObject,
     InstanceVars(
         library: Pointer[Library],
-        libraryView: LibraryView,
+        libraryFilter: LibraryFilter,
         searchString: Retained[NSString],
         playingTrackViewId: Maybe[NSInteger],
         playingMode: PlaylistMode,
@@ -636,16 +636,16 @@ record PlaylistDataSource = newClass(NSObject,
     ),
     ClassMethods(),
     InstanceMethods(
-        (#"initWithLibrary:view:sortDescriptors:", (self, library, view, sortDescriptors) =>
+        (#"initWithLibrary:filter:sortDescriptors:", (self, library, filter, sortDescriptors) =>
             initObjectWith(self, #"init", self => {
                 self^.library = library;
-                self^.libraryView <-- view^;
+                self^.libraryFilter <-- filter^;
                 self^.playingTrackViewId <-- nothing(NSInteger);
                 self^.playingMode <-- Paused;
-                self^.tracks <-- libraryViewStatementSequence(
+                self^.tracks <-- libraryFilterStatementSequence(
                     self^.library^.db, 
                     String(), // search string
-                    self^.libraryView
+                    self^.libraryFilter
                 );
                 self^.librarySort = sortDescriptors;
                 refreshPlaylistDataSource(self);
@@ -668,8 +668,8 @@ record PlaylistDataSource = newClass(NSObject,
                 formattedFieldByName(self^.tracks[rowIndex], maybeObject, tableColumn.identifier())
         ),
         (#"tableView:deleteRowsWithIndexes:", (self, tableView, rowIndexes) => {
-            match(self^.libraryView,
-                PlaylistView, playlist => {
+            match(self^.libraryFilter,
+                PlaylistFilter, playlist => {
                     var rows = indexSetIndices(rowIndexes);
 
                     deleteLibraryPlaylistPositions(self^.library^, playlist.id, rows);
@@ -701,10 +701,10 @@ record PlaylistDataSource = newClass(NSObject,
                 trackPositions.addObject(row);
             }
 
-            var localMask = match(self^.libraryView,
-                PlaylistView,       v => bitwiseOr(NSDragOperationCopy, NSDragOperationMove, NSDragOperationDelete),
-                PlaylistFolderView, v => bitwiseOr(NSDragOperationCopy, NSDragOperationDelete),
-                SortedView,         v => bitwiseOr(NSDragOperationCopy, NSDragOperationDelete),
+            var localMask = match(self^.libraryFilter,
+                PlaylistFilter,       v => bitwiseOr(NSDragOperationCopy, NSDragOperationMove, NSDragOperationDelete),
+                PlaylistFolderFilter, v => bitwiseOr(NSDragOperationCopy, NSDragOperationDelete),
+                SortedFilter,         v => bitwiseOr(NSDragOperationCopy, NSDragOperationDelete),
             );
 
             tableView.setDraggingSourceOperationMask_forLocal(
@@ -728,10 +728,10 @@ record PlaylistDataSource = newClass(NSObject,
         }),
 
         (#"tableView:validateDrop:proposedRow:proposedDropOperation:", (self, tableView, info, row, operation) => {
-            var allowDrop = match(self^.libraryView,
-                PlaylistView, v => true,
-                PlaylistFolderView, v => false,
-                SortedView, v => false,
+            var allowDrop = match(self^.libraryFilter,
+                PlaylistFilter, v => true,
+                PlaylistFolderFilter, v => false,
+                SortedFilter, v => false,
             );
             if (not allowDrop) return NSDragOperation(NSDragOperationNone);
 
@@ -753,10 +753,10 @@ record PlaylistDataSource = newClass(NSObject,
             return NSDragOperation(NSDragOperationMove);
         }),
         (#"tableView:acceptDrop:row:dropOperation:", (self, tableView, info, row, operation) => {
-            var ok?, playlistId = ...match(self^.libraryView,
-                PlaylistView,       v => ...(true, NSInteger(v.id)),
-                PlaylistFolderView, v => ...(false, NSInteger(-1)),
-                SortedView,         v => ...(false, NSInteger(-1)),
+            var ok?, playlistId = ...match(self^.libraryFilter,
+                PlaylistFilter,       v => ...(true, NSInteger(v.id)),
+                PlaylistFolderFilter, v => ...(false, NSInteger(-1)),
+                SortedFilter,         v => ...(false, NSInteger(-1)),
             );
             if (not ok?)
                 return false;
@@ -788,10 +788,10 @@ record PlaylistDataSource = newClass(NSObject,
         }),
 
         (#"tableView:sortDescriptorsDidChange:", (self, tableView, oldDescriptors) => {
-            match(self^.libraryView,
-                SortedView,   v => {
+            match(self^.libraryFilter,
+                SortedFilter,   v => {
                     self^.librarySort = tableView.sortDescriptors();
-                    self^.libraryView = LibraryView(SortedView(self^.librarySort));
+                    self^.libraryFilter = LibraryFilter(SortedFilter(self^.librarySort));
                     refreshPlaylistDataSource(self);
                     tableView.reloadData();
                 },
@@ -803,14 +803,14 @@ record PlaylistDataSource = newClass(NSObject,
             );
         }),
 
-        (#"libraryView", self => &self^.libraryView),
-        (#"setLibraryView:tableView:", (self, view, tableView) => {
-            self^.libraryView = view^;
-            match(self^.libraryView,
-                SortedView,  v => { tableView.setSortDescriptors(self^.librarySort); },
+        (#"libraryFilter", self => &self^.libraryFilter),
+        (#"setLibraryFilter:tableView:", (self, filter, tableView) => {
+            self^.libraryFilter = filter^;
+            match(self^.libraryFilter,
+                SortedFilter,  v => { tableView.setSortDescriptors(self^.librarySort); },
                 MatchDefault, v => { tableView.setSortDescriptors(NSArray.array()); }
             );
-            // XXX preserve search for each view
+            // XXX preserve search for each filter
             self^.searchString = Retained(nil(NSString));
 
             refreshPlaylistDataSource(self);
@@ -822,15 +822,15 @@ record PlaylistDataSource = newClass(NSObject,
             refreshPlaylistDataSource(self);
         }),
 
-        (#"playlistStatus", self => libraryViewStatus(
+        (#"playlistStatus", self => libraryFilterStatus(
             self^.library^.db,
             if (nil?(self^.searchString)) String() else String(self^.searchString),
-            self^.libraryView,
+            self^.libraryFilter,
         )),
     ),
 );
 
-private basePlaylistSelectClause(view: SortedView) = "
+private basePlaylistSelectClause(filter: SortedFilter) = "
     select
         tracks.track_id as track_view_id,
         tracks.track_id as track_id,
@@ -862,7 +862,7 @@ private basePlaylistSelectClause(view: SortedView) = "
         track_options.played_date as played_date
     ";
 
-overload basePlaylistSelectClause(view: PlaylistView) = "
+overload basePlaylistSelectClause(filter: PlaylistFilter) = "
     select
         playlist_tracks.position as track_view_id,
         tracks.track_id as track_id,
@@ -895,7 +895,7 @@ overload basePlaylistSelectClause(view: PlaylistView) = "
     ";
 
 // XXX hack: assumes fewer than 100,000 tracks per playlist
-overload basePlaylistSelectClause(view: PlaylistFolderView) = "
+overload basePlaylistSelectClause(view: PlaylistFolderFilter) = "
     select
         100000 * playlists.position + playlist_tracks.position as track_view_id,
         tracks.track_id as track_id,
@@ -950,12 +950,12 @@ private alias searchPlaylistFromClause = "
             on tracks_fts.docid = tracks.track_id
     ";
 
-private  viewFromClauseInnerJoins(view: SortedView) = "";
-overload viewFromClauseInnerJoins(view: PlaylistView) = "
+private  filterFromClauseInnerJoins(filter: SortedFilter) = "";
+overload filterFromClauseInnerJoins(filter: PlaylistFilter) = "
         inner join playlist_tracks
             on tracks.track_id = playlist_tracks.track_id
     ";
-overload viewFromClauseInnerJoins(view: PlaylistFolderView) = "
+overload filterFromClauseInnerJoins(filter: PlaylistFolderFilter) = "
         inner join playlist_tracks
             on tracks.track_id = playlist_tracks.track_id
         inner join playlists
@@ -966,89 +966,89 @@ private alias sortWhereClause = "
         tracks_fts.tracks_fts match :search
     ";
 
-private  viewWhereClause(view: SortedView) = "1";
-overload viewWhereClause(view: PlaylistView) = "
+private  filterWhereClause(filter: SortedFilter) = "1";
+overload filterWhereClause(filter: PlaylistFilter) = "
         playlist_tracks.playlist_id = :playlist_id
     ";
-overload viewWhereClause(view: PlaylistFolderView) = "
+overload filterWhereClause(filter: PlaylistFolderFilter) = "
         playlists.playlist_folder_id = :playlist_folder_id
     ";
 
-private  viewOrderByClause(view: SortedView) = view.sort;
-overload viewOrderByClause(view: PlaylistView) = String("playlist_tracks.position");
-overload viewOrderByClause(view: PlaylistFolderView)
+private  filterOrderByClause(filter: SortedFilter) = filter.sort;
+overload filterOrderByClause(filter: PlaylistFilter) = String("playlist_tracks.position");
+overload filterOrderByClause(filter: PlaylistFolderFilter)
     = String("playlists.position, playlist_tracks.position");
 
-private  bindViewParameters(stmt: SqliteStatement, view: SortedView) { }
-overload bindViewParameters(stmt: SqliteStatement, view: PlaylistView) {
-    bindStatement(stmt, ":playlist_id", view.id);
+private  bindFilterParameters(stmt: SqliteStatement, filter: SortedFilter) { }
+overload bindFilterParameters(stmt: SqliteStatement, filter: PlaylistFilter) {
+    bindStatement(stmt, ":playlist_id", filter.id);
 }
-overload bindViewParameters(stmt: SqliteStatement, view: PlaylistFolderView) {
-    bindStatement(stmt, ":playlist_folder_id", view.id);
+overload bindFilterParameters(stmt: SqliteStatement, filter: PlaylistFolderFilter) {
+    bindStatement(stmt, ":playlist_folder_id", filter.id);
 }
 
-libraryViewStatementFromClause(db: SqliteDB, search: String, view: LibraryView) {
+libraryFilterStatementFromClause(db: SqliteDB, search: String, filter: LibraryFilter) {
     var searching? = not empty?(search);
     var stmtString = String(" from (");
     if (searching?)
         stmtString += searchPlaylistFromClause;
     else
         stmtString += basePlaylistFromClause;
-    stmtString += viewFromClauseInnerJoins(*view);
+    stmtString += filterFromClauseInnerJoins(*filter);
     stmtString += ") ";
     stmtString += playlistFromClauseLeftJoins;
     stmtString += " where ";
     if (searching?)
         stmtString += sortWhereClause + " and ";
-    stmtString += viewWhereClause(*view);
+    stmtString += filterWhereClause(*filter);
     return stmtString;
 }
 
-libraryViewSize(db: SqliteDB, search: String, view: LibraryView) {
+libraryFilterSize(db: SqliteDB, search: String, filter: LibraryFilter) {
     var searching? = not empty?(search);
     var stmtString = "select count(1) "
-        + libraryViewStatementFromClause(db, search, view);
+        + libraryFilterStatementFromClause(db, search, filter);
 
     var stmt = SqliteStatement(db, stmtString);
     if (searching?)
         bindStatement(stmt, ":search", search);
-    bindViewParameters(stmt, *view);
+    bindFilterParameters(stmt, *filter);
     return statementValue(SizeT, stmt);
 }
 
 record PlaylistStatus (size: SizeT, duration: Double); 
 
-libraryViewStatus(db: SqliteDB, search: String, view: LibraryView) {
+libraryFilterStatus(db: SqliteDB, search: String, filter: LibraryFilter) {
     var searching? = not empty?(search);
     var stmtString = "select count(1) as size, sum(duration_time) as duration "
-        + libraryViewStatementFromClause(db, search, view);
+        + libraryFilterStatementFromClause(db, search, filter);
 
     var stmt = SqliteStatement(db, stmtString);
     if (searching?)
         bindStatement(stmt, ":search", search);
-    bindViewParameters(stmt, *view);
+    bindFilterParameters(stmt, *filter);
     return rowRecord(statementSingleRow(stmt), PlaylistStatus);
 }
 
-libraryViewStatement(db: SqliteDB, search: String, view: LibraryView) {
+libraryFilterStatement(db: SqliteDB, search: String, filter: LibraryFilter) {
     var searching? = not empty?(search);
-    var stmtString = basePlaylistSelectClause(*view)
-        + libraryViewStatementFromClause(db, search, view);
+    var stmtString = basePlaylistSelectClause(*filter)
+        + libraryFilterStatementFromClause(db, search, filter);
     stmtString += " order by ";
-    stmtString += viewOrderByClause(*view);
+    stmtString += filterOrderByClause(*filter);
 
     var stmt = SqliteStatement(db, observe(stmtString));
     if (searching?)
         bindStatement(stmt, ":search", search);
-    bindViewParameters(stmt, *view);
+    bindFilterParameters(stmt, *filter);
     return move(stmt);
 }
 
-libraryViewStatementSequence(db: SqliteDB, search: String, view: LibraryView) {
-    var size = libraryViewSize(db, search, view);
+libraryFilterStatementSequence(db: SqliteDB, search: String, filter: LibraryFilter) {
+    var size = libraryFilterSize(db, search, filter);
     return sqliteLazySequence(
         PlaylistTrack,
-        libraryViewStatement(db, search, view), 
+        libraryFilterStatement(db, search, filter), 
         size
     );
 }
@@ -1059,5 +1059,5 @@ refreshPlaylistDataSource(self: PlaylistDataSource) {
         else
             String(self^.searchString) + "*";
 
-    self^.tracks = libraryViewStatementSequence(self^.library^.db, search, self^.libraryView);
+    self^.tracks = libraryFilterStatementSequence(self^.library^.db, search, self^.libraryFilter);
 }
