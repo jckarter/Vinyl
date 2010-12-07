@@ -305,7 +305,7 @@ foundPlaylistItem:
         }),
 
         (#"outlineView:shouldEditTableColumn:item:", (self, tableView, tableColumn, item) =>
-            observe(#shouldEdit, not item.isKindOfClass(NSString))
+            not item.isKindOfClass(NSString)
         ),
 
         (#"insertPlaylistWithName:parentItem:", (self, name, parentItem) => {
@@ -1081,7 +1081,7 @@ libraryFilterStatement(db: SqliteDB, search: String, filter: LibraryFilter) {
     stmtString += " order by ";
     stmtString += filterOrderByClause(*filter);
 
-    var stmt = SqliteStatement(db, observe(stmtString));
+    var stmt = SqliteStatement(db, stmtString);
     if (searching?)
         bindStatement(stmt, ":search", search);
     bindFilterParameters(stmt, *filter);
@@ -1126,7 +1126,7 @@ sortLibraryPlaylist(
             " + libraryFilterStatementFromClause(library.db, String(), playlistFilter);
         stmtString += " order by " + sortSQL;
 
-        var stmt = SqliteStatement(library.db, observe(stmtString));
+        var stmt = SqliteStatement(library.db, stmtString);
         bindFilterParameters(stmt, *playlistFilter);
         bindStatement(stmt, ":playing_track_view_id", playingTrackViewId);
 
