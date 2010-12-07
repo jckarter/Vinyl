@@ -10,7 +10,6 @@
 		1DDD58160DA1D0A300B32029 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = 1DDD58140DA1D0A300B32029 /* MainMenu.xib */; };
 		8D11072B0486CEB800E47090 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 089C165CFE840E0CC02AAC07 /* InfoPlist.strings */; };
 		8D11072F0486CEB800E47090 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1058C7A1FEA54F0111CA2CBB /* Cocoa.framework */; };
-		D828F8AA12913795005CE8ED /* ItunesImportController.xib in Resources */ = {isa = PBXBuildFile; fileRef = D828F8A912913795005CE8ED /* ItunesImportController.xib */; };
 		D828F8CB12918BCF005CE8ED /* libexpat.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = D828F8CA12918BCF005CE8ED /* libexpat.dylib */; };
 		D828F98012951232005CE8ED /* sqlite3.c in Sources */ = {isa = PBXBuildFile; fileRef = D828F97B12951232005CE8ED /* sqlite3.c */; };
 		D828F98F129512FB005CE8ED /* sqlite3.c in Sources */ = {isa = PBXBuildFile; fileRef = D828F97B12951232005CE8ED /* sqlite3.c */; };
@@ -34,6 +33,7 @@
 		D8492D1D12A8EB5100005C44 /* libstdc++.6.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = D8492D1C12A8EB5100005C44 /* libstdc++.6.dylib */; };
 		D8492D2012A8EBE500005C44 /* libstdc++.6.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = D8492D1C12A8EB5100005C44 /* libstdc++.6.dylib */; };
 		D851B2E0127AA5C800C08AC9 /* main.clay in Sources */ = {isa = PBXBuildFile; fileRef = D851B2DC127AA5C800C08AC9 /* main.clay */; };
+		D8A3851E12AE354D0004D559 /* ItunesImportController.xib in Resources */ = {isa = PBXBuildFile; fileRef = D8A3851D12AE354D0004D559 /* ItunesImportController.xib */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXBuildRule section */
@@ -59,7 +59,7 @@
 		29B97325FDCFA39411CA2CEA /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = /System/Library/Frameworks/Foundation.framework; sourceTree = "<absolute>"; };
 		8D1107310486CEB800E47090 /* Vinyl-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "Vinyl-Info.plist"; sourceTree = "<group>"; };
 		8D1107320486CEB800E47090 /* Vinyl.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Vinyl.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		D828F8A912913795005CE8ED /* ItunesImportController.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = ItunesImportController.xib; sourceTree = "<group>"; };
+		D828F8A912913795005CE8ED /* English */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = English; path = English.lproj/ItunesImportController.xib; sourceTree = "<group>"; };
 		D828F8CA12918BCF005CE8ED /* libexpat.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libexpat.dylib; path = usr/lib/libexpat.dylib; sourceTree = SDKROOT; };
 		D828F97A12951232005CE8ED /* shell.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = shell.c; sourceTree = "<group>"; };
 		D828F97B12951232005CE8ED /* sqlite3.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = sqlite3.c; sourceTree = "<group>"; };
@@ -177,7 +177,7 @@
 				8D1107310486CEB800E47090 /* Vinyl-Info.plist */,
 				089C165CFE840E0CC02AAC07 /* InfoPlist.strings */,
 				1DDD58140DA1D0A300B32029 /* MainMenu.xib */,
-				D828F8A912913795005CE8ED /* ItunesImportController.xib */,
+				D8A3851D12AE354D0004D559 /* ItunesImportController.xib */,
 			);
 			name = Resources;
 			sourceTree = "<group>";
@@ -291,7 +291,7 @@
 			files = (
 				8D11072B0486CEB800E47090 /* InfoPlist.strings in Resources */,
 				1DDD58160DA1D0A300B32029 /* MainMenu.xib in Resources */,
-				D828F8AA12913795005CE8ED /* ItunesImportController.xib in Resources */,
+				D8A3851E12AE354D0004D559 /* ItunesImportController.xib in Resources */,
 				D8492B6D12A68C2400005C44 /* Vinyl.icns in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -334,6 +334,14 @@
 				1DDD58150DA1D0A300B32029 /* English */,
 			);
 			name = MainMenu.xib;
+			sourceTree = "<group>";
+		};
+		D8A3851D12AE354D0004D559 /* ItunesImportController.xib */ = {
+			isa = PBXVariantGroup;
+			children = (
+				D828F8A912913795005CE8ED /* English */,
+			);
+			name = ItunesImportController.xib;
 			sourceTree = "<group>";
 		};
 /* End PBXVariantGroup section */

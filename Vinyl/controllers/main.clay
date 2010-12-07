@@ -136,6 +136,7 @@ updatePlayControls(self: MainController) {
                 NSInteger(PlayControlsForwardTag)
             );
             self^.playMenuItem.setTitle("Play");
+            self^.playDockMenuItem.setTitle("Play");
         },
         PlaylistState, playlistState => {
             playControls.setEnabled_forSegment(
@@ -156,6 +157,7 @@ updatePlayControls(self: MainController) {
                         NSInteger(PlayControlsPlayTag)
                     );
                     self^.playMenuItem.setTitle("Pause");
+                    self^.playDockMenuItem.setTitle("Pause");
                 } else {
                     self^.playButtonMode = StopButton;
                     playControls.setLabel_forSegment(
@@ -163,6 +165,7 @@ updatePlayControls(self: MainController) {
                         NSInteger(PlayControlsPlayTag)
                     );
                     self^.playMenuItem.setTitle("Stop");
+                    self^.playDockMenuItem.setTitle("Stop");
                 }
                 break;
             case Paused:
@@ -176,6 +179,7 @@ updatePlayControls(self: MainController) {
                     NSInteger(PlayControlsPlayTag)
                 );
                 self^.playMenuItem.setTitle("Resume");
+                self^.playDockMenuItem.setTitle("Resume");
                 break;
             }
             
@@ -344,6 +348,7 @@ record MainController = newClass(#VinylMainController, NSObject,
             statusField: NSTextField,
             // menu items
             playMenuItem: NSMenuItem,
+            playDockMenuItem: NSMenuItem,
             shuffleMenuItem: NSMenuItem,
             noRepeatMenuItem: NSMenuItem,
             repeatAllMenuItem: NSMenuItem,
@@ -745,6 +750,13 @@ record MainController = newClass(#VinylMainController, NSObject,
 
             setViewFrame(left,  leftFrame);
             setViewFrame(right, rightFrame);
+        }),
+
+        (#"validateMenuItem:", (self, item) => {
+            if (inValues?(item.action(), selectorHandle(#"performBack:"), selectorHandle(#"performForward:")))
+                return variantIs?(self^.player.playerState()^, PlaylistState);
+            else
+                return self.respondsToSelector(item.action());
         }),
     ),
 );
