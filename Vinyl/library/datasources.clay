@@ -449,6 +449,19 @@ sortSQL(sortColumn: String, ascending?: Bool) {
         return "tracks.sort_name" + desc;
     }
 }
+
+[O | ObjectRef?(O)]
+overload sortSQL(sortDescriptors: O) {
+    var key = String("name");
+    var ascending? = true;
+    if (sortDescriptors.count() > 0) {
+        var mainDescriptor = sortDescriptors[0];
+        key = String(mainDescriptor.key());
+        ascending? = mainDescriptor.ascending();
+    }
+    return sortSQL(key, ascending?);
+}
+
 // XXX use NSInteger
 record PlaylistFolderFilter (id: Int);
 record PlaylistFilter (id: Int);
@@ -461,14 +474,7 @@ overload SortedFilter() = SortedFilter(sortSQL(String("name"), true));
 
 [O | ObjectRef?(O)]
 overload SortedFilter(sortDescriptors: O) {
-    var key = String("name");
-    var ascending? = true;
-    if (sortDescriptors.count() > 0) {
-        var mainDescriptor = sortDescriptors[0];
-        key = String(mainDescriptor.key());
-        ascending? = mainDescriptor.ascending();
-    }
-    return SortedFilter(sortSQL(key, ascending?));
+    return SortedFilter(sortSQL(sortDescriptors));
 }
 
 overload LibraryFilter() = LibraryFilter(SortedFilter());
@@ -795,7 +801,22 @@ record PlaylistDataSource = newClass(NSObject,
                     refreshPlaylistDataSource(self);
                     tableView.reloadData();
                 },
-                MatchDefault, v => {
+                PlaylistFilter, v => {
+                    if (tableView.sortDescriptors().count() > 0) {
+                        // XXX factor out this invalidate-and-refresh boilerplate and use it
+                        // everywhere that might need to update the database with a query open
+                        invalidatePlaylistDataSource(self);
+                        try {
+                            sortLibraryPlaylist(self^.library^, v.id, sortSQL(tableView.sortDescriptors()));
+                        } catch (ex) {
+                            refreshPlaylistDataSource(self);
+                            throw ex;
+                        }
+                        refreshPlaylistDataSource(self);
+                        tableView.reloadData();
+                    }
+                },
+                PlaylistFolderFilter, v => {
                     if (tableView.sortDescriptors().count() > 0) {
                         tableView.setSortDescriptors(NSArray.array());
                     }
@@ -1053,6 +1074,11 @@ libraryFilterStatementSequence(db: SqliteDB, search: String, filter: LibraryFilt
     );
 }
 
+invalidatePlaylistDataSource(self: PlaylistDataSource) {
+    destroy(self^.tracks);
+    resetUnsafe(self^.tracks);
+}
+
 refreshPlaylistDataSource(self: PlaylistDataSource) {
     var search = if (nil?(self^.searchString))
             String()
@@ -1060,4 +1086,32 @@ refreshPlaylistDataSource(self: PlaylistDataSource) {
             String(self^.searchString) + "*";
 
     self^.tracks = libraryFilterStatementSequence(self^.library^.db, search, self^.libraryFilter);
+}
+
+// XXX this and its dependencies should be in Vinyl.library
+sortLibraryPlaylist(library: Library, playlistId, sortSQL) {
+    withTransaction(library.db, () ref=> {
+        var playlistFilter = LibraryFilter(PlaylistFilter(playlistId));
+        var stmtString = "create temporary table new_playlist_track_positions as select tracks.track_id "
+            + libraryFilterStatementFromClause(library.db, String(), playlistFilter);
+        stmtString += " order by " + sortSQL;
+
+        var stmt = SqliteStatement(library.db, observe(stmtString));
+        bindFilterParameters(stmt, *playlistFilter);
+
+        runStatement(stmt);
+
+        runStatement(library.db, "delete from playlist_tracks where playlist_id = ?", playlistId);
+        runStatement(library.db,
+            "insert into playlist_tracks (playlist_id, track_id, position) select
+                ? as playlist_id,
+                nptp.track_id as track_id,
+                nptp.rowid - 1 as position
+            from
+                new_playlist_track_positions nptp
+            ", playlistId
+        );
+
+        runStatement(library.db, "drop table new_playlist_track_positions");
+    });
 }
