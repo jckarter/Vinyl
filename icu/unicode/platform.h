@@ -368,3 +368,5 @@
 #endif
 
 #endif
+
+#  define U_ICU_ENTRY_POINT_RENAME(x)    x
