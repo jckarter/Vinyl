@@ -54,6 +54,7 @@ overload selector(static #"handleSelectPlaylist:") = Void, NSNotification;
 overload selector(static #"handleSelectTrack:") = Void, NSNotification;
 overload selector(static #"handlePlaylistDidChange:") = Void, NSNotification;
 overload selector(static #"handleItunesImportError:") = Void, NSNotification;
+overload selector(static #"handleSleep:") = Void, NSNotification;
 overload selector(static #"itunesImportErrorAlertDidEnd:returnCode:contextInfo:") = Void, NSAlert, NSInteger, RawPointer;
 
 var columnMenuItemOrder = [
@@ -635,6 +636,14 @@ record MainController = newClass(#VinylMainController, NSObject,
                 nil()
             );
 
+            var workspaceNotiCenter = NSWorkspace.sharedWorkspace().notificationCenter();
+            workspaceNotiCenter.addObserver_selector_name_object(
+                self,
+                selectorHandle(#"handleSleep:"),
+                NSWorkspaceWillSleepNotification,
+                nil()
+            );
+
             self^.columns <-- Retained(NSMutableDictionary.alloc().init());
             var columnMenu = self^.firstViewColumnMenuItem.menu();
             var columnMenuIndex = columnMenu.indexOfItem(self^.firstViewColumnMenuItem);
@@ -729,6 +738,9 @@ record MainController = newClass(#VinylMainController, NSObject,
                 selectorHandle(#"itunesImportErrorAlertDidEnd:returnCode:contextInfo:"),
                 RawPointer(0),
             );
+        }),
+        (#"handleSleep:", (self, notification) => {
+            self^.player.pause();
         }),
         (#"itunesImportErrorAlertDidEnd:returnCode:contextInfo:", (self, alert, returnCode, context) => {
             alert.window().orderOut(self);
