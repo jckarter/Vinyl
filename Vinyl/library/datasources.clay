@@ -777,7 +777,14 @@ record PlaylistDataSource = newClass(NSObject,
                 return false;
 
             var trackPositions = mapped(NSInteger, pasteboard.propertyListForType(pasteboardType));
-            var newPosition = moveLibraryPlaylistTracks(self^.library^, playlistId, trackPositions, row);
+            invalidatePlaylistDataSource(self);
+            var newPosition = NSInteger();
+            try {
+                newPosition = moveLibraryPlaylistTracks(self^.library^, playlistId, trackPositions, row);
+            } catch (ex) {
+                refreshPlaylistDataSource(self);
+                throw ex;
+            }
             refreshPlaylistDataSource(self);
             tableView.reloadData();
 
