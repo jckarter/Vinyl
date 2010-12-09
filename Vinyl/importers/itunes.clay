@@ -1,5 +1,6 @@
 import Vinyl.library.*;
 import Vinyl.library.datasources.*;
+import Vinyl.importers.*;
 import expat.*;
 import sqlite.*;
 import io.files.raw.*;
@@ -7,19 +8,14 @@ import maybe.*;
 import cocoa.*;
 import destructors.*;
 
-record ItunesImportCancelled ();
-instance Exception = ItunesImportCancelled;
-
 record ItunesXMLParserError (code: Int, message: String, line: SizeT, column: SizeT);
 instance Exception = ItunesXMLParserError;
 
 record ItunesInvalidLibraryError ();
 instance Exception = ItunesInvalidLibraryError;
 
-enum ItunesParseStage { ReadItunesLibrary, MergeVinylLibrary }
-
 parseXMLFrom(parser: XML_Parser, stream, size, progressCallback) {
-    alias BUFFER_SIZE = 4096;
+    alias BUFFER_SIZE = 16384;
     var readBuffer = XML_GetBuffer(parser, BUFFER_SIZE);
     var readSize = read(stream, readBuffer, BUFFER_SIZE);
     var totalRead = SizeT(0);
@@ -36,7 +32,7 @@ parseXMLFrom(parser: XML_Parser, stream, size, progressCallback) {
         }
         totalRead += readSize;
         if (not progressCallback(ReadItunesLibrary, totalRead, size))
-            throw ItunesImportCancelled();
+            throw ImportCancelled();
         readBuffer = XML_GetBuffer(parser, BUFFER_SIZE);
         readSize = read(stream, readBuffer, BUFFER_SIZE);
     }
@@ -360,7 +356,7 @@ importFromItunesTable(db: SqliteDB, progressCallback) {
     // NB: should already be in transaction
     alias MERGE_STAGE_COUNT = 10;
 
-    if (not progressCallback(MergeVinylLibrary, 0, MERGE_STAGE_COUNT)) throw ItunesImportCancelled();
+    if (not progressCallback(MergeVinylLibrary, 0, MERGE_STAGE_COUNT)) throw ImportCancelled();
     runStatement(db, "insert into artists (
             display_name, sort_name
         ) select
@@ -377,7 +373,7 @@ importFromItunesTable(db: SqliteDB, progressCallback) {
             i.album_artist_name
     ");
 
-    if (not progressCallback(MergeVinylLibrary, 1, MERGE_STAGE_COUNT)) throw ItunesImportCancelled();
+    if (not progressCallback(MergeVinylLibrary, 1, MERGE_STAGE_COUNT)) throw ImportCancelled();
     runStatement(db, "insert into artists (
             display_name, sort_name
         ) select
@@ -394,7 +390,7 @@ importFromItunesTable(db: SqliteDB, progressCallback) {
             i.track_artist_name
     ");
 
-    if (not progressCallback(MergeVinylLibrary, 2, MERGE_STAGE_COUNT)) throw ItunesImportCancelled();
+    if (not progressCallback(MergeVinylLibrary, 2, MERGE_STAGE_COUNT)) throw ImportCancelled();
     runStatement(db, "insert into albums (
             display_name, sort_name, album_artist_id, sides_count, compilation_p
         ) select
@@ -418,7 +414,7 @@ importFromItunesTable(db: SqliteDB, progressCallback) {
             coalesce(i.album_compilation_p, 0)
     ");
 
-    if (not progressCallback(MergeVinylLibrary, 3, MERGE_STAGE_COUNT)) throw ItunesImportCancelled();
+    if (not progressCallback(MergeVinylLibrary, 3, MERGE_STAGE_COUNT)) throw ImportCancelled();
     runStatement(db, "insert into album_sides (
             album_id, side_number, tracks_count
         ) select
@@ -439,7 +435,7 @@ importFromItunesTable(db: SqliteDB, progressCallback) {
             coalesce(i.side_number, 1)
     ");
 
-    if (not progressCallback(MergeVinylLibrary, 4, MERGE_STAGE_COUNT)) throw ItunesImportCancelled();
+    if (not progressCallback(MergeVinylLibrary, 4, MERGE_STAGE_COUNT)) throw ImportCancelled();
     runStatement(db, "insert into genres (name)
         select
             i.genre_name as name
@@ -454,7 +450,7 @@ importFromItunesTable(db: SqliteDB, progressCallback) {
             i.genre_name
     ");
 
-    if (not progressCallback(MergeVinylLibrary, 5, MERGE_STAGE_COUNT)) throw ItunesImportCancelled();
+    if (not progressCallback(MergeVinylLibrary, 5, MERGE_STAGE_COUNT)) throw ImportCancelled();
     runStatement(db, "insert into composers (
             display_name, sort_name
         ) select
@@ -471,7 +467,7 @@ importFromItunesTable(db: SqliteDB, progressCallback) {
             i.composer_name
     ");
 
-    if (not progressCallback(MergeVinylLibrary, 6, MERGE_STAGE_COUNT)) throw ItunesImportCancelled();
+    if (not progressCallback(MergeVinylLibrary, 6, MERGE_STAGE_COUNT)) throw ImportCancelled();
     runStatement(db, "insert into groupings (name)
         select
             i.grouping_name as name
@@ -486,7 +482,7 @@ importFromItunesTable(db: SqliteDB, progressCallback) {
             i.grouping_name
     ");
 
-    if (not progressCallback(MergeVinylLibrary, 7, MERGE_STAGE_COUNT)) throw ItunesImportCancelled();
+    if (not progressCallback(MergeVinylLibrary, 7, MERGE_STAGE_COUNT)) throw ImportCancelled();
     runStatement(db, "insert into tracks (
             filename, display_name, sort_name,
             album_id, track_artist_id, genre_id, composer_id, grouping_id,
@@ -528,7 +524,7 @@ importFromItunesTable(db: SqliteDB, progressCallback) {
             i.filename
     ");
 
-    if (not progressCallback(MergeVinylLibrary, 8, MERGE_STAGE_COUNT)) throw ItunesImportCancelled();
+    if (not progressCallback(MergeVinylLibrary, 8, MERGE_STAGE_COUNT)) throw ImportCancelled();
 
     var folderPosition = statementValue(Int, db, "
         select coalesce(max(position), -1) from playlist_folders
@@ -624,7 +620,7 @@ importFromItunesTable(db: SqliteDB, progressCallback) {
                     = coalesce(min_new_playlist_positions.playlist_folder_id, -1)
     ", basePlaylistId);
 
-    if (not progressCallback(MergeVinylLibrary, 9, MERGE_STAGE_COUNT)) throw ItunesImportCancelled();
+    if (not progressCallback(MergeVinylLibrary, 9, MERGE_STAGE_COUNT)) throw ImportCancelled();
     
     runStatement(db, "insert into playlist_tracks (playlist_id, track_id, position) select
             playlists.playlist_id as playlist_id,
@@ -650,7 +646,7 @@ importFromItunesTable(db: SqliteDB, progressCallback) {
     runStatement(db, "drop table new_playlists");
     runStatement(db, "drop table min_new_playlist_positions");
 
-    if (not progressCallback(MergeVinylLibrary, 10, MERGE_STAGE_COUNT)) throw ItunesImportCancelled();
+    if (not progressCallback(MergeVinylLibrary, 10, MERGE_STAGE_COUNT)) throw ImportCancelled();
 }
 
 importItunes(library: Library, itunesLibraryFilename: String, progressCallback) {

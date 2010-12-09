@@ -21,7 +21,10 @@
 		D851B2E0127AA5C800C08AC9 /* main.clay in Sources */ = {isa = PBXBuildFile; fileRef = D851B2DC127AA5C800C08AC9 /* main.clay */; };
 		D86F8B6C12AF61E000302D11 /* libicucore.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = D86F8B6B12AF61E000302D11 /* libicucore.dylib */; };
 		D86F8B6D12AF61FB00302D11 /* libicucore.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = D86F8B6B12AF61E000302D11 /* libicucore.dylib */; };
-		D8A3851E12AE354D0004D559 /* ItunesImportController.xib in Resources */ = {isa = PBXBuildFile; fileRef = D8A3851D12AE354D0004D559 /* ItunesImportController.xib */; };
+		D86F8C2E12AF768500302D11 /* libtag.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D86F8C2C12AF768500302D11 /* libtag.a */; };
+		D86F8C2F12AF768500302D11 /* libtag_c.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D86F8C2D12AF768500302D11 /* libtag_c.a */; };
+		D86F8C3312AF77EE00302D11 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = D86F8C3212AF77EE00302D11 /* libz.dylib */; };
+		D8A3851E12AE354D0004D559 /* ImportController.xib in Resources */ = {isa = PBXBuildFile; fileRef = D8A3851D12AE354D0004D559 /* ImportController.xib */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXBuildRule section */
@@ -47,7 +50,7 @@
 		29B97325FDCFA39411CA2CEA /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = /System/Library/Frameworks/Foundation.framework; sourceTree = "<absolute>"; };
 		8D1107310486CEB800E47090 /* Vinyl-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "Vinyl-Info.plist"; sourceTree = "<group>"; };
 		8D1107320486CEB800E47090 /* Vinyl.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Vinyl.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		D828F8A912913795005CE8ED /* English */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = English; path = English.lproj/ItunesImportController.xib; sourceTree = "<group>"; };
+		D828F8A912913795005CE8ED /* English */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = English; path = English.lproj/ImportController.xib; sourceTree = "<group>"; };
 		D828F8CA12918BCF005CE8ED /* libexpat.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libexpat.dylib; path = usr/lib/libexpat.dylib; sourceTree = SDKROOT; };
 		D828F97A12951232005CE8ED /* shell.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = shell.c; sourceTree = "<group>"; };
 		D828F97B12951232005CE8ED /* sqlite3.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = sqlite3.c; sourceTree = "<group>"; };
@@ -213,6 +216,9 @@
 		D86F8C2412AF646C00302D11 /* uvernum.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = uvernum.h; sourceTree = "<group>"; };
 		D86F8C2512AF646C00302D11 /* uversion.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = uversion.h; sourceTree = "<group>"; };
 		D86F8C2612AF646C00302D11 /* vtzone.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = vtzone.h; sourceTree = "<group>"; };
+		D86F8C2C12AF768500302D11 /* libtag.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libtag.a; path = taglib/libtag.a; sourceTree = "<group>"; };
+		D86F8C2D12AF768500302D11 /* libtag_c.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libtag_c.a; path = taglib/libtag_c.a; sourceTree = "<group>"; };
+		D86F8C3212AF77EE00302D11 /* libz.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libz.dylib; path = usr/lib/libz.dylib; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -225,6 +231,9 @@
 				D828F8CB12918BCF005CE8ED /* libexpat.dylib in Frameworks */,
 				D8492D2012A8EBE500005C44 /* libstdc++.6.dylib in Frameworks */,
 				D86F8B6C12AF61E000302D11 /* libicucore.dylib in Frameworks */,
+				D86F8C2E12AF768500302D11 /* libtag.a in Frameworks */,
+				D86F8C2F12AF768500302D11 /* libtag_c.a in Frameworks */,
+				D86F8C3312AF77EE00302D11 /* libz.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -248,6 +257,7 @@
 				D828F8CA12918BCF005CE8ED /* libexpat.dylib */,
 				D8492D1C12A8EB5100005C44 /* libstdc++.6.dylib */,
 				D86F8B6B12AF61E000302D11 /* libicucore.dylib */,
+				D86F8C3212AF77EE00302D11 /* libz.dylib */,
 			);
 			name = "Linked Frameworks";
 			sourceTree = "<group>";
@@ -291,7 +301,7 @@
 				8D1107310486CEB800E47090 /* Vinyl-Info.plist */,
 				089C165CFE840E0CC02AAC07 /* InfoPlist.strings */,
 				1DDD58140DA1D0A300B32029 /* MainMenu.xib */,
-				D8A3851D12AE354D0004D559 /* ItunesImportController.xib */,
+				D8A3851D12AE354D0004D559 /* ImportController.xib */,
 			);
 			name = Resources;
 			sourceTree = "<group>";
@@ -299,6 +309,8 @@
 		29B97323FDCFA39411CA2CEA /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				D86F8C2C12AF768500302D11 /* libtag.a */,
+				D86F8C2D12AF768500302D11 /* libtag_c.a */,
 				1058C7A0FEA54F0111CA2CBB /* Linked Frameworks */,
 				1058C7A2FEA54F0111CA2CBB /* Other Frameworks */,
 			);
@@ -571,7 +583,7 @@
 			files = (
 				8D11072B0486CEB800E47090 /* InfoPlist.strings in Resources */,
 				1DDD58160DA1D0A300B32029 /* MainMenu.xib in Resources */,
-				D8A3851E12AE354D0004D559 /* ItunesImportController.xib in Resources */,
+				D8A3851E12AE354D0004D559 /* ImportController.xib in Resources */,
 				D8492B6D12A68C2400005C44 /* Vinyl.icns in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -616,12 +628,12 @@
 			name = MainMenu.xib;
 			sourceTree = "<group>";
 		};
-		D8A3851D12AE354D0004D559 /* ItunesImportController.xib */ = {
+		D8A3851D12AE354D0004D559 /* ImportController.xib */ = {
 			isa = PBXVariantGroup;
 			children = (
 				D828F8A912913795005CE8ED /* English */,
 			);
-			name = ItunesImportController.xib;
+			name = ImportController.xib;
 			sourceTree = "<group>";
 		};
 /* End PBXVariantGroup section */
@@ -652,6 +664,7 @@
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/icu\"",
+					"\"$(SRCROOT)/taglib\"",
 				);
 				PRODUCT_NAME = Vinyl;
 			};
@@ -679,6 +692,7 @@
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/icu\"",
+					"\"$(SRCROOT)/taglib\"",
 				);
 				PRODUCT_NAME = Vinyl;
 			};

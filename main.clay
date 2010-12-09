@@ -1,7 +1,7 @@
 import cocoa.*;
 import Vinyl.appdelegate.*;
 import Vinyl.controllers.main.*;
-import Vinyl.controllers.itunesimport.*;
+import Vinyl.controllers.importer.*;
 import Vinyl.controls.deletingtableview.*;
 import Vinyl.controls.playinfoview.*;
 import Vinyl.controls.window.*;
@@ -10,7 +10,7 @@ import Vinyl.controls.application.*;
 main() = appKitMain(
     AppDelegate,
     MainController,
-    ItunesImportController,
+    ImportController,
     DeletingTableView,
     DeletingOutlineView,
     PlayInfoView,

@@ -3,6 +3,7 @@ import cocoa.appkit.*;
 import sqlite.*;
 import maybe.*;
 import Vinyl.library.*;
+import Vinyl.controllers.main.*;
 import Vinyl.controls.deletingtableview.*;
 import Vinyl.formatting.*;
 import Vinyl.qtplayer.*;
@@ -155,9 +156,11 @@ record LibraryDataSource = newClass(NSObject,
             var parentItem = outlineView.parentForItem(item);
 
             if (itemIsFolder?(item)) {
+                releaseDatabaseLocks();
                 deleteLibraryFolder(self^.library^, NSInteger(item["id"]));
                 self^.folders.removeObject(item);
             } else {
+                releaseDatabaseLocks();
                 deleteLibraryPlaylist(self^.library^, NSInteger(item["id"]));
                 self^.playlists.removeObject(item);
                 for (folder in self^.folders)
@@ -250,6 +253,7 @@ record LibraryDataSource = newClass(NSObject,
                 }
 
                 var trackIds = NSArray(pasteboard.propertyListForType(pasteboardType));
+                releaseDatabaseLocks();
                 insertLibraryPlaylistTracks(self^.library^, NSInteger(playlistItem["id"]), mapped(NSInteger, trackIds));
             } else if (pasteboardType == PlaylistIdsPboardType) {
                 var playlistId = NSInteger(pasteboard.propertyListForType(pasteboardType)[0]);
@@ -276,6 +280,7 @@ record LibraryDataSource = newClass(NSObject,
                         goto foundPlaylistItem;
                     }
 foundPlaylistItem:
+                releaseDatabaseLocks();
                 moveLibraryPlaylist(self^.library^, playlistId, parentFolderId);
                 if (itemIsFolder?(item) and not nil?(playlistItem))
                     item["playlists"].addObject(playlistItem);
@@ -314,6 +319,7 @@ foundPlaylistItem:
             else
                 nothing(NSInteger);
 
+            releaseDatabaseLocks();
             var id = insertLibraryPlaylist(self^.library^, String(name), parentId);
 
             var newItem = makeNSMutableDictionary("id", id, "name", name);
@@ -326,6 +332,7 @@ foundPlaylistItem:
             return newItem;
         }),
         (#"insertPlaylistFolderWithName:", (self, name) => {
+            releaseDatabaseLocks();
             var id = insertLibraryPlaylistFolder(self^.library^, String(name));
 
             var newItem = makeNSMutableDictionary(
@@ -618,6 +625,7 @@ overload selector(static #"libraryFilter") = Pointer[LibraryFilter];
 overload selector(static #"setSearchString:") = Void, NSString;
 overload selector(static #"searchString") = NSString;
 overload selector(static #"playlistStatus") = PlaylistStatus;
+overload selector(static #"releaseDatabaseLocks") = Void;
 
 maybeObject(x) = Id(x);
 overload maybeObject(x: Nothing) = nil();
@@ -682,6 +690,7 @@ record PlaylistDataSource = newClass(NSObject,
                 PlaylistFilter, playlist => {
                     var rows = indexSetIndices(rowIndexes);
 
+                    releaseDatabaseLocks();
                     deleteLibraryPlaylistPositions(self^.library^, playlist.id, rows);
                     refreshPlaylistDataSource(self);
                     tableView.reloadData();
@@ -777,14 +786,8 @@ record PlaylistDataSource = newClass(NSObject,
                 return false;
 
             var trackPositions = mapped(NSInteger, pasteboard.propertyListForType(pasteboardType));
-            invalidatePlaylistDataSource(self);
-            var newPosition = NSInteger();
-            try {
-                newPosition = moveLibraryPlaylistTracks(self^.library^, playlistId, trackPositions, row);
-            } catch (ex) {
-                refreshPlaylistDataSource(self);
-                throw ex;
-            }
+            releaseDatabaseLocks();
+            var newPosition = moveLibraryPlaylistTracks(self^.library^, playlistId, trackPositions, row);
             refreshPlaylistDataSource(self);
             tableView.reloadData();
 
@@ -814,20 +817,13 @@ record PlaylistDataSource = newClass(NSObject,
                 },
                 PlaylistFilter, v => {
                     if (tableView.sortDescriptors().count() > 0) {
-                        // XXX factor out this invalidate-and-refresh boilerplate and use it
-                        // everywhere that might need to update the database with a query open
-                        invalidatePlaylistDataSource(self);
-                        try {
-                            self^.playingTrackViewId = sortLibraryPlaylist(
-                                self^.library^,
-                                NSInteger(v.id),
-                                self^.playingTrackViewId,
-                                sortSQL(tableView.sortDescriptors())
-                            );
-                        } catch (ex) {
-                            refreshPlaylistDataSource(self);
-                            throw ex;
-                        }
+                        releaseDatabaseLocks();
+                        self^.playingTrackViewId = sortLibraryPlaylist(
+                            self^.library^,
+                            NSInteger(v.id),
+                            self^.playingTrackViewId,
+                            sortSQL(tableView.sortDescriptors())
+                        );
                         refreshPlaylistDataSource(self);
                         tableView.reloadData();
                         var notificationInfo = maybe(self^.playingTrackViewId,
@@ -878,6 +874,12 @@ record PlaylistDataSource = newClass(NSObject,
             if (nil?(self^.searchString)) String() else String(self^.searchString),
             self^.libraryFilter,
         )),
+
+        (#"releaseDatabaseLocks", self => {
+            observe(#before, self^.tracks);
+            forceAllRows(self^.tracks);
+            observe(#after, self^.tracks);
+        }),
     ),
 );
 
@@ -1102,11 +1104,6 @@ libraryFilterStatementSequence(db: SqliteDB, search: String, filter: LibraryFilt
         libraryFilterStatement(db, search, filter), 
         size
     );
-}
-
-invalidatePlaylistDataSource(self: PlaylistDataSource) {
-    destroy(self^.tracks);
-    resetUnsafe(self^.tracks);
 }
 
 refreshPlaylistDataSource(self: PlaylistDataSource) {

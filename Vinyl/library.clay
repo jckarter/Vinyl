@@ -301,7 +301,6 @@ insertLibraryPlaylistTracks(library: Library, playlistId, trackIds) {
     });
 }
 
-// XXX should move positions, not track ids
 moveLibraryPlaylistTracks(library: Library, playlistId, trackPositions, position) {
     return withTransaction(library.db, () ref=> {
         var trackPositionSetSQL = "(" + join(", ", mapped(printString, trackPositions)) + ")";

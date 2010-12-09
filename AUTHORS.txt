@@ -1,0 +1,8 @@
+Vinyl was developed by Joe Groff (http://duriansoftware.com/), with the
+financial and technical assistance of Tachyon Technologies
+(http://tachyon.in/). It includes third-party code from the following
+developers:
+    - the SQLite Project (http://sqlite.org),
+    - the ICU Project (http://site.icu-project.org/)
+    - Scott Wheeler, author of TagLib
+        (http://developer.kde.org/~wheeler/taglib.html)

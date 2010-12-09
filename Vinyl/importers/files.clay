@@ -1,0 +1,235 @@
+import Vinyl.library.*;
+import Vinyl.bindings.taglib.*;
+import sqlite.*;
+
+record FileImportCancelled ();
+instance Exception = FileImportCancelled;
+
+enum FileImportStage { ReadFileTags, MergeVinylLibrary }
+
+// XXX anglocentric
+private alias articles = ["a ", "an ", "the "];
+
+// XXX use NSString so we can at least pretend to be unicode aware
+private trimmable?(c) = not (
+        (c >= 'a' and c <= 'z')
+        or (c >= 'A' and c <= 'Z')
+        or (c >= '0' and c <= '9')
+        or (Int8(c) < 0)
+    );
+
+private lower(c) = if (c >= 'A' and c <= 'Z') Char(Int8(c) + (Int8('a') - Int8('A'))) else c;
+
+sortName(str) {
+    var trimmedStr = String(beginTrimmed(str, trimmable?));
+    for (a in articles) {
+        if (map(lower, slicedUpto(trimmedStr, size(a))) == a) {
+            trimmedStr = sliceFrom(trimmedStr, size(a));
+            break;
+        }
+    }
+    return String(beginTrimmed(move(trimmedStr), trimmable?));
+}
+
+[T] nothingIf(pred, value: T) = if (pred) nothing(T) else Maybe(value);
+nothingIfEmpty(value) = nothingIf(empty?(value), value);
+nothingIfZero(value) = nothingIf(value == 0, value);
+
+importFromFilesTable(db: SqliteDB, progressCallback) {
+    // NB: should already be in transaction
+
+    alias MERGE_STAGE_COUNT = 4;
+
+    if (not progressCallback(MergeVinylLibrary, 0, MERGE_STAGE_COUNT)) throw FileImportCancelled();
+    runStatement(db, "insert into artists (
+            display_name, sort_name
+        ) select
+            i.artist_name as display_name,
+            coalesce(max(i.artist_sort_name), i.artist_name) as sort_name
+        from
+            imported_files i
+            left join artists
+                on i.artist_name = artists.display_name
+        where
+            i.artist_name is not null
+            and artists.display_name is null
+        group by
+            i.artist_name
+    ");
+    
+    if (not progressCallback(MergeVinylLibrary, 1, MERGE_STAGE_COUNT)) throw FileImportCancelled();
+    runStatement(db, "insert into albums (
+            display_name, sort_name, album_artist_id, sides_count, compilation_p
+        ) select
+            i.album_name as display_name,
+            coalesce(max(i.album_sort_name), i.album_name) as sort_name,
+            artists.artist_id as album_artist_id,
+            1 as sides_count,
+            0 as compilation_p
+        from
+            imported_files i
+            left join artists artists
+                on i.artist_name = artists.display_name
+            left join albums
+                on i.album_name = albums.display_name
+        where
+            i.album_name is not null
+            and albums.display_name is null
+        group by
+            i.album_name,
+            artists.artist_id
+    ");
+
+    if (not progressCallback(MergeVinylLibrary, 2, MERGE_STAGE_COUNT)) throw FileImportCancelled();
+    runStatement(db, "insert into genres (name)
+        select
+            i.genre_name as name
+        from
+            imported_files i
+            left join genres
+                on i.genre_name = genres.name
+        where
+            i.genre_name is not null
+            and genres.name is null
+        group by
+            i.genre_name
+    ");
+
+    if (not progressCallback(MergeVinylLibrary, 3, MERGE_STAGE_COUNT)) throw FileImportCancelled();
+
+    runStatement(db, "insert into tracks (
+            filename, display_name, sort_name,
+            album_id, track_artist_id, genre_id,
+            track_number,
+            duration_time,
+            year, comments
+        ) select
+            i.filename as filename,
+            max(i.name) as display_name,
+            max(i.sort_name) as sort_name,
+            max(albums.album_id) as album_id,
+            max(artists.artist_id) as track_artist_id,
+            max(genres.genre_id) as genre_id,
+            max(i.track_number) as track_number,
+            max(i.duration_time) as duration_time,
+            max(i.year) as year,
+            max(i.comments) as comments
+        from
+            imported_files i
+            left join albums
+                on i.album_name = albums.display_name
+            left join artists
+                on i.artist_name = artists.display_name 
+            left join genres
+                on i.genre_name = genres.name
+            left join tracks
+                on i.filename = tracks.filename
+        where
+            i.filename is not null
+            and tracks.filename is null
+        group by
+            i.filename
+    ");
+
+    if (not progressCallback(MergeVinylLibrary, 4, MERGE_STAGE_COUNT)) throw FileImportCancelled();
+}
+
+importFiles(library: Library, filenames, progressCallback) {
+    taglib_set_strings_unicode(1);
+    taglib_id3v2_set_default_text_encoding(TagLib_ID3v2_Encoding(TagLib_ID3v2_UTF8));
+
+    withTransaction(library.db, () ref=> {
+        runStatement(library.db, "create temporary table imported_files (
+            filename text not null,
+            name text not null collate nocase,
+            sort_name text collate nocase,
+            album_name text collate nocase,
+            album_sort_name text collate nocase,
+            artist_name text collate nocase,
+            artist_sort_name text collate nocase,
+            genre_name text collate nocase,
+            track_number text integer,
+            duration_time real not null,
+            year integer,
+            comments text collate nocase
+        )");
+
+        var insertFileStmt = SqliteStatement(library.db, "insert into imported_files values (
+            ?,
+            ?,
+            ?,
+            ?,
+            ?,
+            ?,
+            ?,
+            ?,
+            ?,
+            ?,
+            ?,
+            ?
+        )");
+
+        for (i, filename in zipped(range(size(filenames)), filenames)) {
+            if (not progressCallback(ReadFileTags, i, size(filenames)))
+                throw FileImportCancelled();
+
+            var tagFile = taglib_file_new(cstring(filename));
+
+            if (taglib_file_is_valid(tagFile) == 0) {
+                taglib_file_free(tagFile);
+                continue;
+            }
+
+            var tag = taglib_file_tag(tagFile);
+            var props = taglib_file_audioproperties(tagFile);
+
+            var title    = String(CStringRef(taglib_tag_title(tag)));
+            var artist   = String(CStringRef(taglib_tag_artist(tag)));
+            var album    = String(CStringRef(taglib_tag_album(tag)));
+            var comments = String(CStringRef(taglib_tag_comment(tag)));
+            var genre    = String(CStringRef(taglib_tag_genre(tag)));
+            var year     = taglib_tag_year(tag);
+            var track    = taglib_tag_track(tag);
+            var duration = taglib_audioproperties_length(props);
+
+            var coalescedTitle = if (empty?(title)) String() else title;
+
+            try {
+                var sort_title = sortName(coalescedTitle);
+                var sort_artist = sortName(artist);
+                var sort_album = sortName(album);
+
+                runStatement(insertFileStmt,
+                    filename,
+                    coalescedTitle,
+                    nothingIfEmpty(sort_title),
+                    nothingIfEmpty(album),
+                    nothingIfEmpty(sort_album),
+                    nothingIfEmpty(artist),
+                    nothingIfEmpty(sort_artist),
+                    nothingIfEmpty(genre),
+                    nothingIfZero(track),
+                    duration,
+                    nothingIfZero(year),
+                    nothingIfEmpty(comments)
+                );
+            } catch (ex) {
+                taglib_tag_free_strings();
+                taglib_file_free(tagFile);
+                continue;
+            }
+
+            taglib_tag_free_strings();
+            taglib_file_free(tagFile);
+        }
+
+        if (not progressCallback(ReadFileTags, size(filenames), size(filenames)))
+            throw FileImportCancelled();
+
+        importFromFilesTable(library.db, progressCallback);
+
+        runStatement(library.db, "drop table imported_files");
+    });
+}
+
+

@@ -1,0 +1,29 @@
+import sqlite.*;
+import Vinyl.library.*;
+import Vinyl.importers.files.*;
+import printer.formatter.*;
+
+progressCallback(mode, pos, size) {
+    switch (mode) {
+    case ReadFileTags:
+        print("Reading files... ");
+        break;
+    case MergeVinylLibrary:
+        print("Merging Vinyl library...  ");
+        break;
+    }
+
+    print(rightAligned(3, pos * 100 / size), "%\r");
+    flush(stdout);
+
+    return true;
+}
+
+main(args) {
+    if (size(args) < 3)
+        error("usage: ", args[0], " out-vinyl-library files...");
+
+    var library = createLibrary(args[1]);
+
+    importFiles(library, slicedFrom(args, 2), progressCallback);
+}

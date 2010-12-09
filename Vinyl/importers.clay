@@ -1,0 +1,4 @@
+record ImportCancelled ();
+instance Exception = ImportCancelled;
+
+enum ImportStage { ReadItunesLibrary, ReadFileTags, MergeVinylLibrary }

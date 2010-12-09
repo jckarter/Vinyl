@@ -5,7 +5,7 @@ import Vinyl.appdelegate.*;
 import Vinyl.library.*;
 import Vinyl.library.datasources.*;
 import Vinyl.qtplayer.*;
-import Vinyl.controllers.itunesimport.*;
+import Vinyl.controllers.importer.*;
 import Vinyl.formatting.*;
 import Vinyl.controls.playinfoview.*;
 import Vinyl.controls.application.*;
@@ -39,13 +39,15 @@ overload selector(static #"performTogglePlaylistColumn:") = Void, NSMenuItem;
 overload selector(static #"performImportItunesLibrary:") = Void, Id;
 overload selector(static #"performDoubleClickPlaylist:") = Void, NSTableView;
 overload selector(static #"performDoubleClickTrack:") = Void, NSTableView;
-overload selector(static #"performImportItunesLibrary:") = Void, Id;
 overload selector(static #"performOpenLibraryWindow:") = Void, Id;
 overload selector(static #"performScanTrack:") = Void, NSSlider;
+overload selector(static #"performAddToLibrary:") = Void, Id;
 overload selector(static #"player") = Player;
 overload selector(static #"library") = Pointer[Library];
-overload selector(static #"_itunesSheetDidEnd:returnCode:contextInfo:")
+overload selector(static #"_importSheetDidEnd:returnCode:contextInfo:")
     = Void, NSWindow, NSInteger, RawPointer;
+overload selector(static #"_importFilesSheetDidEnd:returnCode:contextInfo:")
+    = Void, NSOpenPanel, Int, RawPointer;
 overload selector(static #"handlePlayerStateDidChangeNotification:")
     = Void, NSNotification;
 overload selector(static #"handlePlayerUpdateTimeNotification:")
@@ -53,9 +55,10 @@ overload selector(static #"handlePlayerUpdateTimeNotification:")
 overload selector(static #"handleSelectPlaylist:") = Void, NSNotification;
 overload selector(static #"handleSelectTrack:") = Void, NSNotification;
 overload selector(static #"handlePlaylistDidChange:") = Void, NSNotification;
-overload selector(static #"handleItunesImportError:") = Void, NSNotification;
+overload selector(static #"handleImportError:") = Void, NSNotification;
 overload selector(static #"handleSleep:") = Void, NSNotification;
-overload selector(static #"itunesImportErrorAlertDidEnd:returnCode:contextInfo:") = Void, NSAlert, NSInteger, RawPointer;
+overload selector(static #"importErrorAlertDidEnd:returnCode:contextInfo:") = Void, NSAlert, NSInteger, RawPointer;
+overload selector(static #"mainController") = MainController;
 
 var columnMenuItemOrder = [
     "name",
@@ -332,6 +335,10 @@ defaultColumnsDict() = makeNSDictionary(
     /* "rating", true, */
 );
 
+private var theController = nil(MainController);
+
+releaseDatabaseLocks() { observe(theController).releaseDatabaseLocks(); }
+
 record MainController = newClass(#VinylMainController, NSObject,
     InstanceVars(
         ...IBOutlets(
@@ -365,6 +372,7 @@ record MainController = newClass(#VinylMainController, NSObject,
         columns: Retained[NSMutableDictionary],
     ),
     ClassMethods(
+        (#"mainController", class => theController),
     ),
     InstanceMethods(
         DeallocInstanceMethod(),
@@ -491,6 +499,7 @@ record MainController = newClass(#VinylMainController, NSObject,
                 self^.player.setRepeatMode(RepeatOne);
             }),
             (#"performImportItunesLibrary:", (self, sender) => {
+                releaseDatabaseLocks();
                 performImportItunesLibrary(self, findItunesLibrary());
             }),
             (#"performOpenLibraryWindow:", (self, sender) => {
@@ -519,9 +528,29 @@ record MainController = newClass(#VinylMainController, NSObject,
             (#"performScanTrack:", (self, sender) => {
                 self^.player.setCurrentTrackTime(sender.doubleValue());
             }),
+            (#"performAddToLibrary:", (self, sender) => {
+                releaseDatabaseLocks();
+                var panel = NSOpenPanel.openPanel();
+
+                panel.setPrompt(#"Add");
+                panel.setAllowsMultipleSelection(true);
+                panel.setCanChooseDirectories(true);
+                
+                panel.beginSheetForDirectory_file_types_modalForWindow_modalDelegate_didEndSelector_contextInfo(
+                    nil(),
+                    nil(),
+                    nil(),
+                    self^.mainWindow,
+                    self,
+                    selectorHandle(#"_importFilesSheetDidEnd:returnCode:contextInfo:"),
+                    RawPointer(0),
+                );
+            }),
         ),
 
         (#"awakeFromNib", self => {
+            theController = self;
+
             libc.srandomdev();
 
             var defaults = NSUserDefaults.standardUserDefaults();
@@ -631,8 +660,8 @@ record MainController = newClass(#VinylMainController, NSObject,
             );
             notiCenter.addObserver_selector_name_object(
                 self,
-                selectorHandle(#"handleItunesImportError:"),
-                ItunesImportErrorNotification,
+                selectorHandle(#"handleImportError:"),
+                ImportErrorNotification,
                 nil()
             );
 
@@ -674,8 +703,8 @@ record MainController = newClass(#VinylMainController, NSObject,
         (#"library", self => &self^.library),
         ReaderInstanceMethod(#player, Player),
 
-        (#"_itunesSheetDidEnd:returnCode:contextInfo:", (self, sheet, returnCode, context) => {
-            var importController = ItunesImportController(context);
+        (#"_importSheetDidEnd:returnCode:contextInfo:", (self, sheet, returnCode, context) => {
+            var importController = ImportController(context);
             refreshPlaylistDataSource(weak(self^.playlistDataSource));
             refreshLibraryDataSource(weak(self^.libraryDataSource));
             self^.libraryView.reloadData();
@@ -683,6 +712,22 @@ record MainController = newClass(#VinylMainController, NSObject,
             updateStatus(self);
             sheet.orderOut(self);
             importController.release();
+        }),
+
+        (#"_importFilesSheetDidEnd:returnCode:contextInfo:", (self, sheet, returnCode, context) => {
+            var filenames = Retained(sheet.filenames().retain());
+            sheet.orderOut(self);
+            if (returnCode == Int(NSOKButton)) {
+                var importController = allocImportController(self);
+                if (not nil?(importController))
+                    importController.importFiles_modalForWindow_modalDelegate_didEndSelector_contextInfo(
+                        filenames,
+                        self^.mainWindow,
+                        self,
+                        selectorHandle(#"_importSheetDidEnd:returnCode:contextInfo:"),
+                        RawPointer(importController)
+                    );
+            }
         }),
 
         (#"handlePlayerStateDidChangeNotification:", (self, notification) => {
@@ -725,24 +770,24 @@ record MainController = newClass(#VinylMainController, NSObject,
             });
             updateStatus(self);
         }),
-        (#"handleItunesImportError:", (self, notification) => {
+        (#"handleImportError:", (self, notification) => {
             NSAlert.alertWithMessageText_defaultButton_alternateButton_otherButton_informativeTextWithFormat(
-                notification.userInfo()[ItunesImportErrorMessageKey],
+                notification.userInfo()[ImportErrorMessageKey],
                 #"OK",
                 nil(),
                 nil(),
-                #"%@", notification.userInfo()[ItunesImportErrorDetailKey],
+                #"%@", notification.userInfo()[ImportErrorDetailKey],
             ).beginSheetModalForWindow_modalDelegate_didEndSelector_contextInfo(
                 self^.mainWindow,
                 self,
-                selectorHandle(#"itunesImportErrorAlertDidEnd:returnCode:contextInfo:"),
+                selectorHandle(#"importErrorAlertDidEnd:returnCode:contextInfo:"),
                 RawPointer(0),
             );
         }),
         (#"handleSleep:", (self, notification) => {
             self^.player.pause();
         }),
-        (#"itunesImportErrorAlertDidEnd:returnCode:contextInfo:", (self, alert, returnCode, context) => {
+        (#"importErrorAlertDidEnd:returnCode:contextInfo:", (self, alert, returnCode, context) => {
             alert.window().orderOut(self);
         }),
 
@@ -768,6 +813,10 @@ record MainController = newClass(#VinylMainController, NSObject,
                 return variantIs?(self^.player.playerState()^, PlaylistState);
             else
                 return self.respondsToSelector(item.action());
+        }),
+
+        (#"releaseDatabaseLocks", self => {
+            self^.playlistDataSource.releaseDatabaseLocks();
         }),
     ),
 );
