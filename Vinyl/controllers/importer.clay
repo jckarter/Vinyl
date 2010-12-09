@@ -102,7 +102,7 @@ private updateProgressCallback(self, stage, distance, goal) {
             message = "Reading iTunes library...";
             break;
         case ReadFileTags:
-            message = "Reading file tag info...";
+            message = "Reading file tags...";
             break;
         case MergeVinylLibrary:
             message = "Merging with Vinyl library...";

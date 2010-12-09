@@ -1,6 +1,7 @@
 import sqlite.*;
 import Vinyl.library.*;
 import Vinyl.importers.files.*;
+import Vinyl.importers.*;
 import printer.formatter.*;
 
 progressCallback(mode, pos, size) {

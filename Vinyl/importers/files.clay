@@ -1,11 +1,9 @@
 import Vinyl.library.*;
 import Vinyl.bindings.taglib.*;
+import Vinyl.importers.*;
 import sqlite.*;
-
-record FileImportCancelled ();
-instance Exception = FileImportCancelled;
-
-enum FileImportStage { ReadFileTags, MergeVinylLibrary }
+import io.directories.*;
+import unix.(syscall, stat, Struct_stat, S_IFDIR);
 
 // XXX anglocentric
 private alias articles = ["a ", "an ", "the "];
@@ -23,12 +21,12 @@ private lower(c) = if (c >= 'A' and c <= 'Z') Char(Int8(c) + (Int8('a') - Int8('
 sortName(str) {
     var trimmedStr = String(beginTrimmed(str, trimmable?));
     for (a in articles) {
-        if (map(lower, slicedUpto(trimmedStr, size(a))) == a) {
+        if (size(a) < size(trimmedStr) and map(lower, slicedUpto(trimmedStr, size(a))) == a) {
             trimmedStr = sliceFrom(trimmedStr, size(a));
             break;
         }
     }
-    return String(beginTrimmed(move(trimmedStr), trimmable?));
+    return String(beginTrimmed(trimmedStr, trimmable?));
 }
 
 [T] nothingIf(pred, value: T) = if (pred) nothing(T) else Maybe(value);
@@ -40,7 +38,7 @@ importFromFilesTable(db: SqliteDB, progressCallback) {
 
     alias MERGE_STAGE_COUNT = 4;
 
-    if (not progressCallback(MergeVinylLibrary, 0, MERGE_STAGE_COUNT)) throw FileImportCancelled();
+    if (not progressCallback(MergeVinylLibrary, 0, MERGE_STAGE_COUNT)) throw ImportCancelled();
     runStatement(db, "insert into artists (
             display_name, sort_name
         ) select
@@ -57,7 +55,7 @@ importFromFilesTable(db: SqliteDB, progressCallback) {
             i.artist_name
     ");
     
-    if (not progressCallback(MergeVinylLibrary, 1, MERGE_STAGE_COUNT)) throw FileImportCancelled();
+    if (not progressCallback(MergeVinylLibrary, 1, MERGE_STAGE_COUNT)) throw ImportCancelled();
     runStatement(db, "insert into albums (
             display_name, sort_name, album_artist_id, sides_count, compilation_p
         ) select
@@ -80,7 +78,7 @@ importFromFilesTable(db: SqliteDB, progressCallback) {
             artists.artist_id
     ");
 
-    if (not progressCallback(MergeVinylLibrary, 2, MERGE_STAGE_COUNT)) throw FileImportCancelled();
+    if (not progressCallback(MergeVinylLibrary, 2, MERGE_STAGE_COUNT)) throw ImportCancelled();
     runStatement(db, "insert into genres (name)
         select
             i.genre_name as name
@@ -95,7 +93,7 @@ importFromFilesTable(db: SqliteDB, progressCallback) {
             i.genre_name
     ");
 
-    if (not progressCallback(MergeVinylLibrary, 3, MERGE_STAGE_COUNT)) throw FileImportCancelled();
+    if (not progressCallback(MergeVinylLibrary, 3, MERGE_STAGE_COUNT)) throw ImportCancelled();
 
     runStatement(db, "insert into tracks (
             filename, display_name, sort_name,
@@ -131,7 +129,30 @@ importFromFilesTable(db: SqliteDB, progressCallback) {
             i.filename
     ");
 
-    if (not progressCallback(MergeVinylLibrary, 4, MERGE_STAGE_COUNT)) throw FileImportCancelled();
+    if (not progressCallback(MergeVinylLibrary, 4, MERGE_STAGE_COUNT)) throw ImportCancelled();
+}
+
+isDirectory?(filename) {
+    var statbuf = Struct_stat();
+    if (stat(cstring(filename), &statbuf) < 0)
+        return false;
+    return bitwiseAnd(statbuf.st_mode, S_IFDIR) != 0;
+}
+
+recursiveFilenames(outNames: Vector[String], filenames) {
+    for (filename in filenames) {
+        if (isDirectory?(filename)) {
+            var names = Vector(mapped(x => printString(filename, '/', x), directoryListing(filename)));
+            recursiveFilenames(outNames, move(names));
+        } else
+            push(outNames, String(filename));
+    }
+}
+
+overload recursiveFilenames(filenames) {
+    var names = Vector[String]();
+    recursiveFilenames(names, filenames);
+    return move(names);
 }
 
 importFiles(library: Library, filenames, progressCallback) {
@@ -142,7 +163,7 @@ importFiles(library: Library, filenames, progressCallback) {
         runStatement(library.db, "create temporary table imported_files (
             filename text not null,
             name text not null collate nocase,
-            sort_name text collate nocase,
+            sort_name text not null collate nocase,
             album_name text collate nocase,
             album_sort_name text collate nocase,
             artist_name text collate nocase,
@@ -169,11 +190,19 @@ importFiles(library: Library, filenames, progressCallback) {
             ?
         )");
 
-        for (i, filename in zipped(range(size(filenames)), filenames)) {
-            if (not progressCallback(ReadFileTags, i, size(filenames)))
-                throw FileImportCancelled();
+        if (not progressCallback(ReadFileTags, 0, size(filenames)))
+            throw ImportCancelled();
+
+        var deepFilenames = recursiveFilenames(filenames);
+
+        for (i, filename in zipped(range(size(deepFilenames)), deepFilenames)) {
+            if (not progressCallback(ReadFileTags, i, size(deepFilenames)))
+                throw ImportCancelled();
 
             var tagFile = taglib_file_new(cstring(filename));
+
+            if (null?(tagFile))
+                continue;
 
             if (taglib_file_is_valid(tagFile) == 0) {
                 taglib_file_free(tagFile);
@@ -202,7 +231,7 @@ importFiles(library: Library, filenames, progressCallback) {
                 runStatement(insertFileStmt,
                     filename,
                     coalescedTitle,
-                    nothingIfEmpty(sort_title),
+                    sort_title,
                     nothingIfEmpty(album),
                     nothingIfEmpty(sort_album),
                     nothingIfEmpty(artist),
@@ -223,8 +252,8 @@ importFiles(library: Library, filenames, progressCallback) {
             taglib_file_free(tagFile);
         }
 
-        if (not progressCallback(ReadFileTags, size(filenames), size(filenames)))
-            throw FileImportCancelled();
+        if (not progressCallback(ReadFileTags, size(deepFilenames), size(deepFilenames)))
+            throw ImportCancelled();
 
         importFromFilesTable(library.db, progressCallback);
 
