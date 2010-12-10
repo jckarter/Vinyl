@@ -876,9 +876,7 @@ record PlaylistDataSource = newClass(NSObject,
         )),
 
         (#"releaseDatabaseLocks", self => {
-            observe(#before, self^.tracks);
             forceAllRows(self^.tracks);
-            observe(#after, self^.tracks);
         }),
     ),
 );

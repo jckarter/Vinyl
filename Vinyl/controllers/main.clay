@@ -337,7 +337,7 @@ defaultColumnsDict() = makeNSDictionary(
 
 private var theController = nil(MainController);
 
-releaseDatabaseLocks() { observe(theController).releaseDatabaseLocks(); }
+releaseDatabaseLocks() { theController.releaseDatabaseLocks(); }
 
 record MainController = newClass(#VinylMainController, NSObject,
     InstanceVars(
@@ -566,7 +566,7 @@ record MainController = newClass(#VinylMainController, NSObject,
             var defaultSortDescriptors = self^.playlistView.sortDescriptors();
             if (defaultSortDescriptors.count() == 0)
                 defaultSortDescriptors = makeNSArray(
-                    NSSortDescriptor.sortDescriptorWithKey_ascending(#"name", true),
+                    NSSortDescriptor.alloc().initWithKey_ascending(#"name", true).autorelease(),
                 );
             
             var defaultLibraryFilter = LibraryFilter(

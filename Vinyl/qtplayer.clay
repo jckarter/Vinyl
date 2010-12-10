@@ -454,7 +454,7 @@ movieForFileName(self, name) {
     var error = nil(NSError);
     
     var movie = QTMovie.movieWithAttributes_error(makeNSDictionary(
-        QTMovieOpenForPlaybackAttribute, true,
+        //QTMovieOpenForPlaybackAttribute, true,
         QTMovieFileNameAttribute, name,
     ), &error);
 

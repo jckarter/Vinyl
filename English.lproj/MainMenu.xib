@@ -900,9 +900,11 @@
 								<string key="NSToolbarItemPaletteLabel">Search</string>
 								<nil key="NSToolbarItemToolTip"/>
 								<object class="NSSearchField" key="NSToolbarItemView" id="741056778">
-									<nil key="NSNextResponder"/>
+									<reference key="NSNextResponder"/>
 									<int key="NSvFlags">268</int>
 									<string key="NSFrame">{{0, 14}, {96, 22}}</string>
+									<reference key="NSSuperview"/>
+									<reference key="NSWindow"/>
 									<bool key="NSEnabled">YES</bool>
 									<object class="NSSearchFieldCell" key="NSCell" id="342665027">
 										<int key="NSCellFlags">343014976</int>
@@ -986,7 +988,7 @@
 								<string key="NSToolbarItemPaletteLabel">Play Info</string>
 								<nil key="NSToolbarItemToolTip"/>
 								<object class="NSView" key="NSToolbarItemView" id="552712070">
-									<nil key="NSNextResponder"/>
+									<reference key="NSNextResponder"/>
 									<int key="NSvFlags">256</int>
 									<object class="NSMutableArray" key="NSSubviews">
 										<bool key="EncodedWithXMLCoder">YES</bool>
@@ -995,6 +997,7 @@
 											<int key="NSvFlags">266</int>
 											<string key="NSFrame">{{0, -62}, {200, 102}}</string>
 											<reference key="NSSuperview" ref="552712070"/>
+											<reference key="NSWindow"/>
 											<bool key="NSEnabled">YES</bool>
 											<object class="NSTextFieldCell" key="NSCell" id="592625367">
 												<int key="NSCellFlags">67239488</int>
@@ -1016,6 +1019,7 @@ eQpUaGUgQmVhdGxlcyDigJQgVGhlIEJlYXRsZXM</string>
 											<int key="NSvFlags">266</int>
 											<string key="NSFrame">{{0, -1}, {200, 12}}</string>
 											<reference key="NSSuperview" ref="552712070"/>
+											<reference key="NSWindow"/>
 											<bool key="NSEnabled">YES</bool>
 											<object class="NSSliderCell" key="NSCell" id="9923371">
 												<int key="NSCellFlags">-2080244224</int>
@@ -1034,6 +1038,8 @@ eQpUaGUgQmVhdGxlcyDigJQgVGhlIEJlYXRsZXM</string>
 										</object>
 									</object>
 									<string key="NSFrame">{{0, 14}, {200, 40}}</string>
+									<reference key="NSSuperview"/>
+									<reference key="NSWindow"/>
 								</object>
 								<nil key="NSToolbarItemImage"/>
 								<nil key="NSToolbarItemTarget"/>
@@ -1054,9 +1060,11 @@ eQpUaGUgQmVhdGxlcyDigJQgVGhlIEJlYXRsZXM</string>
 								<string key="NSToolbarItemPaletteLabel">Volume</string>
 								<nil key="NSToolbarItemToolTip"/>
 								<object class="NSSlider" key="NSToolbarItemView" id="412627095">
-									<nil key="NSNextResponder"/>
+									<reference key="NSNextResponder"/>
 									<int key="NSvFlags">266</int>
 									<string key="NSFrame">{{0, 14}, {80, 15}}</string>
+									<reference key="NSSuperview"/>
+									<reference key="NSWindow"/>
 									<bool key="NSEnabled">YES</bool>
 									<object class="NSSliderCell" key="NSCell" id="321081611">
 										<int key="NSCellFlags">67501824</int>
@@ -1092,9 +1100,11 @@ eQpUaGUgQmVhdGxlcyDigJQgVGhlIEJlYXRsZXM</string>
 								<string key="NSToolbarItemPaletteLabel">Play Controls</string>
 								<nil key="NSToolbarItemToolTip"/>
 								<object class="NSSegmentedControl" key="NSToolbarItemView" id="749324148">
-									<nil key="NSNextResponder"/>
+									<reference key="NSNextResponder"/>
 									<int key="NSvFlags">268</int>
 									<string key="NSFrame">{{0, 14}, {92, 25}}</string>
+									<reference key="NSSuperview"/>
+									<reference key="NSWindow"/>
 									<bool key="NSEnabled">YES</bool>
 									<object class="NSSegmentedCell" key="NSCell" id="868682370">
 										<int key="NSCellFlags">67239424</int>
@@ -4014,19 +4024,16 @@ eQpUaGUgQmVhdGxlcyDigJQgVGhlIEJlYXRsZXM</string>
 					<string>542.IBPluginDependency</string>
 					<string>543.IBPluginDependency</string>
 					<string>543.IBSegmentedControlInspectorSelectedSegmentMetadataKey</string>
-					<string>544.designableToolbarItemIdentifier</string>
 					<string>548.IBPluginDependency</string>
 					<string>549.IBPluginDependency</string>
 					<string>550.IBPluginDependency</string>
 					<string>551.IBPluginDependency</string>
-					<string>552.designableToolbarItemIdentifier</string>
 					<string>553.IBPluginDependency</string>
 					<string>559.IBPluginDependency</string>
 					<string>559.IBViewBoundsToFrameTransform</string>
 					<string>56.IBPluginDependency</string>
 					<string>56.ImportedFromIB2</string>
 					<string>560.IBPluginDependency</string>
-					<string>563.designableToolbarItemIdentifier</string>
 					<string>565.IBPluginDependency</string>
 					<string>565.IBViewBoundsToFrameTransform</string>
 					<string>568.IBPluginDependency</string>
@@ -4109,7 +4116,6 @@ eQpUaGUgQmVhdGxlcyDigJQgVGhlIEJlYXRsZXM</string>
 					<string>752.IBPluginDependency</string>
 					<string>762.CustomClassName</string>
 					<string>762.IBPluginDependency</string>
-					<string>763.designableToolbarItemIdentifier</string>
 					<string>766.IBPluginDependency</string>
 					<string>766.IBViewBoundsToFrameTransform</string>
 					<string>767.IBPluginDependency</string>
@@ -4233,17 +4239,15 @@ eQpUaGUgQmVhdGxlcyDigJQgVGhlIEJlYXRsZXM</string>
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
 					<integer value="1"/>
-					<string>{{133, 786}, {616, 0}}</string>
+					<string>{{92, 738}, {616, 0}}</string>
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
 					<integer value="1"/>
-					<string>playControls</string>
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
-					<string>search</string>
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
 					<object class="NSAffineTransform">
@@ -4252,7 +4256,6 @@ eQpUaGUgQmVhdGxlcyDigJQgVGhlIEJlYXRsZXM</string>
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
 					<integer value="1"/>
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
-					<string>volume</string>
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
 					<object class="NSAffineTransform">
 						<bytes key="NSTransformStruct">P4AAAL+AAAAAAAAAw7gAAA</bytes>
@@ -4343,7 +4346,6 @@ eQpUaGUgQmVhdGxlcyDigJQgVGhlIEJlYXRsZXM</string>
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
 					<string>VinylPlayInfoView</string>
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
-					<string>playInfo</string>
 					<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
 					<object class="NSAffineTransform">
 						<bytes key="NSTransformStruct">P4AAAL+AAADAQAAAwhgAAA</bytes>
@@ -4829,7 +4831,7 @@ eQpUaGUgQmVhdGxlcyDigJQgVGhlIEJlYXRsZXM</string>
 							<string key="candidateClassName">NSWindow</string>
 						</object>
 					</object>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier" id="595074442">
+					<object class="IBClassDescriptionSource" key="sourceIdentifier" id="594639138">
 						<string key="majorKey">IBDocumentRelativeSource</string>
 						<string key="minorKey">../../../../../../Users/joe/Documents/Code/Vinyl/NibInterfaces.h</string>
 					</object>
@@ -4848,17 +4850,17 @@ eQpUaGUgQmVhdGxlcyDigJQgVGhlIEJlYXRsZXM</string>
 							<string key="candidateClassName">VinylMainController</string>
 						</object>
 					</object>
-					<reference key="sourceIdentifier" ref="595074442"/>
+					<reference key="sourceIdentifier" ref="594639138"/>
 				</object>
 				<object class="IBPartialClassDescription">
 					<string key="className">VinylDeletingOutlineView</string>
 					<string key="superclassName">NSOutlineView</string>
-					<reference key="sourceIdentifier" ref="595074442"/>
+					<reference key="sourceIdentifier" ref="594639138"/>
 				</object>
 				<object class="IBPartialClassDescription">
 					<string key="className">VinylDeletingTableView</string>
 					<string key="superclassName">NSTableView</string>
-					<reference key="sourceIdentifier" ref="595074442"/>
+					<reference key="sourceIdentifier" ref="594639138"/>
 				</object>
 				<object class="IBPartialClassDescription">
 					<string key="className">VinylMainController</string>
@@ -5172,7 +5174,7 @@ eQpUaGUgQmVhdGxlcyDigJQgVGhlIEJlYXRsZXM</string>
 							</object>
 						</object>
 					</object>
-					<reference key="sourceIdentifier" ref="595074442"/>
+					<reference key="sourceIdentifier" ref="594639138"/>
 				</object>
 				<object class="IBPartialClassDescription">
 					<string key="className">VinylPlayInfoView</string>
@@ -5209,7 +5211,7 @@ eQpUaGUgQmVhdGxlcyDigJQgVGhlIEJlYXRsZXM</string>
 							</object>
 						</object>
 					</object>
-					<reference key="sourceIdentifier" ref="595074442"/>
+					<reference key="sourceIdentifier" ref="594639138"/>
 				</object>
 				<object class="IBPartialClassDescription">
 					<string key="className">VinylWindow</string>
@@ -5225,7 +5227,7 @@ eQpUaGUgQmVhdGxlcyDigJQgVGhlIEJlYXRsZXM</string>
 							<string key="candidateClassName">VinylMainController</string>
 						</object>
 					</object>
-					<reference key="sourceIdentifier" ref="595074442"/>
+					<reference key="sourceIdentifier" ref="594639138"/>
 				</object>
 			</object>
 			<object class="NSMutableArray" key="referencedPartialClassDescriptionsV3.2+">

@@ -667,6 +667,7 @@
 					"\"$(SRCROOT)/taglib\"",
 				);
 				PRODUCT_NAME = Vinyl;
+				SDKROOT = macosx10.5;
 			};
 			name = Debug;
 		};
@@ -695,6 +696,7 @@
 					"\"$(SRCROOT)/taglib\"",
 				);
 				PRODUCT_NAME = Vinyl;
+				SDKROOT = macosx10.5;
 			};
 			name = Release;
 		};
