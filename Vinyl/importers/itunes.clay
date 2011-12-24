@@ -17,7 +17,7 @@ instance Exception (ItunesInvalidLibraryError);
 parseXMLFrom(parser: XML_Parser, stream, size, progressCallback) {
     alias BUFFER_SIZE = 16384;
     var readBuffer = XML_GetBuffer(parser, BUFFER_SIZE);
-    var readSize = read(stream, readBuffer, BUFFER_SIZE);
+    var readSize = read(stream, readBuffer, SizeT(BUFFER_SIZE));
     var totalRead = SizeT(0);
 
     while (readSize > 0) {
@@ -34,7 +34,7 @@ parseXMLFrom(parser: XML_Parser, stream, size, progressCallback) {
         if (not progressCallback(ReadItunesLibrary, totalRead, size))
             throw ImportCancelled();
         readBuffer = XML_GetBuffer(parser, BUFFER_SIZE);
-        readSize = read(stream, readBuffer, BUFFER_SIZE);
+        readSize = read(stream, readBuffer, SizeT(BUFFER_SIZE));
     }
     XML_ParseBuffer(parser, Int(0), Int(XML_TRUE));
 }
@@ -152,9 +152,7 @@ overload itunesAddToValue(item: PlaylistTrack, state: ItunesParseState, type: St
         item.album_artist_sort_name = Maybe(value);
     } case ("Sort Composer") {
         item.composer_sort_name = Maybe(value);
-    } else {
-        break;
-    }
+    } else { }
 }
 
 overload itunesFinishValue(item: PlaylistTrack, state: ItunesParseState) {
@@ -188,9 +186,7 @@ overload itunesAddToValue(item: ItunesPlaylist, state: ItunesParseState, type: S
         } case ("Distinguised Kind", "Genius Track ID") {
             item.ignored? = true;
 
-        } else {
-            break;
-        }
+        } else { }
     } else if (keyDepth == 3
         and state.keyPath[1] == "Playlist Items"
         and state.keyPath[2] == "Track ID"
@@ -236,22 +232,17 @@ itunesStartElementHandler(
 
     switch (name)
     case ("dict") {
-            push(state.keyPath, String(""));
-            var depth = size(state.keyPath);
-            if (depth == 3 and state.keyPath[0] == "Tracks") {
-                state.item = ItunesItem(PlaylistTrack());
-                state.itemDepth = depth;
-            } else if (depth == 2 and state.keyPath[0] == "Playlists") {
-                state.item = ItunesItem(ItunesPlaylist());
-                state.playlistCount += 1;
-                state.itemDepth = depth;
-            }
-            break;
-        
-
-    } else {
-        break;
-    }
+        push(state.keyPath, String(""));
+        var depth = size(state.keyPath);
+        if (depth == 3 and state.keyPath[0] == "Tracks") {
+            state.item = ItunesItem(PlaylistTrack());
+            state.itemDepth = depth;
+        } else if (depth == 2 and state.keyPath[0] == "Playlists") {
+            state.item = ItunesItem(ItunesPlaylist());
+            state.playlistCount += 1;
+            state.itemDepth = depth;
+        }
+    } else { }
 }
 
 itunesEndElementHandler(stateP: RawPointer, nameC: Pointer[XML_Char]) {
@@ -284,7 +275,6 @@ itunesEndElementHandler(stateP: RawPointer, nameC: Pointer[XML_Char]) {
         pop(state.keyPath);
 
     } case ("array", "plist") {
-        break;
 
     } case ("integer", "real", "string", "date", "data") {
         itunesAddToValue(*state.item, state, String(name), state.tagContents);

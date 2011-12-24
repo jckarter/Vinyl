@@ -264,23 +264,21 @@ enum PlayButtonMode (PlayButton, ResumeButton, StopButton, PauseButton);
 playButton(self: MainController) {
     switch (self^.playButtonMode)
     case (PlayButton) {
-            var selection = self^.playlistView.selectedRowIndexes().firstIndex();
-            if (selection == NSNotFound)
-                selection = 0;
-            // XXX inappropriate touch
-            if (selection < size(self^.playlistDataSource^.tracks)) {
-                var trackViewId = self^.playlistDataSource^.tracks[selection].track_view_id;
-                playTrackViewId(self, trackViewId);
-            }
-        
-        break;
+        var selection = self^.playlistView.selectedRowIndexes().firstIndex();
+        if (selection == NSNotFound)
+            selection = 0;
+        // XXX inappropriate touch
+        if (selection < size(self^.playlistDataSource^.tracks)) {
+            var trackViewId = self^.playlistDataSource^.tracks[selection].track_view_id;
+            playTrackViewId(self, trackViewId);
+        }
     } case (ResumeButton) {
         self^.player.resume();
     } case (PauseButton) {
         self^.player.pause();
     } case (StopButton) {
         self^.player.stop();
-    } 
+    }
 }
 
 private newPlaylist(self: MainController) {
@@ -804,7 +802,7 @@ record MainController = newClass(#VinylMainController, NSObject,
     ),
 );
 
-viewFrame(view) returned: NSRect {
+viewFrame(view) --> returned: NSRect {
     // XXX use NSInvocation to hack around struct abi bug
     var invocation = NSInvocation.invocationWithMethodSignature(
         view.methodSignatureForSelector(
