@@ -33,27 +33,27 @@ libraryDataSourceItemCount(self: LibraryDataSource)
 
 record LibraryDataSource = newClass(NSObject,
     InstanceVars(
-        (#library, Pointer[Library]),
-        (#folders, Retained[NSMutableArray]),
-        (#playlists, Retained[NSMutableArray]),
-        (#libraryFilter, LibraryFilter),
+        [#library, Pointer[Library]],
+        [#folders, Retained[NSMutableArray]],
+        [#playlists, Retained[NSMutableArray]],
+        [#libraryFilter, LibraryFilter],
     ),
     ClassMethods(
     ),
     InstanceMethods(
-        (#"initWithLibrary:", (self, library) => initObjectWith(self, #"init", self => {
+        [#"initWithLibrary:", (self, library) => initObjectWith(self, #"init", self => {
             self^.library = library;
             self^.folders = NSMutableArray.array();
             self^.playlists = NSMutableArray.array();
             self^.libraryFilter = LibraryFilter();
             refreshLibraryDataSource(self);
             return self;
-        })),
+        })],
         DeallocInstanceMethod(),
-        (#"libraryView:selectFilter:", (self, outlineView, libraryFilter) => {
+        [#"libraryView:selectFilter:", (self, outlineView, libraryFilter) => {
             var row = NSUInteger(0);
-            match(libraryFilter^,
-                PlaylistFilter, v ref=> {
+            matchByType(libraryFilter^,
+                PlaylistFilter, v -> {
                     for (folder in self^.folders)
                         for (playlist in folder["playlists"])
                             if (playlist["id"] == v.id) {
@@ -67,21 +67,21 @@ record LibraryDataSource = newClass(NSObject,
                             return;
                         }
                 },
-                PlaylistFolderFilter, v ref=> {
+                PlaylistFolderFilter, v -> {
                     for (folder in self^.folders)
                         if (folder["id"] == v.id) {
                             row = outlineView.rowForItem(folder);
                             return;
                         }
                 },
-                SortedFilter, v ref=> { row = 0; }
+                SortedFilter, v -> { row = 0; }
             );
             outlineView.selectRowIndexes_byExtendingSelection(
                 NSIndexSet.indexSetWithIndex(NSUInteger(row)),
                 false
             );
-        }),
-        (#"selectedFilterForLibraryView:playlistView:", (self, outlineView, playlistView) => {
+        }],
+        [#"selectedFilterForLibraryView:playlistView:", (self, outlineView, playlistView) => {
             var item = outlineView.itemAtRow(outlineView.selectedRow());
 
             self^.libraryFilter = if (itemIsFolder?(item))
@@ -91,17 +91,17 @@ record LibraryDataSource = newClass(NSObject,
                 else
                     LibraryFilter(SortedFilter(playlistView.sortDescriptors()));
             return &self^.libraryFilter;
-        }),
-        (#"outlineView:numberOfChildrenOfItem:", (self, outlineView, item) =>
+        }],
+        [#"outlineView:numberOfChildrenOfItem:", (self, outlineView, item) =>
             if (nil?(item))
                 libraryDataSourceItemCount(self)
             else if (itemIsFolder?(item))
                 NSInteger(item["playlists"].count()) // playlist folder
             else
                 NSInteger(0) // library or playlist, no children
-        ),
-        (#"outlineView:isItemExpandable:", (self, outlineView, item) => itemIsFolder?(item)),
-        (#"outlineView:child:ofItem:", (self, outlineView, index, item) => {
+        ],
+        [#"outlineView:isItemExpandable:", (self, outlineView, item) => itemIsFolder?(item)],
+        [#"outlineView:child:ofItem:", (self, outlineView, index, item) => {
             if (nil?(item)) {
                 if (index == 0)
                     return Id(#"Library");
@@ -114,20 +114,20 @@ record LibraryDataSource = newClass(NSObject,
                 }
             } else
                 return item["playlists"][index];
-        }),
-        (#"outlineView:objectValueForTableColumn:byItem:", (self, outlineView, column, item) => {
+        }],
+        [#"outlineView:objectValueForTableColumn:byItem:", (self, outlineView, column, item) => {
             if (item.isKindOfClass(NSString))
                 return item;
             else
                 return item["name"];
-        }),
-        (#"outlineView:persistentObjectForItem:", (self, outlineView, item) => {
+        }],
+        [#"outlineView:persistentObjectForItem:", (self, outlineView, item) => {
             if (itemIsFolder?(item))
                 return item["id"];
             else
                 return nil(Id);
-        }),
-        (#"outlineView:itemForPersistentObject:", (self, outlineView, object) => {
+        }],
+        [#"outlineView:itemForPersistentObject:", (self, outlineView, object) => {
             println(object);
             if (object.isKindOfClass(NSNumber)) {
                 for (folder in self^.folders)
@@ -135,8 +135,8 @@ record LibraryDataSource = newClass(NSObject,
                         return folder;
             }
             return nil(Id);
-        }),
-        (#"outlineView:setObjectValue:forTableColumn:byItem:", (self, outlineView, value, column, item) => {
+        }],
+        [#"outlineView:setObjectValue:forTableColumn:byItem:", (self, outlineView, value, column, item) => {
             if (item.isKindOfClass(NSString))
                 return;
             else if (value.description().length() == 0)
@@ -148,8 +148,8 @@ record LibraryDataSource = newClass(NSObject,
                 else
                     updateLibraryPlaylistName(self^.library^, NSInteger(item["id"]), String(value));
             }
-        }),
-        (#"outlineView:deleteItem:", (self, outlineView, item) => {
+        }],
+        [#"outlineView:deleteItem:", (self, outlineView, item) => {
             if (item.isKindOfClass(NSString))
                 return;
             var oldRow = outlineView.rowForItem(item);
@@ -178,9 +178,9 @@ record LibraryDataSource = newClass(NSObject,
                     NSIndexSet.indexSetWithIndex(NSUInteger(outlineView.numberOfRows() - 1)),
                     false
                 );
-        }),
+        }],
 
-        (#"outlineView:writeItems:toPasteboard:", (self, outlineView, items, pasteboard) => {
+        [#"outlineView:writeItems:toPasteboard:", (self, outlineView, items, pasteboard) => {
             if (items.count() != 1)
                 return false;
             var item = items[0];
@@ -188,7 +188,7 @@ record LibraryDataSource = newClass(NSObject,
                 return false;
 
             outlineView.setDraggingSourceOperationMask_forLocal(
-                NSUInteger(bitwiseOr(NSDragOperationMove, NSDragOperationDelete)),
+                NSUInteger(bitor(NSDragOperationMove, NSDragOperationDelete)),
                 false,
             );
 
@@ -199,9 +199,9 @@ record LibraryDataSource = newClass(NSObject,
             pasteboard.setPropertyList_forType(makeNSArray(item["id"]), PlaylistIdsPboardType);
 
             return true;
-        }),
+        }],
 
-        (#"outlineView:validateDrop:proposedItem:proposedChildIndex:", (self, outlineView, info, item, index) => {
+        [#"outlineView:validateDrop:proposedItem:proposedChildIndex:", (self, outlineView, info, item, index) => {
             if (item.isKindOfClass(NSString))
                 return NSDragOperation(NSDragOperationNone);
 
@@ -226,9 +226,9 @@ record LibraryDataSource = newClass(NSObject,
                 return NSDragOperation(NSDragOperationNone);
 
             return NSDragOperation(NSDragOperationCopy);
-        }),
+        }],
 
-        (#"outlineView:acceptDrop:item:childIndex:", (self, outlineView, info, item, index) => {
+        [#"outlineView:acceptDrop:item:childIndex:", (self, outlineView, info, item, index) => {
             if (item.isKindOfClass(NSString))
                 return false;
 
@@ -307,13 +307,13 @@ foundPlaylistItem:
                 );
 
             return true;
-        }),
+        }],
 
-        (#"outlineView:shouldEditTableColumn:item:", (self, tableView, tableColumn, item) =>
+        [#"outlineView:shouldEditTableColumn:item:", (self, tableView, tableColumn, item) =>
             not item.isKindOfClass(NSString)
-        ),
+        ],
 
-        (#"insertPlaylistWithName:parentItem:", (self, name, parentItem) => {
+        [#"insertPlaylistWithName:parentItem:", (self, name, parentItem) => {
             var parentId = if (itemIsFolder?(parentItem))
                 Maybe(NSInteger(parentItem["id"]))
             else
@@ -330,8 +330,8 @@ foundPlaylistItem:
                 self^.playlists.addObject(newItem);
 
             return newItem;
-        }),
-        (#"insertPlaylistFolderWithName:", (self, name) => {
+        }],
+        [#"insertPlaylistFolderWithName:", (self, name) => {
             releaseDatabaseLocks();
             var id = insertLibraryPlaylistFolder(self^.library^, String(name));
 
@@ -344,7 +344,7 @@ foundPlaylistItem:
             self^.folders.addObject(newItem);
 
             return newItem;
-        }),
+        }],
     ),
 );
 
@@ -392,16 +392,9 @@ private desc?(ascending?) = if (ascending?) "" else " desc";
 
 sortSQL(sortColumn: String, ascending?: Bool) {
     var desc = desc?(ascending?);
-    switch (sortColumn) {
-    case "album_name":
-    case "album_sort_name":
-    case "track_number":
-    case "album_compilation_p":
-    case "side_number":
-    case "sides_count":
-    case "track_number":
-    case "tracks_count":
-        return printString(
+    switch (sortColumn)
+    case ("album_name", "album_sort_name", "track_number", "album_compilation_p", "side_number", "sides_count", "track_number", "tracks_count") {
+        return str(
             "tracks.album_id is null",
             ", albums.sort_name", desc,
             ", albums.compilation_p", desc,
@@ -410,9 +403,8 @@ sortSQL(sortColumn: String, ascending?: Bool) {
             ", tracks.side_number", desc,
             ", tracks.track_number", desc,
         );
-    case "album_artist_name":
-    case "album_artist_sort_name":
-        return printString(
+    } case ("album_artist_name", "album_artist_sort_name") {
+        return str(
             "albums.album_artist_id is null",
             ", album_artists.sort_name", desc, //XXX coalesce with track artist
             ", tracks.album_id is null",
@@ -421,9 +413,8 @@ sortSQL(sortColumn: String, ascending?: Bool) {
             ", tracks.side_number", desc,
             ", tracks.track_number", desc,
         );
-    case "track_artist_name":
-    case "track_artist_sort_name":
-        return printString(
+    } case ("track_artist_name", "track_artist_sort_name") {
+        return str(
             "tracks.track_artist_id is null",
             ", track_artists.sort_name", desc,
             ", tracks.album_id is null",
@@ -432,31 +423,30 @@ sortSQL(sortColumn: String, ascending?: Bool) {
             ", tracks.side_number", desc,
             ", tracks.track_number", desc,
         );
-    case "genre_name":
+    } case ("genre_name") {
         return "tracks.genre_id is null, genres.name" + desc;
-    case "composer_name":
-    case "composer_sort_name":
+    } case ("composer_name", "composer_sort_name") {
         return "tracks.composer_id is null, composers.sort_name" + desc;
-    case "grouping_name":
+    } case ("grouping_name") {
         return "tracks.grouping_id is null, groupings.name" + desc;
-    case "duration_time":
+    } case ("duration_time") {
         return "tracks.duration_time" + desc;
-    case "year":
+    } case ("year") {
         return "tracks.year" + desc;
-    case "comments":
+    } case ("comments") {
         return "tracks.comments is null, tracks.comments" + desc;
-    case "enabled_p":
+    } case ("enabled_p") {
         return "not track_options.enabled_p" + desc;
-    case "play_count":
+    } case ("play_count") {
         return "track_options.play_count" + desc;
-    case "added_date":
+    } case ("added_date") {
         return "track_options.added_date" + desc;
-    case "modified_date":
+    } case ("modified_date") {
         return "track_options.modified_date" + desc;
-    case "played_date":
+    } case ("played_date") {
         return "track_options.played_date" + desc;
 
-    default:
+    } else {
         return "tracks.sort_name" + desc;
     }
 }
@@ -476,7 +466,7 @@ overload sortSQL(sortDescriptors: O) {
 record PlaylistFolderFilter (id: NSInteger);
 record PlaylistFilter (id: NSInteger);
 record SortedFilter (sort: String);
-variant LibraryFilter = PlaylistFolderFilter | PlaylistFilter | SortedFilter;
+variant LibraryFilter (PlaylistFolderFilter, PlaylistFilter, SortedFilter);
 
 [S | String?(S) and S != String]
 overload SortedFilter(sort: S) = SortedFilter(String(sort));
@@ -497,18 +487,18 @@ overload libraryFilterPlist(view: SortedFilter) = makeNSArray(#"Library");
 [O | ObjectRef?(O)]
 overload LibraryFilter(plist: O, defaultFilter) {
     if (plist.isKindOfClass(NSArray)) {
-        switch(plist[0]) {
-        case "PlaylistFolder":
+        switch(plist[0])
+        case ("PlaylistFolder") {
             if (plist.count() >= 2)
                 return LibraryFilter(PlaylistFolderFilter(NSInteger(plist[1])));
             else
                 goto defaultPlist;
-        case "Playlist":
+        } case ("Playlist") {
             if (plist.count() >= 2)
                 return LibraryFilter(PlaylistFilter(NSInteger(plist[1])));
             else
                 goto defaultPlist;
-        default:
+        } else {
             goto defaultPlist;
         }
     }
@@ -580,11 +570,11 @@ overload PlaylistTrack() = PlaylistTrack(
 );
 
 record NoFieldForString (type: StringConstant, string: String);
-instance Exception = NoFieldForString;
+instance Exception (NoFieldForString);
 
 [R | Record?(R)]
 fieldByName(forward r: R, fn, str) {
-    static for (fieldName in ...mapValues(x => x.0, ...RecordFields(R))) {
+    ..for (fieldName in ..mapValues(x => x.0, ..RecordFields(R))) {
         if (str == StaticName(fieldName))
             return forward fn(fieldRef(r, fieldName));
     }
@@ -595,26 +585,26 @@ formattedCount(fn, number, count) {
     if (nothing?(count))
         return fn(number);
     else if (just?(number) and just?(count))
-        return fn(printString(number, " of ", count));
+        return fn(str(number, " of ", count));
     else
         return fn(nothing(Type(number)));
 }
 
 formattedFieldByName(r, fn, str) {
-    switch (str) {
-    case "track_number":
+    switch (str)
+    case ("track_number") {
         return formattedCount(fn, r.track_number, r.tracks_count);
-    case "side_number":
+    } case ("side_number") {
         return formattedCount(fn, r.side_number, r.sides_count);
-    case "duration_time":
+    } case ("duration_time") {
         return Id(timeFormat(r.duration_time));
-    case "added_date":
+    } case ("added_date") {
         return Id(dateFormat(*r.added_date));
-    case "modified_date":
+    } case ("modified_date") {
         return Id(dateFormat(*r.modified_date));
-    case "played_date":
+    } case ("played_date") {
         return Id(dateFormat(*r.played_date));
-    default:
+    } else {
         return fieldByName(r, fn, str);
     }
 }
@@ -654,7 +644,7 @@ record PlaylistDataSource = newClass(NSObject,
     ),
     ClassMethods(),
     InstanceMethods(
-        (#"initWithLibrary:filter:sortDescriptors:", (self, library, filter, sortDescriptors) =>
+        [#"initWithLibrary:filter:sortDescriptors:", (self, library, filter, sortDescriptors) =>
             initObjectWith(self, #"init", self => {
                 self^.library = library;
                 self^.libraryFilter <-- filter^;
@@ -669,10 +659,10 @@ record PlaylistDataSource = newClass(NSObject,
                 refreshPlaylistDataSource(self);
                 return self;
             })
-        ),
+        ],
         DeallocInstanceMethod(),
-        (#"numberOfRowsInTableView:", (self, tableView) => NSInteger(size(self^.tracks))),
-        (#"tableView:objectValueForTableColumn:row:", (self, tableView, tableColumn, rowIndex) =>
+        [#"numberOfRowsInTableView:", (self, tableView) => NSInteger(size(self^.tracks))],
+        [#"tableView:objectValueForTableColumn:row:", (self, tableView, tableColumn, rowIndex) =>
             if (tableColumn.identifier() == "playing_p")
                 maybe(self^.playingTrackViewId,
                     trackViewId =>
@@ -684,9 +674,9 @@ record PlaylistDataSource = newClass(NSObject,
                 )
             else
                 formattedFieldByName(self^.tracks[rowIndex], maybeObject, tableColumn.identifier())
-        ),
-        (#"tableView:deleteRowsWithIndexes:", (self, tableView, rowIndexes) => {
-            match(self^.libraryFilter,
+        ],
+        [#"tableView:deleteRowsWithIndexes:", (self, tableView, rowIndexes) => {
+            matchByType(self^.libraryFilter,
                 PlaylistFilter, playlist => {
                     var rows = indexSetIndices(rowIndexes);
 
@@ -706,8 +696,8 @@ record PlaylistDataSource = newClass(NSObject,
                 },
                 MatchDefault, _ => {}
             );
-        }),
-        (#"tableView:writeRowsWithIndexes:toPasteboard:", (self, tableView, rowIndexes, pasteboard) => {
+        }],
+        [#"tableView:writeRowsWithIndexes:toPasteboard:", (self, tableView, rowIndexes, pasteboard) => {
             var filenames = NSMutableArray.array();
             var trackIds = NSMutableArray.array();
             var trackPositions = NSMutableArray.array();
@@ -720,10 +710,10 @@ record PlaylistDataSource = newClass(NSObject,
                 trackPositions.addObject(row);
             }
 
-            var localMask = match(self^.libraryFilter,
-                PlaylistFilter,       v => bitwiseOr(NSDragOperationCopy, NSDragOperationMove, NSDragOperationDelete),
-                PlaylistFolderFilter, v => bitwiseOr(NSDragOperationCopy, NSDragOperationDelete),
-                SortedFilter,         v => bitwiseOr(NSDragOperationCopy, NSDragOperationDelete),
+            var localMask = matchByType(self^.libraryFilter,
+                PlaylistFilter,       v => bitor(NSDragOperationCopy, NSDragOperationMove, NSDragOperationDelete),
+                PlaylistFolderFilter, v => bitor(NSDragOperationCopy, NSDragOperationDelete),
+                SortedFilter,         v => bitor(NSDragOperationCopy, NSDragOperationDelete),
             );
 
             tableView.setDraggingSourceOperationMask_forLocal(
@@ -731,7 +721,7 @@ record PlaylistDataSource = newClass(NSObject,
                 true
             );
             tableView.setDraggingSourceOperationMask_forLocal(
-                NSUInteger(bitwiseOr(NSDragOperationCopy, NSDragOperationDelete)),
+                NSUInteger(bitor(NSDragOperationCopy, NSDragOperationDelete)),
                 false
             );
 
@@ -744,10 +734,10 @@ record PlaylistDataSource = newClass(NSObject,
             pasteboard.setPropertyList_forType(trackPositions, TrackPositionsPboardType);
 
             return true;
-        }),
+        }],
 
-        (#"tableView:validateDrop:proposedRow:proposedDropOperation:", (self, tableView, info, row, operation) => {
-            var allowDrop = match(self^.libraryFilter,
+        [#"tableView:validateDrop:proposedRow:proposedDropOperation:", (self, tableView, info, row, operation) => {
+            var allowDrop = matchByType(self^.libraryFilter,
                 PlaylistFilter, v => true,
                 PlaylistFolderFilter, v => false,
                 SortedFilter, v => false,
@@ -770,12 +760,12 @@ record PlaylistDataSource = newClass(NSObject,
                     NSTableViewDropOperation(NSTableViewDropAbove)
                 );
             return NSDragOperation(NSDragOperationMove);
-        }),
-        (#"tableView:acceptDrop:row:dropOperation:", (self, tableView, info, row, operation) => {
-            var ok?, playlistId = ...match(self^.libraryFilter,
-                PlaylistFilter,       v => ...(true, NSInteger(v.id)),
-                PlaylistFolderFilter, v => ...(false, NSInteger(-1)),
-                SortedFilter,         v => ...(false, NSInteger(-1)),
+        }],
+        [#"tableView:acceptDrop:row:dropOperation:", (self, tableView, info, row, operation) => {
+            var ok?, playlistId = ..matchByType(self^.libraryFilter,
+                PlaylistFilter,       v => (true, NSInteger(v.id)),
+                PlaylistFolderFilter, v => (false, NSInteger(-1)),
+                SortedFilter,         v => (false, NSInteger(-1)),
             );
             if (not ok?)
                 return false;
@@ -805,10 +795,10 @@ record PlaylistDataSource = newClass(NSObject,
             );
 
             return true;
-        }),
+        }],
 
-        (#"tableView:sortDescriptorsDidChange:", (self, tableView, oldDescriptors) => {
-            match(self^.libraryFilter,
+        [#"tableView:sortDescriptorsDidChange:", (self, tableView, oldDescriptors) => {
+            matchByType(self^.libraryFilter,
                 SortedFilter,   v => {
                     self^.librarySort = tableView.sortDescriptors();
                     self^.libraryFilter = LibraryFilter(SortedFilter(self^.librarySort));
@@ -848,12 +838,12 @@ record PlaylistDataSource = newClass(NSObject,
                     }
                 }
             );
-        }),
+        }],
 
-        (#"libraryFilter", self => &self^.libraryFilter),
-        (#"setLibraryFilter:tableView:", (self, filter, tableView) => {
+        [#"libraryFilter", self => &self^.libraryFilter],
+        [#"setLibraryFilter:tableView:", (self, filter, tableView) => {
             self^.libraryFilter = filter^;
-            match(self^.libraryFilter,
+            matchByType(self^.libraryFilter,
                 SortedFilter,  v => { tableView.setSortDescriptors(self^.librarySort); },
                 MatchDefault, v => { tableView.setSortDescriptors(NSArray.array()); }
             );
@@ -861,23 +851,23 @@ record PlaylistDataSource = newClass(NSObject,
             self^.searchString = Retained(nil(NSString));
 
             refreshPlaylistDataSource(self);
-        }),
-        (#"searchString", self => self^.searchString),
-        (#"setSearchString:", (self, s) => {
+        }],
+        [#"searchString", self => self^.searchString],
+        [#"setSearchString:", (self, s) => {
             self^.searchString
                 = if (s.length() == 0) Retained(nil(NSString)) else Retained(s.copy());
             refreshPlaylistDataSource(self);
-        }),
+        }],
 
-        (#"playlistStatus", self => libraryFilterStatus(
+        [#"playlistStatus", self => libraryFilterStatus(
             self^.library^.db,
             if (nil?(self^.searchString)) String() else String(self^.searchString),
             self^.libraryFilter,
-        )),
+        )],
 
-        (#"releaseDatabaseLocks", self => {
+        [#"releaseDatabaseLocks", self => {
             forceAllRows(self^.tracks);
-        }),
+        }],
     ),
 );
 
@@ -1120,7 +1110,7 @@ sortLibraryPlaylist(
     playingTrackViewId: Maybe[NSInteger],
     sortSQL
 ) {
-    return withTransaction(library.db, () ref=> {
+    return withTransaction(library.db, () -> {
         var playlistFilter = LibraryFilter(PlaylistFilter(playlistId));
         var stmtString = "create temporary table new_playlist_track_positions as select
                 tracks.track_id,

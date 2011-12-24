@@ -3,13 +3,13 @@ import cocoa.appkit.*;
 
 record AppDelegate = newClass(#"VinylAppDelegate", NSObject,
     InstanceVars(
-        (#mainWindow, IBOutlet(NSWindow)),
+        [#mainWindow, IBOutlet(NSWindow)],
     ),
     ClassMethods(),
     InstanceMethods(
-        (#"applicationShouldHandleReopen:hasVisibleWindows:", (self, app, visibleWindows?) => {
+        [#"applicationShouldHandleReopen:hasVisibleWindows:", (self, app, visibleWindows?) => {
             if (not visibleWindows?)
                 self^.mainWindow.makeKeyAndOrderFront(self);
-        }),
+        }],
     ),
 );

@@ -9,10 +9,10 @@ import cocoa.*;
 import destructors.*;
 
 record ItunesXMLParserError (code: Int, message: String, line: SizeT, column: SizeT);
-instance Exception = ItunesXMLParserError;
+instance Exception (ItunesXMLParserError);
 
 record ItunesInvalidLibraryError ();
-instance Exception = ItunesInvalidLibraryError;
+instance Exception (ItunesInvalidLibraryError);
 
 parseXMLFrom(parser: XML_Parser, stream, size, progressCallback) {
     alias BUFFER_SIZE = 16384;
@@ -63,9 +63,9 @@ overload ItunesPlaylist() = ItunesPlaylist(
 );
 
 variant ItunesItem
-    = Nothing
-    | PlaylistTrack
-    | ItunesPlaylist; // XXX Playlist, PlaylistFolder
+    (Nothing,
+    PlaylistTrack,
+    ItunesPlaylist); // XXX Playlist, PlaylistFolder
 
 record ItunesParseState (
     library: Pointer[Library],
@@ -88,66 +88,49 @@ itunesFinishValue(item: Nothing, state: ItunesParseState) { }
 overload itunesAddToValue(item: PlaylistTrack, state: ItunesParseState, type: String, value: String) {
     assert(size(state.keyPath) == 3);
     assert(state.keyPath[0] == "Tracks");
-    ref key = state.keyPath[2];
+    forward key = state.keyPath[2];
 
-    switch (key) {
-    case "Track ID":
+    switch (key)
+    case ("Track ID") {
         item.track_id = Int(value);
-        break;
-    case "Name":
+    } case ("Name") {
         item.name = value;
-        break;
-    case "Artist":
+    } case ("Artist") {
         item.track_artist_name = Maybe(value);
         if (nothing?(item.album_artist_name))
             item.album_artist_name = Maybe(value);
-        break;
-    case "Composer":
+    } case ("Composer") {
         item.composer_name = Maybe(value);
-        break;
-    case "Grouping":
+    } case ("Grouping") {
         item.grouping_name = Maybe(value);
-        break;
-    case "Album":
+    } case ("Album") {
         item.album_name = Maybe(value);
-        break;
-    case "Album Artist":
+    } case ("Album Artist") {
         item.album_artist_name = Maybe(value);
-        break;
-    case "Genre":
+    } case ("Genre") {
         item.genre_name = Maybe(value);
-        break;
-    case "Total Time":
+    } case ("Total Time") {
         item.duration_time = Double(value)/1000.0;
-        break;
-    case "Track Number":
+    } case ("Track Number") {
         item.track_number = Maybe(Int(value));
-        break;
-    case "Track Count":
+    } case ("Track Count") {
         item.tracks_count = Maybe(Int(value));
-        break;
-    case "Disc Number":
+    } case ("Disc Number") {
         item.side_number = Maybe(Int(value));
-        break;
-    case "Disc Count":
+    } case ("Disc Count") {
         item.sides_count = Maybe(Int(value));
-        break;
-    case "Year":
+    } case ("Year") {
         item.year = Maybe(value);
-        break;
     // XXX parse date
     // case "Date Modified":
     // case "Date Added":
     // case "Play Date UTC":
-    case "Play Count":
+    } case ("Play Count") {
         item.play_count = Maybe(Int(value));
-        break;
-    case "Comments":
+    } case ("Comments") {
         item.comments = Maybe(value);
-        break;
-    case "Compilation":
+    } case ("Compilation") {
         item.album_compilation_p = value != "false";
-        break;
     // case "Rating":
     //    item.rating = Int(value)/20;
     //    break;
@@ -155,27 +138,21 @@ overload itunesAddToValue(item: PlaylistTrack, state: ItunesParseState, type: St
     //    item.album_rating = Int(value)/20;
     //    break;
     // XXX parse url
-    case "Location":
+    } case ("Location") {
         item.filename = filenameFromURL(value);
-        break;
-    case "Sort Name":
+    } case ("Sort Name") {
         item.sort_name = Maybe(value);
-        break;
-    case "Sort Album":
+    } case ("Sort Album") {
         item.album_sort_name = Maybe(value);
-        break;
-    case "Sort Artist":
+    } case ("Sort Artist") {
         item.track_artist_sort_name = Maybe(value);
         if (nothing?(item.album_artist_sort_name))
             item.album_artist_sort_name = Maybe(value);
-        break;
-    case "Sort Album Artist":
+    } case ("Sort Album Artist") {
         item.album_artist_sort_name = Maybe(value);
-        break;
-    case "Sort Composer":
+    } case ("Sort Composer") {
         item.composer_sort_name = Maybe(value);
-        break;
-    default:
+    } else {
         break;
     }
 }
@@ -189,43 +166,29 @@ overload itunesAddToValue(item: ItunesPlaylist, state: ItunesParseState, type: S
     var keyDepth = size(state.keyPath);
     assert(keyDepth >= 2);
     assert(state.keyPath[0] == "Playlists");
-    ref key = state.keyPath[1];
+    forward key = state.keyPath[1];
 
     if (keyDepth == 2) {
-        switch (key) {
-        case "Name":
+        switch (key)
+        case ("Name") {
             item.name = value;
-            break;
-        case "Playlist ID":
+        } case ("Playlist ID") {
             item.playlistId = Int(value);
-            break;
-        case "Playlist Persistent ID":
+        } case ("Playlist Persistent ID") {
             item.persistentId = value;
-            break;
-        case "Parent Persistent ID":
+        } case ("Parent Persistent ID") {
             item.parentPersistentId = Maybe(value);
-            break;
-        case "Folder":
+        } case ("Folder") {
             item.folder? = value != "false";
-            break;
 
-        case "Master":
-        case "Audiobooks":
-        case "Books":
-        case "Music":
-        case "Movies":
-        case "Party Shuffle":
+        } case ("Master", "Audiobooks", "Books", "Music", "Movies", "Party Shuffle") {
             item.ignored? = value != "false";
-            break;
-        case "Visible":
+        } case ("Visible") {
             item.ignored? = value == "false";
-            break;
-        case "Distinguised Kind":
-        case "Genius Track ID":
+        } case ("Distinguised Kind", "Genius Track ID") {
             item.ignored? = true;
-            break;
 
-        default:
+        } else {
             break;
         }
     } else if (keyDepth == 3
@@ -263,7 +226,7 @@ itunesStartElementHandler(
     nameC: Pointer[XML_Char],
     attrs: Pointer[Pointer[XML_Char]]
 ) {
-    ref state = Pointer[ItunesParseState](stateP)^;
+    forward state = Pointer[ItunesParseState](stateP)^;
     if (just?(state.exception)) return;
 
     var name = CStringRef(nameC);
@@ -271,8 +234,8 @@ itunesStartElementHandler(
     push(state.tagPath, String(name));
     clear(state.tagContents);
 
-    switch (name) {
-    case "dict": {
+    switch (name)
+    case ("dict") {
             push(state.keyPath, String(""));
             var depth = size(state.keyPath);
             if (depth == 3 and state.keyPath[0] == "Tracks") {
@@ -284,15 +247,15 @@ itunesStartElementHandler(
                 state.itemDepth = depth;
             }
             break;
-        }
+        
 
-    default:
+    } else {
         break;
     }
 }
 
 itunesEndElementHandler(stateP: RawPointer, nameC: Pointer[XML_Char]) {
-    ref state = Pointer[ItunesParseState](stateP)^;
+    forward state = Pointer[ItunesParseState](stateP)^;
     if (just?(state.exception)) return;
 
     var name = CStringRef(nameC);
@@ -304,12 +267,11 @@ itunesEndElementHandler(stateP: RawPointer, nameC: Pointer[XML_Char]) {
         return;
     }
 
-    switch (name) {
-    case "key":
-        state.keyPath[depth - 1] = state.tagContents;
-        break; 
+    switch (name)
+    case ("key") {
+        state.keyPath[depth - 1] = state.tagContents; 
         
-    case "dict":
+    } case ("dict") {
         if (depth == state.itemDepth) {
             try {
                 itunesFinishValue(*state.item, state);
@@ -320,33 +282,23 @@ itunesEndElementHandler(stateP: RawPointer, nameC: Pointer[XML_Char]) {
             state.itemDepth = 0;
         }
         pop(state.keyPath);
+
+    } case ("array", "plist") {
         break;
 
-    case "array":
-    case "plist":
-        break;
-
-    case "integer":
-    case "real":
-    case "string":
-    case "date":
-    case "data":
+    } case ("integer", "real", "string", "date", "data") {
         itunesAddToValue(*state.item, state, String(name), state.tagContents);
-        break;
 
-    case "true":
-    case "false":
+    } case ("true", "false") {
         itunesAddToValue(*state.item, state, String("bool"), String(name));
-        break;
 
-    default:
+    } else {
         printlnTo(stderr, "unknown tag ", name);
-        break;
     }
 }
 
 itunesCharacterDataHandler(stateP: RawPointer, s: Pointer[XML_Char], len: Int) {
-    ref state = Pointer[ItunesParseState](stateP)^;
+    forward state = Pointer[ItunesParseState](stateP)^;
     if (just?(state.exception)) return;
 
     push(state.tagContents, mapped(Char, coordinateRange(s, s + len)));
@@ -650,7 +602,7 @@ importFromItunesTable(db: SqliteDB, progressCallback) {
 }
 
 importItunes(library: Library, itunesLibraryFilename: String, progressCallback) {
-    withTransaction(library.db, () ref=> {
+    withTransaction(library.db, () -> {
         runStatement(library.db, "create temporary table itunes_imported_tracks (
             itunes_track_view_id integer,
             itunes_track_id integer primary key,

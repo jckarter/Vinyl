@@ -43,47 +43,47 @@ alias TagLib_File_ASF = 9;
 alias TagLib_File_Type = Int;
 
 external taglib_file_new(
-    filename : Pointer[CChar]) Pointer[TagLib_File];
+    filename : Pointer[CChar]) : Pointer[TagLib_File];
 
 external taglib_file_new_type(
     filename : Pointer[CChar],
-    type : TagLib_File_Type) Pointer[TagLib_File];
+    type : TagLib_File_Type) : Pointer[TagLib_File];
 
 external taglib_file_free(
     file : Pointer[TagLib_File]);
 
 external taglib_file_is_valid(
-    file : Pointer[TagLib_File]) Int;
+    file : Pointer[TagLib_File]) : Int;
 
 external taglib_file_tag(
-    file : Pointer[TagLib_File]) Pointer[TagLib_Tag];
+    file : Pointer[TagLib_File]) : Pointer[TagLib_Tag];
 
 external taglib_file_audioproperties(
-    file : Pointer[TagLib_File]) Pointer[TagLib_AudioProperties];
+    file : Pointer[TagLib_File]) : Pointer[TagLib_AudioProperties];
 
 external taglib_file_save(
-    file : Pointer[TagLib_File]) Int;
+    file : Pointer[TagLib_File]) : Int;
 
 external taglib_tag_title(
-    tag : Pointer[TagLib_Tag]) Pointer[CChar];
+    tag : Pointer[TagLib_Tag]) : Pointer[CChar];
 
 external taglib_tag_artist(
-    tag : Pointer[TagLib_Tag]) Pointer[CChar];
+    tag : Pointer[TagLib_Tag]) : Pointer[CChar];
 
 external taglib_tag_album(
-    tag : Pointer[TagLib_Tag]) Pointer[CChar];
+    tag : Pointer[TagLib_Tag]) : Pointer[CChar];
 
 external taglib_tag_comment(
-    tag : Pointer[TagLib_Tag]) Pointer[CChar];
+    tag : Pointer[TagLib_Tag]) : Pointer[CChar];
 
 external taglib_tag_genre(
-    tag : Pointer[TagLib_Tag]) Pointer[CChar];
+    tag : Pointer[TagLib_Tag]) : Pointer[CChar];
 
 external taglib_tag_year(
-    tag : Pointer[TagLib_Tag]) UInt;
+    tag : Pointer[TagLib_Tag]) : UInt;
 
 external taglib_tag_track(
-    tag : Pointer[TagLib_Tag]) UInt;
+    tag : Pointer[TagLib_Tag]) : UInt;
 
 external taglib_tag_set_title(
     tag : Pointer[TagLib_Tag],
@@ -116,16 +116,16 @@ external taglib_tag_set_track(
 external taglib_tag_free_strings();
 
 external taglib_audioproperties_length(
-    audioProperties : Pointer[TagLib_AudioProperties]) Int;
+    audioProperties : Pointer[TagLib_AudioProperties]) : Int;
 
 external taglib_audioproperties_bitrate(
-    audioProperties : Pointer[TagLib_AudioProperties]) Int;
+    audioProperties : Pointer[TagLib_AudioProperties]) : Int;
 
 external taglib_audioproperties_samplerate(
-    audioProperties : Pointer[TagLib_AudioProperties]) Int;
+    audioProperties : Pointer[TagLib_AudioProperties]) : Int;
 
 external taglib_audioproperties_channels(
-    audioProperties : Pointer[TagLib_AudioProperties]) Int;
+    audioProperties : Pointer[TagLib_AudioProperties]) : Int;
 
 alias TagLib_ID3v2_Latin1 = 0;
 alias TagLib_ID3v2_UTF16 = 1;

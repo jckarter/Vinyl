@@ -10,11 +10,11 @@ record VinylWindow = newClass(#VinylWindow, NSWindow,
     ),
     ClassMethods(),
     InstanceMethods(
-        (#"keyDown:", (self, event) => {
+        [#"keyDown:", (self, event) => {
             if (event.charactersIgnoringModifiers() == " ")
                 self^.mainController.performPlay(self);
             else
                 super(self).keyDown(event);
-        }),
+        }],
     ),
 );

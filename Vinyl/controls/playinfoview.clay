@@ -18,7 +18,7 @@ overload selector(static #"updateInterface") = Void;
 
 record PlayInfoView = newClass(#VinylPlayInfoView, NSView,
     InstanceVars(
-        ...IBOutlets(
+        ..IBOutlets(
             trackField: NSTextField,
             timeSlider: NSSlider,
         ),
@@ -33,42 +33,42 @@ record PlayInfoView = newClass(#VinylPlayInfoView, NSView,
     InstanceMethods(
         DeallocInstanceMethod(),
 
-        (#"awakeFromNib", self => {
+        [#"awakeFromNib", self => {
             self^.currentTime = 0.0;
             self^.durationTime = 0.0;
 
             self.updateInterface();
-        }),
+        }],
 
-        (#"trackName", self => self^.trackName),
-        (#"setTrackName:", (self, trackName) => {
+        [#"trackName", self => self^.trackName],
+        [#"setTrackName:", (self, trackName) => {
             self^.trackName = Retained(trackName.copy());
-        }),
-        (#"albumName", self => self^.albumName),
-        (#"setAlbumName:", (self, albumName) => {
+        }],
+        [#"albumName", self => self^.albumName],
+        [#"setAlbumName:", (self, albumName) => {
             self^.albumName = Retained(albumName.copy());
-        }),
-        (#"artistName", self => self^.artistName),
-        (#"setArtistName:", (self, artistName) => {
+        }],
+        [#"artistName", self => self^.artistName],
+        [#"setArtistName:", (self, artistName) => {
             self^.artistName = Retained(artistName.copy());
-        }),
-        (#"currentTime", self => self^.currentTime),
-        (#"setCurrentTime:", (self, time) => {
+        }],
+        [#"currentTime", self => self^.currentTime],
+        [#"setCurrentTime:", (self, time) => {
             self^.currentTime = time;
-        }),
-        (#"durationTime", self => self^.durationTime),
-        (#"setDurationTime:", (self, time) => {
+        }],
+        [#"durationTime", self => self^.durationTime],
+        [#"setDurationTime:", (self, time) => {
             self^.durationTime = time;
-        }),
+        }],
 
-        (#"updateInterface", self => {
+        [#"updateInterface", self => {
             self^.trackField.setAttributedStringValue(self.trackAttributedString());
             self^.timeSlider.setMaxValue(self^.durationTime);
             self^.timeSlider.setDoubleValue(self^.currentTime);
             self^.timeSlider.setHidden(self^.durationTime == 0.0);
-        }),
+        }],
 
-        (#"trackAttributedString", self => {
+        [#"trackAttributedString", self => {
             if (nil?(self^.trackName))
                 return nil(NSMutableAttributedString);
             var centered = Retained(NSParagraphStyle.defaultParagraphStyle().mutableCopy());
@@ -113,7 +113,7 @@ record PlayInfoView = newClass(#VinylPlayInfoView, NSView,
                 ).autorelease());
 
             return text;
-        }),
+        }],
     ),
 );
 

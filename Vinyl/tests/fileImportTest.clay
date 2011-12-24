@@ -5,14 +5,12 @@ import Vinyl.importers.*;
 import printer.formatter.*;
 
 progressCallback(mode, pos, size) {
-    switch (mode) {
-    case ReadFileTags:
+    switch (mode)
+    case (ReadFileTags) {
         print("Reading files... ");
-        break;
-    case MergeVinylLibrary:
+    } case (MergeVinylLibrary) {
         print("Merging Vinyl library...  ");
-        break;
-    }
+    } 
 
     print(rightAligned(3, pos * 100 / size), "%\r");
     flush(stdout);

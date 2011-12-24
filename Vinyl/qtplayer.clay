@@ -8,11 +8,11 @@ import libc;
 
 record StoppedState ();
 
-enum PlaylistMode { Playing, Paused }
+enum PlaylistMode (Playing, Paused);
 
-variant TrackOrder = Vector[SizeT] | Range[SizeT];
+variant TrackOrder (Vector[SizeT], Range[SizeT]);
 
-overload index(o: TrackOrder, n) = match(o,
+overload index(o: TrackOrder, n) = matchByType(o,
     Vector[SizeT], vec => vec[n],
     Range[SizeT],  ran => ran[n],
 );
@@ -134,7 +134,7 @@ _changeLibraryFilter(ps: PlaylistState, filter: LibraryFilter, trackViewId: NSIn
     return currentTrack?;
 }
 
-variant PlayerState = StoppedState | PlaylistState;
+variant PlayerState (StoppedState, PlaylistState);
 
 overload selector(static #"state") = PlayerState;
 overload selector(static #"setState:") = Void, PlayerState;
@@ -160,7 +160,7 @@ overload selector(static #"setCurrentTrackTime:") = Void, NSTimeInterval;
 overload selector(static #"currentTrackTime") = NSTimeInterval;
 overload selector(static #"updateTimeTimer:") = Void, NSTimer;
 
-enum RepeatMode { NoRepeat, RepeatAll, RepeatOne }
+enum RepeatMode (NoRepeat, RepeatAll, RepeatOne);
 
 alias PlayerStateDidChangeNotification = NSString(#"VinylPlayerStateDidChangeNotification");
 alias PlayerUpdateTimeNotification = NSString(#"VinylPlayerUpdateTimeNotification");
@@ -188,7 +188,7 @@ stopUpdateTimeTimer(self: Player) {
 }
 
 ifPlaying(state, fn) {
-    match(state,
+    matchByType(state,
         StoppedState,  stopped => { },
         PlaylistState, fn,
     );
@@ -204,7 +204,7 @@ record Player = newClass(NSObject,
     ),
     ClassMethods(),
     InstanceMethods(
-        (#"init", self => initObjectWith(self, #"init", self => {
+        [#"init", self => initObjectWith(self, #"init", self => {
             self^.state <-- PlayerState(StoppedState());
             self^.volume = 1.0f;
             self^.shuffle = false;
@@ -229,11 +229,11 @@ record Player = newClass(NSObject,
                 nil()
             );
             return self;
-        })),
+        })],
         DeallocInstanceMethod(),
-        ...PropertyInstanceMethods(#state, PlayerState),
+        ..PropertyInstanceMethods(#state, PlayerState),
 
-        (#"handleMovieDidEndNotification:", (self, notification) => {
+        [#"handleMovieDidEndNotification:", (self, notification) => {
             ifPlaying(self^.state, playlistState => {
                 if (is?(playlistState.movie, notification.object())) {
                     if (self^.repeatMode == RepeatOne) {
@@ -244,8 +244,8 @@ record Player = newClass(NSObject,
                         self.nextTrack();
                 }
             });
-        }),
-        (#"handleMovieLoadStateDidChangeNotification:", (self, notification) => {
+        }],
+        [#"handleMovieLoadStateDidChangeNotification:", (self, notification) => {
             ifPlaying(self^.state, playlistState => {
                 if (is?(playlistState.movie, notification.object())
                     and playlistState.movie.attributeForKey(QTMovieLoadStateAttribute)
@@ -257,44 +257,44 @@ record Player = newClass(NSObject,
                         self.nextTrack();
                 }
             });
-        }),
-        (#"handleMovieTimeDidChangeNotification:", (self, notification) => {
+        }],
+        [#"handleMovieTimeDidChangeNotification:", (self, notification) => {
             NSNotificationCenter.defaultCenter().postNotificationName_object(
                 PlayerUpdateTimeNotification, self
             );
-        }),
+        }],
 
-        (#"updateTimeTimer:", (self, timer) => {
+        [#"updateTimeTimer:", (self, timer) => {
             NSNotificationCenter.defaultCenter().postNotificationName_object(
                 PlayerUpdateTimeNotification, self
             );
-        }),
+        }],
 
-        (#"playLibrary:filter:trackViewId:", (self, library, libraryFilter, trackViewId) => {
+        [#"playLibrary:filter:trackViewId:", (self, library, libraryFilter, trackViewId) => {
             self.stop();
             self^.state = PlayerState(
                 PlaylistState(Paused, trackViewId, library, libraryFilter, self^.shuffle)
             );
             self.resume();
-        }),
+        }],
 
-        (#"changeFilter:", (self, libraryFilter) => {
+        [#"changeFilter:", (self, libraryFilter) => {
             ifPlaying(self^.state, playlistState => {
                 var currentTrack? = changeLibraryFilter(playlistState, libraryFilter);
                 if (not currentTrack?)
                     self.stop();
             });
-        }),
+        }],
 
-        (#"changeFilter:trackViewId:", (self, libraryFilter, trackViewId) => {
+        [#"changeFilter:trackViewId:", (self, libraryFilter, trackViewId) => {
             ifPlaying(self^.state, playlistState => {
                 var currentTrack? = changeLibraryFilter(playlistState, libraryFilter, trackViewId);
                 if (not currentTrack?)
                     self.stop();
             });
-        }),
+        }],
 
-        (#"resume", self => {
+        [#"resume", self => {
             ifPlaying(self^.state, playlistState => {
                 if (playlistState.trackNumber < size(playlistState.tracks)) {
                     var realTrackNumber = playlistState.trackOrder[playlistState.trackNumber];
@@ -312,9 +312,9 @@ record Player = newClass(NSObject,
                 } else
                     self.stop();
             });
-        }),
+        }],
 
-        (#"pause", self => {
+        [#"pause", self => {
             ifPlaying(self^.state, playlistState => {
                 playlistState.movie.stop();
                 playlistState.mode = Paused;
@@ -323,9 +323,9 @@ record Player = newClass(NSObject,
                 );
                 stopUpdateTimeTimer(self);
             });
-        }),
+        }],
 
-        (#"stop", self => {
+        [#"stop", self => {
             ifPlaying(self^.state, playlistState => {
                 playlistState.movie.stop();
                 self^.state = PlayerState(StoppedState());
@@ -334,9 +334,9 @@ record Player = newClass(NSObject,
                 );
                 stopUpdateTimeTimer(self);
             });
-        }),
+        }],
 
-        (#"previousTrack", self => {
+        [#"previousTrack", self => {
             ifPlaying(self^.state, playlistState => {
                 var currentTime = playlistState.movie.currentTime();
                 if (currentTime.timeValue < currentTime.timeScale * 2) {
@@ -356,9 +356,9 @@ record Player = newClass(NSObject,
                     self.setCurrentTrackTime(0.0);
                 }
             });
-        }),
+        }],
 
-        (#"nextTrack", self => {
+        [#"nextTrack", self => {
             ifPlaying(self^.state, playlistState => {
                 playlistState.movie.stop();
                 playlistState.movie = nil();
@@ -371,9 +371,9 @@ record Player = newClass(NSObject,
                 } else
                     self.stop();
             });
-        }),
+        }],
 
-        (#"setCurrentTrackTime:", (self, time) => {
+        [#"setCurrentTrackTime:", (self, time) => {
             ifPlaying(self^.state, playlistState => {
                 // XXX using NSInvocation to hack around x86-64 abi bugs
                 var invocation = NSInvocation.invocationWithMethodSignature(
@@ -387,9 +387,9 @@ record Player = newClass(NSObject,
                 invocation.setArgument_atIndex(RawPointer(&qttime), NSInteger(2));
                 invocation.invoke();
             });
-        }),
+        }],
 
-        (#"currentTrackTime", self => match(self^.state,
+        [#"currentTrackTime", self => matchByType(self^.state,
             StoppedState,  stopped => 0.0,
             PlaylistState, playlistState => {
                 var invocation = NSInvocation.invocationWithMethodSignature(
@@ -404,20 +404,20 @@ record Player = newClass(NSObject,
                 invocation.getReturnValue(RawPointer(&qttime));
                 return Double(qttime.timeValue)/Double(qttime.timeScale);
             }
-        )),
+        )],
 
         ReaderInstanceMethod(#volume, Float),
         
-        (#"setVolume:", (self, volume) => {
+        [#"setVolume:", (self, volume) => {
             self^.volume = volume;
             ifPlaying(self^.state, playlistState => {
                 if (not nil?(playlistState.movie))
                     playlistState.movie.setVolume(Float(volume));
             });
-        }),
+        }],
 
         ReaderInstanceMethod(#shuffle, Bool),
-        (#"setShuffle:", (self, shuffle) => {
+        [#"setShuffle:", (self, shuffle) => {
             self^.shuffle = shuffle;
             ifPlaying(self^.state, playlistState => {
                 var trackNumber = playlistState.trackOrder[playlistState.trackNumber];
@@ -426,29 +426,29 @@ record Player = newClass(NSObject,
                 else
                     setSequentialTrackOrder(playlistState);
             });
-        }),
+        }],
 
-        ...PropertyInstanceMethods(#repeatMode, RepeatMode),
+        ..PropertyInstanceMethods(#repeatMode, RepeatMode),
 
-        (#"playerState", self => &self^.state),
+        [#"playerState", self => &self^.state],
 
-        (#"currentTrack", self => match(self^.state,
+        [#"currentTrack", self => matchByType(self^.state,
             StoppedState,  stopped       => null(PlaylistTrack),
             PlaylistState, playlistState => {
                 var realTrackNumber = playlistState.trackOrder[playlistState.trackNumber];
                 return &playlistState.tracks[realTrackNumber];
             },
-        )),
+        )],
 
-        (#"currentTrackNumber", self => match(self^.state,
+        [#"currentTrackNumber", self => matchByType(self^.state,
             StoppedState,  stopped       => NSInteger(-1),
             PlaylistState, playlistState => NSInteger(playlistState.trackOrder[playlistState.trackNumber]),
-        ))
+        )]
     ),
 );
 
 record QTMovieError (error: NSError);
-instance Exception = QTMovieError;
+instance Exception (QTMovieError);
 
 movieForFileName(self, name) {
     var error = nil(NSError);

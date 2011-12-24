@@ -60,7 +60,7 @@ overload selector(static #"handleSleep:") = Void, NSNotification;
 overload selector(static #"importErrorAlertDidEnd:returnCode:contextInfo:") = Void, NSAlert, NSInteger, RawPointer;
 overload selector(static #"mainController") = MainController;
 
-var columnMenuItemOrder = [
+var columnMenuItemOrder = array(
     "name",
     "album_name",
     "album_artist_name",
@@ -77,10 +77,10 @@ var columnMenuItemOrder = [
     "added_date",
     "modified_date",
     "played_date",
-];
+);
 
-setStatusField(self, ...contents) {
-    self^.statusField.setStringValue(printString(...contents));
+setStatusField(self, ..contents) {
+    self^.statusField.setStringValue(str(..contents));
 }
 
 playTrackViewId(self: MainController, trackViewId: NSInteger) {
@@ -103,17 +103,14 @@ updateShuffleControl(self: MainController, shuffle: Bool) {
 
 updateRepeatControl(self: MainController, repeatMode: RepeatMode) {
     var label = StringConstant();
-    switch (repeatMode) {
-    case NoRepeat:
+    switch (repeatMode)
+    case (NoRepeat) {
         label = "r";
-        break;
-    case RepeatAll:
+    } case (RepeatAll) {
         label = "R";
-        break;
-    case RepeatOne:
+    } case (RepeatOne) {
         label = "1";
-        break;
-    }
+    } 
     self^.playlistControls.setLabel_forSegment(
         label,
         NSInteger(PlaylistControlsRepeatTag)
@@ -125,7 +122,7 @@ updateRepeatControl(self: MainController, repeatMode: RepeatMode) {
 
 updatePlayControls(self: MainController) {
     var playControls = self^.playControls;
-    match(self^.player.playerState()^,
+    matchByType(self^.player.playerState()^,
         StoppedState,  stopped => {
             self^.playButtonMode = PlayButton;
             playControls.setLabel_forSegment(
@@ -153,8 +150,8 @@ updatePlayControls(self: MainController) {
                 NSInteger(PlayControlsForwardTag)
             );
 
-            switch (playlistState.mode) {
-            case Playing:
+            switch (playlistState.mode)
+            case (Playing) {
                 if (playlistState.libraryFilter == self^.playlistDataSource.libraryFilter()^) {
                     self^.playButtonMode = PauseButton;
                     playControls.setLabel_forSegment(
@@ -172,8 +169,7 @@ updatePlayControls(self: MainController) {
                     self^.playMenuItem.setTitle("Stop");
                     self^.playDockMenuItem.setTitle("Stop");
                 }
-                break;
-            case Paused:
+            } case (Paused) {
                 if (playlistState.libraryFilter == self^.playlistDataSource.libraryFilter()^)
                     self^.playButtonMode = ResumeButton;
                 else
@@ -185,8 +181,7 @@ updatePlayControls(self: MainController) {
                 );
                 self^.playMenuItem.setTitle("Resume");
                 self^.playDockMenuItem.setTitle("Resume");
-                break;
-            }
+            } 
             
         }
     );
@@ -197,7 +192,7 @@ updatePlayControls(self: MainController) {
 }
 
 updatePlayIndicator(self: MainController) {
-    match(self^.player.playerState()^,
+    matchByType(self^.player.playerState()^,
         StoppedState,  stopped => {
             self^.playlistDataSource^.playingTrackViewId = nothing(NSInteger);
         },
@@ -264,11 +259,11 @@ updatePlaylistLibraryFilter(self) {
     );
 }
 
-enum PlayButtonMode { PlayButton, ResumeButton, StopButton, PauseButton }
+enum PlayButtonMode (PlayButton, ResumeButton, StopButton, PauseButton);
 
 playButton(self: MainController) {
-    switch (self^.playButtonMode) {
-    case PlayButton: {
+    switch (self^.playButtonMode)
+    case (PlayButton) {
             var selection = self^.playlistView.selectedRowIndexes().firstIndex();
             if (selection == NSNotFound)
                 selection = 0;
@@ -277,18 +272,15 @@ playButton(self: MainController) {
                 var trackViewId = self^.playlistDataSource^.tracks[selection].track_view_id;
                 playTrackViewId(self, trackViewId);
             }
-        }
+        
         break;
-    case ResumeButton:
+    } case (ResumeButton) {
         self^.player.resume();
-        break;
-    case PauseButton:
+    } case (PauseButton) {
         self^.player.pause();
-        break;
-    case StopButton:
+    } case (StopButton) {
         self^.player.stop();
-        break;
-    }
+    } 
 }
 
 private newPlaylist(self: MainController) {
@@ -341,7 +333,7 @@ releaseDatabaseLocks() { theController.releaseDatabaseLocks(); }
 
 record MainController = newClass(#VinylMainController, NSObject,
     InstanceVars(
-        ...IBOutlets(
+        ..IBOutlets(
             mainWindow: NSWindow,
             appDelegate: AppDelegate,
             // content
@@ -372,73 +364,67 @@ record MainController = newClass(#VinylMainController, NSObject,
         columns: Retained[NSMutableDictionary],
     ),
     ClassMethods(
-        (#"mainController", class => theController),
+        [#"mainController", class => theController],
     ),
     InstanceMethods(
         DeallocInstanceMethod(),
 
-        ...IBActions(
-            (#"performPlayControl:", (self, sender) => {
-                switch (sender.selectedSegment()) {
-                case PlayControlsBackTag:
+        ..IBActions(
+            [#"performPlayControl:", (self, sender) => {
+                switch (sender.selectedSegment())
+                case (PlayControlsBackTag) {
                     self.performBack(sender);
-                    break;
-                case PlayControlsPlayTag:
+                } case (PlayControlsPlayTag) {
                     self.performPlay(sender);
-                    break;
-                case PlayControlsForwardTag:
+                } case (PlayControlsForwardTag) {
                     self.performForward(sender);
-                    break;
-                }
-            }),
-            (#"performPlay:", (self, sender) => {
+                } 
+            }],
+            [#"performPlay:", (self, sender) => {
                 playButton(self);
-            }),
-            (#"performBack:", (self, sender) => {
+            }],
+            [#"performBack:", (self, sender) => {
                 self^.player.previousTrack();
-            }),
-            (#"performForward:", (self, sender) => {
+            }],
+            [#"performForward:", (self, sender) => {
                 self^.player.nextTrack();
-            }),
-            (#"performDoubleClickPlaylist:", (self, sender) => {
-            }),
-            (#"performDoubleClickTrack:", (self, sender) => {
+            }],
+            [#"performDoubleClickPlaylist:", (self, sender) => {
+            }],
+            [#"performDoubleClickTrack:", (self, sender) => {
                 var rowNumber = sender.clickedRow();
                 if (rowNumber < 0 or rowNumber >= size(self^.playlistDataSource^.tracks))
                     return;
                 // XXX inappropriate touch
                 var trackViewId = self^.playlistDataSource^.tracks[rowNumber].track_view_id;
                 playTrackViewId(self, trackViewId);
-            }),
-            (#"performVolumeUpdate:", (self, sender) => {
+            }],
+            [#"performVolumeUpdate:", (self, sender) => {
                 var volume = sender.doubleValue();
                 NSUserDefaults.standardUserDefaults().setDouble_forKey(volume, "Volume");
                 self^.player.setVolume(Float(volume));
-            }),
-            (#"performSearch:", (self, sender) => {
+            }],
+            [#"performSearch:", (self, sender) => {
                 self^.playlistDataSource.setSearchString(sender.stringValue());
                 self^.playlistView.reloadData();
                 updateStatus(self);
-            }),
-            (#"performPlaylistControl:", (self, sender) => {
-                switch (sender.selectedSegment()) {
-                case PlaylistControlsAddTag:
+            }],
+            [#"performPlaylistControl:", (self, sender) => {
+                switch (sender.selectedSegment())
+                case (PlaylistControlsAddTag) {
                     self.performAddPlaylist(sender);
-                    break;
-                case PlaylistControlsRandomTag:
+                } case (PlaylistControlsRandomTag) {
                     self.performToggleShuffle(sender);
-                    break;
-                case PlaylistControlsRepeatTag:
+                } case (PlaylistControlsRepeatTag) {
                     self.performToggleRepeat(sender);
-                    break;
-                }
-            }),
-            (#"performAddPlaylist:", (self, sender) => {
-                var parentItem, newItem = ...newPlaylist(self);
+                } 
+            }],
+            [#"performAddPlaylist:", (self, sender) => {
+                var parentItem, newItem = ..newPlaylist(self);
                 editNewPlaylistItem(self, parentItem, newItem);
-            }),
-            (#"performAddPlaylistFromSelection:", (self, sender) => {
-                var parentItem, newItem = ...newPlaylist(self);
+            }],
+            [#"performAddPlaylistFromSelection:", (self, sender) => {
+                var parentItem, newItem = ..newPlaylist(self);
                 var selectedTracks = self^.playlistView.selectedRowIndexes();
                 var selectedTrackRows = indexSetIndices(selectedTracks);
 
@@ -450,8 +436,8 @@ record MainController = newClass(#VinylMainController, NSObject,
 
                 insertLibraryPlaylistTracks(self^.library, NSInteger(newItem["id"]), selectedTrackIds);
                 editNewPlaylistItem(self, parentItem, newItem);
-            }),
-            (#"performAddPlaylistFolder:", (self, sender) => {
+            }],
+            [#"performAddPlaylistFolder:", (self, sender) => {
                 var libView = self^.libraryView;
 
                 var newItem = self^.libraryDataSource.insertPlaylistFolderWithName(#"New Folder");
@@ -459,54 +445,51 @@ record MainController = newClass(#VinylMainController, NSObject,
                 libView.reloadData();
 
                 editNewPlaylistItem(self, nil(), newItem);
-            }),
-            (#"performToggleShuffle:", (self, sender) => {
+            }],
+            [#"performToggleShuffle:", (self, sender) => {
                 var shuffle = not self^.player.shuffle();
                 updateShuffleControl(self, shuffle);
                 NSUserDefaults.standardUserDefaults().setBool_forKey(shuffle, #"Shuffle");
                 self^.player.setShuffle(shuffle);
-            }),
-            (#"performToggleRepeat:", (self, sender) => {
+            }],
+            [#"performToggleRepeat:", (self, sender) => {
                 var repeat = self^.player.repeatMode();
-                switch (repeat) {
-                case NoRepeat:
+                switch (repeat)
+                case (NoRepeat) {
                     repeat = RepeatAll;
-                    break;
-                case RepeatAll:
+                } case (RepeatAll) {
                     repeat = RepeatOne;
-                    break;
-                case RepeatOne:
+                } case (RepeatOne) {
                     repeat = NoRepeat;
-                    break;
-                }
+                } 
                 updateRepeatControl(self, repeat);
                 NSUserDefaults.standardUserDefaults().setInteger_forKey(
                     NSInteger(repeat),
                     #"Repeat"
                 );
                 self^.player.setRepeatMode(repeat);
-            }),
-            (#"performRepeatOff:", (self, sender) => {
+            }],
+            [#"performRepeatOff:", (self, sender) => {
                 updateRepeatControl(self, NoRepeat);
                 self^.player.setRepeatMode(NoRepeat);
-            }),
-            (#"performRepeatAll:", (self, sender) => {
+            }],
+            [#"performRepeatAll:", (self, sender) => {
                 updateRepeatControl(self, RepeatAll);
                 self^.player.setRepeatMode(RepeatAll);
-            }),
-            (#"performRepeatOne:", (self, sender) => {
+            }],
+            [#"performRepeatOne:", (self, sender) => {
                 updateRepeatControl(self, RepeatOne);
                 self^.player.setRepeatMode(RepeatOne);
-            }),
-            (#"performImportItunesLibrary:", (self, sender) => {
+            }],
+            [#"performImportItunesLibrary:", (self, sender) => {
                 releaseDatabaseLocks();
                 performImportItunesLibrary(self, findItunesLibrary());
-            }),
-            (#"performOpenLibraryWindow:", (self, sender) => {
+            }],
+            [#"performOpenLibraryWindow:", (self, sender) => {
                 self^.mainWindow.makeKeyAndOrderFront(self);
-            }),
+            }],
 
-            (#"performTogglePlaylistColumn:", (self, sender) => {
+            [#"performTogglePlaylistColumn:", (self, sender) => {
                 var column = self^.columns[NSNumber(sender.tag())];
                 var tableColumn = column[0];
                 var columnName = tableColumn.identifier();
@@ -523,12 +506,12 @@ record MainController = newClass(#VinylMainController, NSObject,
                 else
                     columnDefaults.removeObjectForKey(columnName);
                 defaults.setObject_forKey(columnDefaults, #"Columns");
-            }),
+            }],
 
-            (#"performScanTrack:", (self, sender) => {
+            [#"performScanTrack:", (self, sender) => {
                 self^.player.setCurrentTrackTime(sender.doubleValue());
-            }),
-            (#"performAddToLibrary:", (self, sender) => {
+            }],
+            [#"performAddToLibrary:", (self, sender) => {
                 releaseDatabaseLocks();
                 var panel = NSOpenPanel.openPanel();
 
@@ -545,10 +528,10 @@ record MainController = newClass(#VinylMainController, NSObject,
                     selectorHandle(#"_importFilesSheetDidEnd:returnCode:contextInfo:"),
                     RawPointer(0),
                 );
-            }),
+            }],
         ),
 
-        (#"awakeFromNib", self => {
+        [#"awakeFromNib", self => {
             theController = self;
 
             libc.srandomdev();
@@ -698,12 +681,12 @@ record MainController = newClass(#VinylMainController, NSObject,
                 tableColumn.setHidden(not visible?);
             }
             self^.playlistView.tableColumnWithIdentifier(#"playing_p").setHidden(false);
-        }),
+        }],
 
-        (#"library", self => &self^.library),
+        [#"library", self => &self^.library],
         ReaderInstanceMethod(#player, Player),
 
-        (#"_importSheetDidEnd:returnCode:contextInfo:", (self, sheet, returnCode, context) => {
+        [#"_importSheetDidEnd:returnCode:contextInfo:", (self, sheet, returnCode, context) => {
             var importController = ImportController(context);
             refreshPlaylistDataSource(weak(self^.playlistDataSource));
             refreshLibraryDataSource(weak(self^.libraryDataSource));
@@ -712,9 +695,9 @@ record MainController = newClass(#VinylMainController, NSObject,
             updateStatus(self);
             sheet.orderOut(self);
             importController.release();
-        }),
+        }],
 
-        (#"_importFilesSheetDidEnd:returnCode:contextInfo:", (self, sheet, returnCode, context) => {
+        [#"_importFilesSheetDidEnd:returnCode:contextInfo:", (self, sheet, returnCode, context) => {
             var filenames = Retained(sheet.filenames().retain());
             sheet.orderOut(self);
             if (returnCode == Int(NSOKButton)) {
@@ -728,15 +711,15 @@ record MainController = newClass(#VinylMainController, NSObject,
                         RawPointer(importController)
                     );
             }
-        }),
+        }],
 
-        (#"handlePlayerStateDidChangeNotification:", (self, notification) => {
+        [#"handlePlayerStateDidChangeNotification:", (self, notification) => {
             updatePlayControls(self);
-        }),
-        (#"handlePlayerUpdateTimeNotification:", (self, notification) => {
+        }],
+        [#"handlePlayerUpdateTimeNotification:", (self, notification) => {
             updatePlayTime(self);
-        }),
-        (#"handleSelectPlaylist:", (self, notification) => {
+        }],
+        [#"handleSelectPlaylist:", (self, notification) => {
             // XXX preserve selection for each view
 
             self^.playlistView.selectRowIndexes_byExtendingSelection(
@@ -752,10 +735,10 @@ record MainController = newClass(#VinylMainController, NSObject,
 
             updatePlayControls(self);
             updateStatus(self);
-        }),
-        (#"handleSelectTrack:", (self, notification) => {
-        }),
-        (#"handlePlaylistDidChange:", (self, notification) => {
+        }],
+        [#"handleSelectTrack:", (self, notification) => {
+        }],
+        [#"handlePlaylistDidChange:", (self, notification) => {
             ifPlaying(self^.player.playerState()^, playlistState => {
                 if (playlistState.libraryFilter == self^.playlistDataSource.libraryFilter()^) {
                     var newTrackViewIdNumber = notification.userInfo()[PlaylistNewTrackViewId];
@@ -769,8 +752,8 @@ record MainController = newClass(#VinylMainController, NSObject,
                 }
             });
             updateStatus(self);
-        }),
-        (#"handleImportError:", (self, notification) => {
+        }],
+        [#"handleImportError:", (self, notification) => {
             NSAlert.alertWithMessageText_defaultButton_alternateButton_otherButton_informativeTextWithFormat(
                 notification.userInfo()[ImportErrorMessageKey],
                 #"OK",
@@ -783,15 +766,15 @@ record MainController = newClass(#VinylMainController, NSObject,
                 selectorHandle(#"importErrorAlertDidEnd:returnCode:contextInfo:"),
                 RawPointer(0),
             );
-        }),
-        (#"handleSleep:", (self, notification) => {
+        }],
+        [#"handleSleep:", (self, notification) => {
             self^.player.pause();
-        }),
-        (#"importErrorAlertDidEnd:returnCode:contextInfo:", (self, alert, returnCode, context) => {
+        }],
+        [#"importErrorAlertDidEnd:returnCode:contextInfo:", (self, alert, returnCode, context) => {
             alert.window().orderOut(self);
-        }),
+        }],
 
-        (#"splitView:resizeSubviewsWithOldSize:", (self, splitView, oldSize) => {
+        [#"splitView:resizeSubviewsWithOldSize:", (self, splitView, oldSize) => {
             var newFrame = viewFrame(splitView);
             var left  = splitView.subviews()[0];
             var right = splitView.subviews()[1];
@@ -806,18 +789,18 @@ record MainController = newClass(#VinylMainController, NSObject,
 
             setViewFrame(left,  leftFrame);
             setViewFrame(right, rightFrame);
-        }),
+        }],
 
-        (#"validateMenuItem:", (self, item) => {
+        [#"validateMenuItem:", (self, item) => {
             if (inValues?(item.action(), selectorHandle(#"performBack:"), selectorHandle(#"performForward:")))
                 return variantIs?(self^.player.playerState()^, PlaylistState);
             else
                 return self.respondsToSelector(item.action());
-        }),
+        }],
 
-        (#"releaseDatabaseLocks", self => {
+        [#"releaseDatabaseLocks", self => {
             self^.playlistDataSource.releaseDatabaseLocks();
-        }),
+        }],
     ),
 );
 

@@ -15,12 +15,12 @@ alias MediaKeysActiveRespond = 1;
 alias MediaKeysAlwaysRespond = 2;
 
 shouldRespondToMediaKeys?(app: VinylApplication) {
-    switch (NSUserDefaults.standardUserDefaults().integerForKey(#"MediaKeys")) {
-    case MediaKeysActiveRespond:
+    switch (NSUserDefaults.standardUserDefaults().integerForKey(#"MediaKeys"))
+    case (MediaKeysActiveRespond) {
         return app.isActive();
-    case MediaKeysAlwaysRespond:
+    } case (MediaKeysAlwaysRespond) {
         return true;
-    default:
+    } else {
         return false;
     }
 }
@@ -33,37 +33,32 @@ record VinylApplication = newClass(#VinylApplication, NSApplication,
     ),
     ClassMethods(),
     InstanceMethods(
-        (#"sendEvent:", (self, event) => {
+        [#"sendEvent:", (self, event) => {
             // media keys
             // http://stackoverflow.com/questions/3885302/make-my-cocoa-app-respond-to-the-keyboard-play-pause-key
             if (event.type() == NSSystemDefined and event.subtype() == NX_SUBTYPE_AUX_CONTROL_BUTTONS) {
-                var keycode = shiftRight(bitwiseAnd(event.data1(), 0xFFFF0000), 16);
-                var keyflags = bitwiseAnd(event.data1(), 0xFFFF);
-                var keydown? = bitwiseAnd(keyflags, 0xFF00) == 0xA00;
-                var keyrepeat? = bitwiseAnd(keyflags, 0x1) == 1;
+                var keycode = bitshr(bitand(event.data1(), 0xFFFF0000), 16);
+                var keyflags = bitand(event.data1(), 0xFFFF);
+                var keydown? = bitand(keyflags, 0xFF00) == 0xA00;
+                var keyrepeat? = bitand(keyflags, 0x1) == 1;
                 self.mediaKeyEvent_state_repeat(keycode, keydown?, keyrepeat?);
             } else
                 super(self).sendEvent(event);
-        }),
-        (#"mediaKeyEvent:state:repeat:", (self, keycode, keydown?, keyrepeat?) => {
+        }],
+        [#"mediaKeyEvent:state:repeat:", (self, keycode, keydown?, keyrepeat?) => {
             if (shouldRespondToMediaKeys?(self) and not nil?(self^.mainController)) {
-                switch (keycode) {
-                case NX_KEYTYPE_PLAY:
+                switch (keycode)
+                case (NX_KEYTYPE_PLAY) {
                     if (not keydown?)
                         self^.mainController.performPlay(self);
-                    break;
-                case NX_KEYTYPE_FAST:
+                } case (NX_KEYTYPE_FAST) {
                     if (keydown?)
                         self^.mainController.performForward(self);
-                    break;
-                case NX_KEYTYPE_REWIND:
+                } case (NX_KEYTYPE_REWIND) {
                     if (keydown?)
                         self^.mainController.performBack(self);
-                    break;
-                default:
-                    break;
-                }
+                } else { }
             }
-        }),
+        }],
     ),
 );

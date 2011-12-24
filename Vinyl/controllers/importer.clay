@@ -22,10 +22,10 @@ alias ImportErrorMessageKey = NSString(#"VinylImportErrorMessage");
 alias ImportErrorDetailKey = NSString(#"VinylImportErrorDetail");
 
 importErrorMessage(x) = Id(#"Adding to the Vinyl library failed.");
-importErrorDetail(x) = Id(printString(x));
+importErrorDetail(x) = Id(str(x));
 
 overload importErrorDetail(x: ItunesXMLParserError)
-    = Id(printString(
+    = Id(str(
         "The XML parser encountered an error.\nCode: ", x.code,
         "\nDescription: ", x.message,
         "\nLine number: ", x.line,
@@ -34,7 +34,7 @@ overload importErrorDetail(x: ItunesXMLParserError)
 overload importErrorDetail(x: ItunesInvalidLibraryError)
     = Id(#"The iTunes library file appears to be improperly formatted.");
 overload importErrorDetail(x: SqliteError)
-    = Id(printString(
+    = Id(str(
         "There was an error updating the Vinyl library database.\nCode: ", x.code,
         "\nDescription: ", x.message,
     ));
@@ -97,17 +97,14 @@ private updateProgressCallback(self, stage, distance, goal) {
 
     if (stage != self^.stage) {
         var message = StringConstant();
-        switch (stage) {
-        case ReadItunesLibrary:
+        switch (stage)
+        case (ReadItunesLibrary) {
             message = "Reading iTunes library...";
-            break;
-        case ReadFileTags:
+        } case (ReadFileTags) {
             message = "Reading file tags...";
-            break;
-        case MergeVinylLibrary:
+        } case (MergeVinylLibrary) {
             message = "Merging with Vinyl library...";
-            break;
-        }
+        } 
         self^.statusField.performSelectorOnMainThread_withObject_waitUntilDone(
             selectorHandle(#"setStringValue:"),
             NSString(message),
@@ -117,15 +114,12 @@ private updateProgressCallback(self, stage, distance, goal) {
     }
             
     var progress = 0.0;
-    switch (stage) {
-    case ReadItunesLibrary:
-    case ReadFileTags:
+    switch (stage)
+    case (ReadItunesLibrary, ReadFileTags) {
         progress = READ_STAGE_LENGTH * (Double(distance)/Double(goal));
-        break;
-    case MergeVinylLibrary:
+    } case (MergeVinylLibrary) {
         progress = READ_STAGE_LENGTH + MERGE_STAGE_LENGTH * (Double(distance)/Double(goal));
-        break;
-    }
+    } 
 
     self.performSelectorOnMainThread_withObject_waitUntilDone(
         selectorHandle(#"setProgressIndicatorValue:"),
@@ -181,7 +175,7 @@ _importerThread(self, body) {
 
 record ImportController = newClass(#VinylImportController, NSObject,
     InstanceVars(
-        ...IBOutlets(
+        ..IBOutlets(
             sheet: Retained[NSPanel],
             statusField: NSTextField,
             progressIndicator: NSProgressIndicator,
@@ -191,7 +185,7 @@ record ImportController = newClass(#VinylImportController, NSObject,
     ),
     ClassMethods(),
     InstanceMethods(
-        (#"init", (self) => initObjectWith(self, #"init", self => {
+        [#"init", (self) => initObjectWith(self, #"init", self => {
             self^.stage = MergeVinylLibrary;
             self^.cancelled = false;
 
@@ -200,42 +194,42 @@ record ImportController = newClass(#VinylImportController, NSObject,
                 return nil(ImportController);
             } else
                 return self;
-        })),
+        })],
 
-        ...IBActions(
-            (#"cancel:", (self, sender) => {
+        ..IBActions(
+            [#"cancel:", (self, sender) => {
                 self^.cancelled = true;
-            }),
+            }],
         ),
 
-        (#"importItunesLibrary:modalForWindow:modalDelegate:didEndSelector:contextInfo:",
+        [#"importItunesLibrary:modalForWindow:modalDelegate:didEndSelector:contextInfo:",
             _importer(#"_importItunesThread:")
-        ),
+        ],
 
-        (#"importFiles:modalForWindow:modalDelegate:didEndSelector:contextInfo:",
+        [#"importFiles:modalForWindow:modalDelegate:didEndSelector:contextInfo:",
             _importer(#"_importFilesThread:")
-        ),
+        ],
 
-        (#"_importItunesThread:", (self, filename) => {
+        [#"_importItunesThread:", (self, filename) => {
             _importerThread(self, (library, callback) => {
                 importItunes(library, String(filename), callback);
             });
-        }),
+        }],
 
-        (#"_importFilesThread:", (self, filenames) => {
+        [#"_importFilesThread:", (self, filenames) => {
             _importerThread(self, (library, callback) => {
                 importFiles(library, mapped(String, filenames), callback);
             });
-        }),
+        }],
 
-        (#"setProgressIndicatorValue:", (self, value) => {
+        [#"setProgressIndicatorValue:", (self, value) => {
             self^.progressIndicator.setDoubleValue(value.doubleValue());
-        }),
-        (#"reportImportError:", (self, info) => {
+        }],
+        [#"reportImportError:", (self, info) => {
             NSNotificationCenter.defaultCenter().postNotificationName_object_userInfo(
                 ImportErrorNotification, self, info
             );
-        }),
+        }],
 
         DeallocInstanceMethod(),
     ),

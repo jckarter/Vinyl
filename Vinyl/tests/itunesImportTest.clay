@@ -5,14 +5,12 @@ import cocoa.*;
 import printer.formatter.*;
 
 progressCallback(mode, pos, size) {
-    switch (mode) {
-    case ReadItunesLibrary:
+    switch (mode)
+    case (ReadItunesLibrary) {
         print("Reading iTunes library... ");
-        break;
-    case MergeVinylLibrary:
+    } case (MergeVinylLibrary) {
         print("Merging Vinyl library...  ");
-        break;
-    }
+    } 
 
     print(rightAligned(3, pos * 100 / size), "%\r");
     flush(stdout);

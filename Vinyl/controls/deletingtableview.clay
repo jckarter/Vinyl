@@ -9,13 +9,10 @@ isDeleteKeyEvent(event: NSEvent) {
     if (chars.length() == 0)
         return false;
 
-    switch (chars.characterAtIndex(SizeT(0))) {
-    case NSDeleteFunctionKey:
-    case NSDeleteCharFunctionKey:
-    case NSDeleteCharacter:
-    case NSBackspaceCharacter:
+    switch (chars.characterAtIndex(SizeT(0)))
+    case (NSDeleteFunctionKey, NSDeleteCharFunctionKey, NSDeleteCharacter, NSBackspaceCharacter) {
         return true;
-    default:
+    } else {
         return false;
     }
 }
@@ -24,7 +21,7 @@ record DeletingTableView = newClass(#VinylDeletingTableView, NSTableView,
     InstanceVars(),
     ClassMethods(),
     InstanceMethods(
-        (#"keyDown:", (self, event) => {
+        [#"keyDown:", (self, event) => {
             var selectedRowIndexes = self.selectedRowIndexes();
             var dataSource = self.dataSource();
             if (isDeleteKeyEvent(event)
@@ -36,7 +33,7 @@ record DeletingTableView = newClass(#VinylDeletingTableView, NSTableView,
             }
             else
                 super(self).keyDown(event);
-        }),
+        }],
     )
 );
 
@@ -44,7 +41,7 @@ record DeletingOutlineView = newClass(#VinylDeletingOutlineView, NSOutlineView,
     InstanceVars(),
     ClassMethods(),
     InstanceMethods(
-        (#"keyDown:", (self, event) => {
+        [#"keyDown:", (self, event) => {
             var selectedRow = self.selectedRow();
             var dataSource = self.dataSource();
             if (isDeleteKeyEvent(event)
@@ -56,6 +53,6 @@ record DeletingOutlineView = newClass(#VinylDeletingOutlineView, NSOutlineView,
             }
             else
                 super(self).keyDown(event);
-        }),
+        }],
     )
 );

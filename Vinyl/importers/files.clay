@@ -6,7 +6,7 @@ import io.directories.*;
 import unix.(syscall, stat, Struct_stat, S_IFDIR);
 
 // XXX anglocentric
-private alias articles = ["a ", "an ", "the "];
+private alias articles = array("a ", "an ", "the ");
 
 // XXX use NSString so we can at least pretend to be unicode aware
 private trimmable?(c) = not (
@@ -136,13 +136,13 @@ isDirectory?(filename) {
     var statbuf = Struct_stat();
     if (stat(cstring(filename), &statbuf) < 0)
         return false;
-    return bitwiseAnd(statbuf.st_mode, S_IFDIR) != 0;
+    return bitand(statbuf.st_mode, S_IFDIR) != 0;
 }
 
 recursiveFilenames(outNames: Vector[String], filenames) {
     for (filename in filenames) {
         if (isDirectory?(filename)) {
-            var names = Vector(mapped(x => printString(filename, '/', x), directoryListing(filename)));
+            var names = Vector(mapped(x => str(filename, '/', x), directoryListing(filename)));
             recursiveFilenames(outNames, move(names));
         } else
             push(outNames, String(filename));
@@ -159,7 +159,7 @@ importFiles(library: Library, filenames, progressCallback) {
     taglib_set_strings_unicode(1);
     taglib_id3v2_set_default_text_encoding(TagLib_ID3v2_Encoding(TagLib_ID3v2_UTF8));
 
-    withTransaction(library.db, () ref=> {
+    withTransaction(library.db, () -> {
         runStatement(library.db, "create temporary table imported_files (
             filename text not null,
             name text not null collate nocase,

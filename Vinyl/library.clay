@@ -20,7 +20,7 @@ libraryFile(dir) = dir.stringByAppendingPathComponent(LIBRARY_DB_FILE);
 record Library (db: SqliteDB);
 
 createLibraryDatabase(db: SqliteDB) {
-    withTransaction(db, () ref=> {
+    withTransaction(db, () -> {
         runStatement(db, "create table if not exists artists (
             artist_id integer primary key,
             display_name text not null unique,
@@ -240,7 +240,7 @@ insertLibraryPlaylistFolder(library: Library, name) {
 }
 
 moveLibraryPlaylist(library: Library, playlistId, parentFolderId) {
-    withTransaction(library.db, () ref=> {
+    withTransaction(library.db, () -> {
         var oldFolderPositionStmt = SqliteStatement(
             library.db,
             "select playlist_folder_id, position from playlists where playlist_id = ?",
@@ -250,7 +250,7 @@ moveLibraryPlaylist(library: Library, playlistId, parentFolderId) {
         var oldParentFolderId, oldPosition = Maybe(NSInteger(0)), NSInteger(0);
         if (hasNext?(iter)) {
             next(iter);
-            oldParentFolderId, oldPosition = ...rowValues(iter, Maybe[NSInteger], NSInteger);
+            oldParentFolderId, oldPosition = ..rowValues(iter, Maybe[NSInteger], NSInteger);
         } else {
             return;
         }
@@ -296,14 +296,14 @@ private _insertLibraryPlaylistTracks(library, playlistId, trackIds) {
 }
 
 insertLibraryPlaylistTracks(library: Library, playlistId, trackIds) {
-    withTransaction(library.db, () ref=> {
+    withTransaction(library.db, () -> {
         _insertLibraryPlaylistTracks(library, playlistId, trackIds);
     });
 }
 
 moveLibraryPlaylistTracks(library: Library, playlistId, trackPositions, position) {
-    return withTransaction(library.db, () ref=> {
-        var trackPositionSetSQL = "(" + join(", ", mapped(printString, trackPositions)) + ")";
+    return withTransaction(library.db, () -> {
+        var trackPositionSetSQL = "(" + join(", ", mapped(str, trackPositions)) + ")";
 
         runStatement(library.db,
             "create temporary table new_playlist_track_positions as select
@@ -364,7 +364,7 @@ moveLibraryPlaylistTracks(library: Library, playlistId, trackPositions, position
 }
 
 deleteLibraryFolder(library: Library, folderId) {
-    withTransaction(library.db, () ref=> {
+    withTransaction(library.db, () -> {
         runStatement(library.db,
             "delete from playlist_tracks where playlist_id in (
                 select playlist_id from playlists where playlist_folder_id = ?
@@ -383,7 +383,7 @@ deleteLibraryFolder(library: Library, folderId) {
 }
 
 deleteLibraryPlaylist(library: Library, playlistId) {
-    withTransaction(library.db, () ref=> {
+    withTransaction(library.db, () -> {
         runStatement(library.db,
             "delete from playlist_tracks where playlist_id = ?",
             playlistId
@@ -396,7 +396,7 @@ deleteLibraryPlaylist(library: Library, playlistId) {
 }
 
 deleteLibraryPlaylistPositions(library: Library, playlistId, positions) {
-    withTransaction(library.db, () ref=> {
+    withTransaction(library.db, () -> {
         for (position in positions)
             runStatement(library.db,
                 "delete from playlist_tracks where playlist_id = ? and position = ?",
